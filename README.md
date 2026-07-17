@@ -25,7 +25,7 @@ Erstellung einer mobilen‑first Webseite, über die Nutzer*innen Reparaturen vo
 ## Technologischer Stack
 | Ebene | Entscheidung |
 |---|---|
-| Frontend | **React** (via Vite) – Mobile‑first, responsives Grid‑Layout, sehr modern |
+| Frontend | **Next.js** – Mobile‑first, responsives Grid‑Layout, sehr modern |
 | Styling | CSS Custom‑Properties (OKLCH) – an das **fab.labs** Design angelehnt, aber moderner und schicker | in einer design.md Datei werden die Farb‑ und Typografie‑Tokens definiert, die dann in der gesamten App/Coding‑Agents verwendet werden. |
 | Backend | **Supabase** (PostgreSQL + Auth) |
 | Hosting | **Vercel** (Server‑less Functions) – bevorzugt für Edge‑API & SSR |
@@ -36,21 +36,37 @@ Erstellung einer mobilen‑first Webseite, über die Nutzer*innen Reparaturen vo
 | Blog‑Generator | `next-mdx-remote` oder `vite-plugin-markdown` |
 | API‑Server | Supabase Edge‑Functions oder Vercel Serverless Functions |
 
-## Datenmodell (Beispiel)
+## Datenmodell
 ```json
 {
   "id": "uuid",
   "category": "Elektrogeräte | Haushaltsgeräte | Computer & Kommunikation | Fahrräder | Möbel | Textilien & Kleidung | Werkzeuge | Spielzeug & Freizeit | Sonstiges",
-  "title": "Kurzbeschreibung", // optional und von moderator*in editierbar
+  "Product": "Freitext", // optional und von moderator*in editierbar
+  "Kontext": "Professionell | DIY | Hobby | Schule | Universität | Arbeit | Repair-Cafe | Sonstiges", // optional und von moderator*in editierbar
   "description": "Freitext", // optional und von moderator*in editierbar
   "image_url": "https://…",
   "consent": true,
   "status": "pending | approved | rejected",
   "created_at": "timestamp",
-  "location": "NRW"
+  "location": "NRW",
+  "entry_time": "timestamp", // Zeitpunkt der Einreichung, für Statistik und Zeitfenster,
+  "entry_ip": "IP-Adresse", // optional, für Geo-Check und Bot-Schutz
+  "moderator_comment": "Freitext", // optional, nur für Moderator*innen sichtbar
+  "moderated_at": "timestamp", // optional, Zeitpunkt der Moderation
+  "exif": {
+    "make": "Hersteller",
+    "model": "Modell",
+    "orientation": "Orientierung",
+    "datetime": "Datum/Uhrzeit",
+    "gps": {
+      "lat": "Breitengrad",
+      "lng": "Längengrad"
+    }
+  }, // optional, nur für Bilder mit EXIF-Daten
+  "tags": ["tag1", "tag2"] // optional, Schlagworte für den Eintrag für Moderation und Statistik, z. B. "defekt", "repariert", "DIY",
 }
 ```
-Statistik‑Tabellen: Gesamte Zähler, Zähler pro Kategorie.
+Statistik‑Tabellen: Gesamte Zähler, Zähler pro Kategorie. Aggregation erfolgt in der Statistik‑API, nicht in der Datenbank. Die Datenbank speichert nur die Einträge.
 
 ## Architektur‑Übersicht
 - **Client** → Next.js
