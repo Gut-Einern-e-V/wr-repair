@@ -128,6 +128,7 @@ export default function Home() {
   const [captchaError, setCaptchaError] = useState("");
   const [campaign, setCampaign] = useState<CampaignStatus>({ status: "invalid", startAt: null });
   const friendlyCaptchaSiteKey = process.env.NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY;
+  const captchaEnabled = process.env.NEXT_PUBLIC_CAPTCHA_ENABLED !== "false";
   const animatedRepairCount = useAnimatedCounter(repairCount);
 
   useEffect(() => () => {
@@ -249,7 +250,7 @@ export default function Home() {
       return;
     }
 
-    if (!friendlyCaptchaSiteKey) {
+    if (captchaEnabled && !friendlyCaptchaSiteKey) {
       setSubmissionError("Der Spam-Schutz ist noch nicht konfiguriert.");
       return;
     }
@@ -284,12 +285,14 @@ export default function Home() {
     };
     const formData = new FormData(event.currentTarget);
     formData.set("image", uploadFile);
-    const captchaResponse = formData.get("frc-captcha-response");
-    if (typeof captchaResponse !== "string" || !captchaResponse) {
-      setIsSubmitting(false);
-      setUploadProgress(null);
-      setCaptchaError("Der Spam-Schutz wird noch vorbereitet. Bitte versuche es gleich erneut.");
-      return;
+    if (captchaEnabled) {
+      const captchaResponse = formData.get("frc-captcha-response");
+      if (typeof captchaResponse !== "string" || !captchaResponse) {
+        setIsSubmitting(false);
+        setUploadProgress(null);
+        setCaptchaError("Der Spam-Schutz wird noch vorbereitet. Bitte versuche es gleich erneut.");
+        return;
+      }
     }
     request.send(formData);
   }
@@ -459,7 +462,7 @@ export default function Home() {
                 <label className="repair-outcome"><input name="repair_succeeded" type="checkbox" value="false" /> <span>Die Reparatur ist leider nicht gelungen. Auch dieser Versuch zaehlt und darf eingereicht werden.</span></label>
                 <label className="consent"><input name="consent" type="checkbox" value="true" required /> <span>Ich bin einverstanden, dass mein Bild nach der Pruefung veroeffentlicht wird.</span></label>
                 <p className="geo-notice">Teilnahme ist nur aus Nordrhein-Westfalen moeglich. Der Standort wird beim Absenden ueber die Vercel-Regionserkennung geprueft; die IP-Adresse wird nicht gespeichert.</p>
-                {friendlyCaptchaSiteKey ? <div className="captcha-field"><FriendlyCaptcha sitekey={friendlyCaptchaSiteKey} onError={setCaptchaError} /><small>Der Spam-Schutz von Friendly Captcha wird vor dem Absenden automatisch vorbereitet.</small></div> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p>}
+                {captchaEnabled ? friendlyCaptchaSiteKey ? <div className="captcha-field"><FriendlyCaptcha sitekey={friendlyCaptchaSiteKey} onError={setCaptchaError} /><small>Der Spam-Schutz von Friendly Captcha wird vor dem Absenden automatisch vorbereitet.</small></div> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p> : <p className="form-notice" role="status">Der Spam-Schutz ist vorübergehend deaktiviert.</p>}
                 {captchaError && <p className="form-error" role="alert">{captchaError}</p>}
                 {uploadProgress !== null && <div className="upload-progress" aria-live="polite"><span>Bild wird hochgeladen: {uploadProgress} %</span><progress value={uploadProgress} max="100" /></div>}
                 {submissionError && <p className="form-error" role="alert">{submissionError}</p>}

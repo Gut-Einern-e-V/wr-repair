@@ -116,17 +116,19 @@ export async function POST(request: Request) {
     return errorResponse("Das Bild darf maximal 200 KB gross sein.", 400);
   }
 
-  if (typeof captchaToken !== "string" || !captchaToken) {
-    return errorResponse("Bitte bestaetige zuerst den Spam-Schutz.", 403);
-  }
+  if (process.env.NEXT_PUBLIC_CAPTCHA_ENABLED !== "false") {
+    if (typeof captchaToken !== "string" || !captchaToken) {
+      return errorResponse("Bitte bestaetige zuerst den Spam-Schutz.", 403);
+    }
 
-  const captcha = await verifyCaptcha(captchaToken);
-  if (!captcha.configured) {
-    return errorResponse("Der Spam-Schutz ist noch nicht konfiguriert.", 503);
-  }
+    const captcha = await verifyCaptcha(captchaToken);
+    if (!captcha.configured) {
+      return errorResponse("Der Spam-Schutz ist noch nicht konfiguriert.", 503);
+    }
 
-  if (!captcha.valid) {
-    return errorResponse("Der Spam-Schutz konnte nicht bestaetigt werden. Bitte versuche es erneut.", 403);
+    if (!captcha.valid) {
+      return errorResponse("Der Spam-Schutz konnte nicht bestaetigt werden. Bitte versuche es erneut.", 403);
+    }
   }
 
   let supabase;

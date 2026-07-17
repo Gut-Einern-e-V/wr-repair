@@ -114,3 +114,4 @@ Stand: 17. Juli 2026
 - [x] Mitmach-Ablauf mit drei klaren, farbigen Schritt-Kreisen gestaltet.
 - [x] Förderstreifen auf dunklen Hintergrund umgestellt und Logos auf hellen Flächen für ausreichenden Kontrast platziert.
 - [x] Unterstützer-Logoraster auf einheitlichen weißen Hintergrund umgestellt.
+- [x] Friendly Captcha kann über `NEXT_PUBLIC_CAPTCHA_ENABLED=false` vorübergehend deaktiviert werden. Standard ist weiterhin `true`; beim Bypass bleiben NRW-Geo-Prüfung, Upload-Rate-Limit und Moderation aktiv.

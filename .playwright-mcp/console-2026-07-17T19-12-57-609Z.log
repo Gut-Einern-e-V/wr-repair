@@ -1,0 +1,4 @@
+[  300296ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[  600301ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[  785934ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  785957ms] [LOG] [Fast Refresh] done in 71ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
