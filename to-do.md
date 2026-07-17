@@ -52,7 +52,7 @@ Stand: 17. Juli 2026
 - [x] Startseiten-Counter an die echte Statistik anbinden und Aktualisierung gestalten. Der Platzhalter wurde entfernt; `/api/stats` liefert den Wert, der bei Aktualisierung animiert wird. Lade-, Fehler- und Zeitstempelzustand sind sichtbar.
 - [x] Oeffentliche Galerie mit freigegebenen Bildern und Kategorien bauen.
 - [x] Statistikseite mit Kategorie- und Zeitverlauf erstellen. `/stats` zeigt ausschliesslich freigegebene Einreichungen nach Kategorie sowie die Freigaben der letzten 30 Tage.
-   - [] nur inheralb der Zeitfensters anzeigen also ein Monat vom start datum bis zum end datum. (z.B. 01.10.2026 bis 31.10.2026) und die Statistikseite nur innerhalb des Zeitfensters anzeigen.
+- [x] Oeffentliche Statistik nur innerhalb des konfigurierten Zeitfensters anzeigen: `/api/stats` sperrt ausserhalb von `SUBMISSION_START_AT` bis `SUBMISSION_END_AT` mit `403`; `/stats` zeigt dann einen klaren Hinweis statt Zahlen.
 
 ## Inhalte und Seiten
 
@@ -63,6 +63,7 @@ Stand: 17. Juli 2026
 - [x] Datenschutz, Impressum und Barrierefreiheit als echte, verlinkte Seiten erstellt. Die Impressums- und Datenschutzangaben muessen vor Launch rechtlich freigegeben werden.
 - [x] Texte in `lib/i18n.ts` zentralisiert und deutsche/englische Nachrichtenbasis fuer die weitere Internationalisierung angelegt.
 - [ ] Foerderhinweise fuer EFRE, NRW, Deutschland und EU rechtlich abgestimmt einpflegen. Die offiziellen FAB-/EU-/NRW-Logos sind lokal unter `public/funding/` eingebunden; verbindlicher Wortlaut und Platzierung warten auf Freigabe.
+- [] checke den assets ordner für die logos und binde es schick ein mit den richtigen links pro logo
 
 ## Qualitaet, Betrieb und Release
 

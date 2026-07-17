@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { verifyNorthrhineWestphalia } from "@/lib/geo";
 import { rateLimit } from "@/lib/rate-limit";
+import { isSubmissionWindowOpen } from "@/lib/submission-window";
 
 export const runtime = "nodejs";
 
@@ -26,18 +27,6 @@ const imageExtensions: Record<string, string> = {
 
 function errorResponse(message: string, status: number) {
   return Response.json({ error: message }, { status });
-}
-
-function isSubmissionWindowOpen() {
-  const startAt = new Date(process.env.SUBMISSION_START_AT ?? "");
-  const endAt = new Date(process.env.SUBMISSION_END_AT ?? "");
-
-  if (Number.isNaN(startAt.valueOf()) || Number.isNaN(endAt.valueOf()) || startAt >= endAt) {
-    return false;
-  }
-
-  const now = new Date();
-  return now >= startAt && now <= endAt;
 }
 
 async function verifyCaptcha(token: string) {
