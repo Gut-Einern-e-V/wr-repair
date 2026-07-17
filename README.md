@@ -41,8 +41,8 @@ Erstellung einer mobilen‑first Webseite, über die Nutzer*innen Reparaturen vo
 {
   "id": "uuid",
   "category": "Elektrogeräte | Haushaltsgeräte | Computer & Kommunikation | Fahrräder | Möbel | Textilien & Kleidung | Werkzeuge | Spielzeug & Freizeit | Sonstiges",
-  "title": "Kurzbeschreibung", // optional von moderator*in editierbar
-  "description": "Freitext", // optional von moderator*in editierbar
+  "title": "Kurzbeschreibung", // optional und von moderator*in editierbar
+  "description": "Freitext", // optional und von moderator*in editierbar
   "image_url": "https://…",
   "consent": true,
   "status": "pending | approved | rejected",
@@ -72,7 +72,7 @@ Statistik‑Tabellen: Gesamte Zähler, Zähler pro Kategorie.
 ## Sitetree
 - **Startseite**: Counter, Hinweis zum Wettbewerb, Button „Reparatur einreichen“
 - **Upload‑Formular**: Bild, Kategorie, Fragen, Zustimmung
-- **Moderations‑Dashboard**: Login, Liste der Einreichungen, Detailansicht
+- **Moderations‑Dashboard**: 1. Login, 2. Liste der Einreichungen, 3. Detailansicht von Einreichung mit editierfunktion
 - **Reparaturgeschichten** Blog‑Bereich: Markdown‑Posts, automatisch aus Git‑Repo gebaut
 - **Datenschutz** & **Impressum**: Statische Seiten, rechtlich notwendig (right to delete, right to access, etc. per GDPR und DSGVO und mail an uns)
 - **Statistik‑API**: JSON‑Endpoint `/api/stats` für ESP‑32 oder Ähnliches, aggregierte Zahlen (Gesamt, pro Kategorie)
@@ -108,4 +108,4 @@ Statistik‑Tabellen: Gesamte Zähler, Zähler pro Kategorie.
 ## Design
 - Fonts: Hack Mono (monospace) für Code, Inter (sans-serif) für Fließtext
 - Farbpalette: OKLCH‑basierte Custom Properties, angelehnt an fab.labs Design, aber moderner und schicker. In einer design.md Datei werden die Farb‑ und Typografie‑Tokens definiert, die dann in der gesamten App/Coding‑Agents verwendet werden.
-- moderne Designelemente, die zu 2026 passen, dribbble‑tauglich, bold und stylish wie zum beispiel, verläufe mit grain, luminanz‑variationen, subtile Schatten, neumorphismus‑ähnliche Buttons, micro‑interactions, hover‑effekte, smooth transitions, responsive grid layouts, card designs für die Einreichungen, minimalistische Icons, klare typografie‑hierarchie, whitespace nutzen für bessere lesbarkeit. mikro animationen für button klicks, form validation feedback, loading spinners, progress bars, subtle hover effects on images and cards, responsive typography scaling, dark mode support, accessibility considerations (contrast ratios, keyboard navigation), and a consistent visual language throughout the platform. aber auch nette kleine details wie der counter kann animiert werden, wenn eine neue einreichung freigegeben wird, oder ein kleines confetti animation bei der freigabe einer einreichung. die blog posts können mit einem schönen grid layout angezeigt werden, mit hover effekten auf den bildern, und einem klaren typografie layout für die texte. die moderations dashboard kann eine klare tabellarische ansicht haben, mit filtermöglichkeiten und sortierfunktionen. die statistik seite kann schöne diagramme und charts haben, die die daten visualisieren. insgesamt sollte das design modern, clean und ansprechend sein, um die nutzer*innen zu motivieren, teilzunehmen und einreichungen zu machen. Mach es "brutalistisch modern" und "dribbble‑tauglich", aber auch funktional und benutzerfreundlich. Es sollte keinesfalls aussehen wie ein KI-Startup!
+- moderne Designelemente, die zu 2026 passen, dribbble‑tauglich, bold und stylish wie zum beispiel, verläufe mit grain, luminanz‑variationen, subtile Schatten, neumorphismus‑ähnliche Buttons, micro‑interactions, hover‑effekte, smooth transitions, responsive grid layouts, card designs für die Einreichungen, minimalistische Icons, klare typografie‑hierarchie, whitespace nutzen für bessere lesbarkeit. mikro animationen für button klicks, form validation feedback, loading spinners, progress bars, subtle hover effects on images and cards, responsive typography scaling, dark mode support, accessibility considerations (contrast ratios, keyboard navigation), and a consistent visual language throughout the platform. aber auch nette kleine details wie der counter kann animiert werden, wenn eine neue einreichung freigegeben wird, oder ein kleines confetti animation bei der freigabe einer einreichung. die blog posts können mit einem schönen grid layout angezeigt werden, mit hover effekten auf den bildern, und einem klaren typografie layout für die texte. die moderations dashboard kann eine klare tabellarische ansicht haben, mit filtermöglichkeiten und sortierfunktionen. die statistik seite kann schöne diagramme und charts haben, die die daten visualisieren. insgesamt sollte das design modern, clean und ansprechend sein, um die nutzer*innen zu motivieren, teilzunehmen und einreichungen zu machen. Mach es "brutalistisch modern" und "dribbble‑tauglich", aber auch funktional und benutzerfreundlich. Es sollte keinesfalls aussehen wie ein KI-Startup! Harte Kanten und keine Schatten!
