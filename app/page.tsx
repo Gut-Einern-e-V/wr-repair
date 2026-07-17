@@ -1,6 +1,8 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import NextImage from "next/image";
+import Link from "next/link";
 import Script from "next/script";
 
 declare global {
@@ -286,16 +288,16 @@ export default function Home() {
   return (
     <main className="page-shell">
       <header className="site-header">
-        <a className="brand" href="#top" aria-label="Reparaturrekord NRW Startseite">
+        <Link className="brand" href="/" aria-label="Reparaturrekord NRW Startseite">
           <span className="brand-mark">R</span>
           <span>Reparaturrekord<br />NRW</span>
-        </a>
+        </Link>
         <nav aria-label="Hauptnavigation">
-          <a href="#geschichten">Geschichten</a>
-          <a href="#ueber-uns">Projekt</a>
-          <a href="#kontakt">Kontakt</a>
+          <Link href="/stories">Geschichten</Link>
+          <Link href="/about">Projekt</Link>
+          <Link href="/supporters">Unterstuetzer</Link>
         </nav>
-        <a className="header-link" href="#counter">Live-Stand</a>
+        <Link className="header-link" href="/stats">Live-Stand</Link>
       </header>
 
       <section id="top" className="hero-grid" aria-labelledby="hero-title">
@@ -364,7 +366,7 @@ export default function Home() {
             <p className="section-index">03 / Freigegebene Reparaturen</p>
             <h2 id="stories-title">Gegenstaende mit zweitem Kapitel.</h2>
           </div>
-          <button className="text-button" type="button" onClick={() => setIsFormOpen(true)}>Reparatur einreichen <span aria-hidden="true">&#8594;</span></button>
+          <Link className="text-button" href="/stories">Alle Geschichten <span aria-hidden="true">&#8594;</span></Link>
         </div>
         {galleryError ? <p className="gallery-empty" role="status">{galleryError}</p> : galleryRepairs.length === 0 ? <p className="gallery-empty">Die ersten freigegebenen Reparaturen erscheinen bald hier.</p> : <div className="story-grid">{galleryRepairs.map((repair) => <article className="story-card" key={repair.id}>{repair.imageUrl ? <>
           {/* Signed URLs from the private bucket cannot use Next.js image optimization. */}
@@ -375,13 +377,20 @@ export default function Home() {
 
       <section className="project-banner" id="ueber-uns">
         <p>Reparatur ist keine Ausnahme.<br />Sie ist Infrastruktur.</p>
-        <a className="button button-secondary" href="#kontakt">Ueber das Projekt <span aria-hidden="true">&#8594;</span></a>
+        <Link className="button button-secondary" href="/about">Ueber das Projekt <span aria-hidden="true">&#8594;</span></Link>
       </section>
 
-      <footer id="kontakt" className="site-footer">
+      <section className="funding-strip" aria-label="Projekt- und Foerderhinweise">
+        <p>Teil der FAB Region Bergisches Staedtedreieck</p>
+        <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer"><NextImage src="/funding/fab-region.svg" alt="FAB Region Bergisches Staedtedreieck" width={170} height={56} /></a>
+        <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer"><NextImage src="/funding/eu.svg" alt="Kofinanziert von der Europaeischen Union" width={130} height={56} /></a>
+        <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer"><NextImage src="/funding/nrw.svg" alt="Ministerium fuer Umwelt, Naturschutz und Verkehr des Landes Nordrhein-Westfalen" width={150} height={56} /></a>
+      </section>
+
+      <footer className="site-footer">
         <p><strong>Reparaturrekord NRW</strong><br />Ein Projekt der FAB Region Bergisches Land.</p>
-        <div><a href="#kontakt">Datenschutz</a><a href="#kontakt">Impressum</a><a href="#kontakt">Barrierefreiheit</a></div>
-        <p>Gefordert durch<br />EFRE · NRW · Europa</p>
+        <div><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link></div>
+        <p>Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
       </footer>
 
       {isFormOpen && (

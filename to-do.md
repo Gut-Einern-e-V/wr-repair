@@ -31,7 +31,7 @@ Stand: 17. Juli 2026
 - [x] NRW-Geo-Check serverseitig mit Vercels Laender- und Regionsheadern umsetzen. Es gibt keine externe Geo-IP-Anfrage und keine Speicherung der IP; bei Erfolg wird nur `Nordrhein-Westfalen` gespeichert. Unklare Zuordnungen werden sicher abgelehnt und geben einen VPN-/Proxy-Hinweis; lokal ist der Check nur mit `GEOIP_ALLOW_LOCAL=true` testbar.
 - [x] hCaptcha im Einreichungsdialog integrieren und das Token serverseitig vor jedem Upload validieren. Vor dem oeffentlichen Start muessen `NEXT_PUBLIC_HCAPTCHA_SITE_KEY` und `HCAPTCHA_SECRET` in Vercel gesetzt und die Domains bei hCaptcha freigegeben werden.
 - [x] Rate Limits fuer Upload- und Statistik-Endpunkte einrichten: 3 Einreichungsversuche je IP / 15 Minuten und 120 Statistikabfragen je IP / Minute. Die Begrenzung ist pro Serverinstanz; vor dem oeffentlichen Start ist ergaenzend ein plattformweites Vercel- oder Cloudflare-WAF-Limit erforderlich.
-- [ ] Datenschutzkonzept fuer IP-Adressen, Bilder, Loeschanfragen und Aufbewahrungsfristen dokumentieren.
+- [x] Datenschutzkonzept fuer IP-Adressen, Bilder, Loeschanfragen und Aufbewahrungsfristen dokumentieren: `docs/data-protection-concept.md` beschreibt Datenfluss, aktuelle technische Grenzen und die vor dem Start noch verbindlich zu entscheidenden Fristen.
 
 ## Moderation
 
@@ -43,7 +43,6 @@ Stand: 17. Juli 2026
 - [x] Bearbeiten von Metadaten umsetzen: Moderator*innen koennen Kategorie, Produktname, Beschreibung, Bildbeschreibung und Tags mit serverseitigen Grenzen bearbeiten.
 - [x] Oeffentliche Galerie ausschliesslich aus freigegebenen Einreichungen speisen. Die API fragt nur `approved` ab und liefert kurzlebige, signierte URLs aus dem privaten Bucket.
 - [x] CSV-Export fuer autorisierte Admins bereitstellen. Der Export ist auf `admin` und `superadmin` beschraenkt, wird nicht gecacht und neutralisiert Tabellenkalkulationsformeln in Textfeldern.
-- [ ] Optional: Benachrichtigungen fuer neue Einreichungen und automatisierte Bildvorpruefung evaluieren.
 
 ## Statistik und Oeffentlichkeit
 
@@ -52,17 +51,18 @@ Stand: 17. Juli 2026
 - [x] Caching fuer den Statistik-Endpunkt mit maximal fuenf Minuten Laufzeit einrichten.
 - [x] Startseiten-Counter an die echte Statistik anbinden und Aktualisierung gestalten. Der Platzhalter wurde entfernt; `/api/stats` liefert den Wert, der bei Aktualisierung animiert wird. Lade-, Fehler- und Zeitstempelzustand sind sichtbar.
 - [x] Oeffentliche Galerie mit freigegebenen Bildern und Kategorien bauen.
-- [ ] Statistikseite mit Kategorie- und Zeitverlauf erstellen.
+- [x] Statistikseite mit Kategorie- und Zeitverlauf erstellen. `/stats` zeigt ausschliesslich freigegebene Einreichungen nach Kategorie sowie die Freigaben der letzten 30 Tage.
+   - [] nur inheralb der Zeitfensters anzeigen also ein Monat vom start datum bis zum end datum. (z.B. 01.10.2026 bis 31.10.2026) und die Statistikseite nur innerhalb des Zeitfensters anzeigen.
 
 ## Inhalte und Seiten
 
-- [ ] Markdown/MDX-Pipeline fuer Reparaturgeschichten aus dem Git-Repository einrichten. (z.B. `docs/stories/` oder `content/stories/`). und auf der Startseite und in der Galerie verlinken. (z.B. `/stories` und `/stories/[slug]`)
-- [ ] Reparaturgeschichten-Uebersicht und einzelne Artikel-Seiten umsetzen. Bilder entweder aus datenbank oder in Github als assets speichern und auf der Startseite und in der Galerie verlinken.
-- [ ] Seite "Ueber das Projekt" mit Open-Source-, Lizenz- und Mitwirkenden-Hinweisen erstellen. (link zu GithHub-Repo und Readme.md entsprechend anpassen wenn jemand die Seite kopieren möchte für ein eigenen Weltrekordversuch. Aber auf Englisch)
-- [ ] Partnerschaftsseite mit Logos und Links erstellen. https://www.fab-bergisch.org/ lade hier die Logos herunter und verlinke auf die Partnerseiten. (z.B. Gut-Einern-e-V, CSCP, IAT und so weiter... in einem schönen Raster mit Hover-Effekt und Link auf die Partnerseite) gernne als eine Art "Unterstuetzer" Seite gestalten. (z.B. `/partners` oder `/supporters`) und auf der Startseite verlinken und logos in github als assets speichern
-- [ ] Datenschutz, Impressum und Barrierefreiheit als echte, verlinkte Seiten erstellen.
-- [ ] Texte in eine Uebersetzungsdatei auslagern und Internationalisierung vorbereiten.
-- [ ] Foerderhinweise fuer EFRE, NRW, Deutschland und EU rechtlich abgestimmt einpflegen. Förderlogos von https://www.fab-bergisch.org/ github assets herunterladen und auf der Startseite und verlinken.
+- [x] Markdown-Pipeline fuer Reparaturgeschichten aus dem Git-Repository eingerichtet: `content/stories/` wird durch `lib/stories.ts` eingelesen und statisch nach `/stories/[slug]` gebaut; die Startseite verlinkt auf die Uebersicht.
+- [x] Reparaturgeschichten-Uebersicht und einzelne Artikel-Seiten umgesetzt: `/stories` und `/stories/[slug]` zeigen drei versionierte Beispielgeschichten.
+- [x] Englische Seite "About the project" mit Open-Source-, Lizenz- und Mitwirkenden-Hinweisen erstellt; README fuer Wiederverwendung eines eigenen Weltrekordversuchs aktualisiert.
+- [x] Unterstuetzerseite `/supporters` mit lokal gespeicherten, offiziellen Partnerlogos, Hover-Raster und Partnerlinks erstellt; von der Startseite aus erreichbar.
+- [x] Datenschutz, Impressum und Barrierefreiheit als echte, verlinkte Seiten erstellt. Die Impressums- und Datenschutzangaben muessen vor Launch rechtlich freigegeben werden.
+- [x] Texte in `lib/i18n.ts` zentralisiert und deutsche/englische Nachrichtenbasis fuer die weitere Internationalisierung angelegt.
+- [ ] Foerderhinweise fuer EFRE, NRW, Deutschland und EU rechtlich abgestimmt einpflegen. Die offiziellen FAB-/EU-/NRW-Logos sind lokal unter `public/funding/` eingebunden; verbindlicher Wortlaut und Platzierung warten auf Freigabe.
 
 ## Qualitaet, Betrieb und Release
 
@@ -79,4 +79,4 @@ Stand: 17. Juli 2026
 - [ ] Falls der Aufruf außerhalb der erlaubten Zeitfenster erfolgt, eine freundliche Seite mit Countdown wann der Weltrekord startet. Gerne mit kleinen Text zum Projekt und dem Link zu den Partnern. (z.B. Fab-Region Bergisches Land, NRW, Deutschland, EU) mit einfach an und ausschalten im Adminbereich. (z.B. `SUBMISSION_START_AT` und `SUBMISSION_END_AT` in der `.env.local` Datei) damit man testen kann, ob die Seite korrekt angezeigt wird. (z.B. Countdown bis zum Start des Weltrekords)
 - [] Impressum nach https://www.fab-bergisch.org/impressum kopieren
 - [ ] Datenschutz nach https://www.fab-bergisch.org/datenschutz kopieren und entsprechend anpassen mit den Daten die wir in Supabase speichern. (z.B. IP-Adresse, E-Mail-Adresse, Name, Bild, Standort) und kontakt adresse für löschanfragen.
-- [] Startseite mit mehr Stats also vlt einen verlauf der Einreichungen pro Tag oder Woche, oder eine Karte mit den Standorten der Einreichungen. (z.B. Google Maps oder OpenStreetMap) auch pro kategorie wie viel eingereicht wurde. also einmal auf der startseite mehr daten und dann eine zusätzliche seite als eine Auswertungsseite mit Statistiken und Diagrammen. (z.B. Balkendiagramm, Liniendiagramm, Kreisdiagramm) und eine Karte mit den Standorten der Einreichungen. (z.B. Google Maps oder OpenStreetMap)
+- [] Startseite mit mehr Stats also vlt einen verlauf der Einreichungen pro Tag oder Woche, oder eine Karte mit den Standorten der Einreichungen. (z.B. Google Maps oder OpenStreetMap) auch pro kategorie wie viel eingereicht wurde. also einmal auf der startseite mehr daten und dann eine zusätzliche seite als eine Auswertungsseite mit Statistiken und Diagrammen. (z.B. Balkendiagramm, Liniendiagramm, Kreisdiagramm) und eine Karte mit den Standorten der Einreichungen. (z.B. Google Maps oder OpenStreetMap) (datenschutzseite anpassen in data-protocction-concept.md eintragen)

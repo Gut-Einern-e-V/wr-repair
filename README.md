@@ -1,34 +1,59 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Repair Record NRW
 
-## Getting Started
+Repair Record NRW is an open-source platform for collecting, moderating and publishing repair stories during a public repair campaign. It is built with Next.js, Supabase and Vercel.
 
-First, run the development server:
+The application accepts a repair description and a privacy-sanitised image, places every entry in a moderation queue, and shows only approved entries in public statistics and the gallery.
+
+## Run locally
+
+Use Node.js 20.9 or later.
 
 ```bash
+npm install
+copy .env.example .env.local
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Configure the Supabase and hCaptcha values described in `.env.example` before testing real submissions. The application intentionally blocks public submissions until hCaptcha is configured.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Content
 
-## Learn More
+Repair stories are versioned Markdown files in `content/stories/`. Each story requires this frontmatter:
 
-To learn more about Next.js, take a look at the following resources:
+```md
+---
+title: A short, descriptive title
+summary: One-sentence introduction
+category: Repair category
+date: 2026-10-01
+readingTime: 3 min
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Opening paragraph.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Section heading
 
-## Deploy on Vercel
+Further text.
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Stories are statically generated at `/stories/[slug]` during the production build. Add a new `.md` file, then run `npm run build` to verify its route.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Reuse this project
+
+This repository is meant to be adaptable for other repair campaigns. Before deploying a copy, replace all campaign dates, responsible organisation details, legal pages, data retention rules, support contacts, branding and partner/funding references.
+
+Do not copy the production secrets, Supabase project, hCaptcha keys or administrator accounts. Create a separate Supabase project and apply the migrations in `supabase/migrations/` for each deployment.
+
+The technical privacy data flow and outstanding legal decisions are recorded in `docs/data-protection-concept.md`. Deployment setup is described in `docs/vercel-deployment.md`.
+
+## Quality checks
+
+```bash
+npx tsc --noEmit
+npm run lint
+npm run build
+```
+
+## License
+
+See [LICENSE](LICENSE).

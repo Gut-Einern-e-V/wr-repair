@@ -1,0 +1,15 @@
+import Link from "next/link";
+import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+
+export const metadata = { title: "Datenschutz | Reparaturrekord NRW" };
+
+export default function PrivacyPage() {
+  return <main className="page-shell content-page"><SiteHeader /><article className="legal-page">
+    <p className="eyebrow">Datenschutz</p><h1>Deine Daten bleiben so klein wie moeglich.</h1>
+    <section><h2>Verantwortliche Stelle und Kontakt</h2><p>Gut Einern e.V., Einern 120, 42279 Wuppertal. Anliegen zu Auskunft, Berichtigung oder Loeschung koennen an <a href="mailto:mail@gut-einern.org">mail@gut-einern.org</a> gerichtet werden. Vor einem oeffentlichen Start muessen Kontaktweg und Zustaendigkeit rechtlich bestaetigt werden.</p></section>
+    <section><h2>Einreichungen und Bilder</h2><p>Das Formular verarbeitet Kategorie, Beschreibung, Antworten, Reparaturerfolg, Veroeffentlichungszustimmung und das eingereichte Bild. Es fragt keinen Namen und keine E-Mail-Adresse der einreichenden Person ab. Bilder werden im Browser neu gerendert; dadurch werden EXIF- und GPS-Metadaten vor dem Upload entfernt.</p><p>Bilder liegen in einem privaten Supabase-Storage-Bucket. Nur freigegebene Einreichungen mit Zustimmung werden oeffentlich gezeigt. Der Zugriff erfolgt ueber kurzlebige signierte URLs.</p></section>
+    <section><h2>IP-Adresse, Regionscheck und Schutz vor Missbrauch</h2><p>Die Anwendung verarbeitet die Request-IP nur kurzzeitig in einem prozesslokalen Rate Limit. Sie wird nicht in der Reparaturdatenbank gespeichert. Fuer die Teilnahmepruefung werden Vercel-Header verwendet; gespeichert wird bei erfolgreicher Zuordnung nur die grobe Region Nordrhein-Westfalen.</p><p>Zur Abwehr automatisierter Einreichungen wird hCaptcha eingesetzt. Das Token wird serverseitig an hCaptcha geprueft und nicht in der Datenbank gespeichert.</p></section>
+    <section><h2>Speicherdauer und Loeschung</h2><p>Abgelehnte Bilder werden aus dem Storage geloescht. Freigegebene Beitraege bleiben bis zu einer manuellen Loeschung gespeichert. Verbindliche Loeschfristen und ein automatisierter Loeschprozess werden vor dem Start rechtlich und technisch festgelegt.</p><p>Der technische Datenfluss, offene Fristen und die notwendigen Launch-Pruefungen sind im <Link href="https://github.com/Gut-Einern-e-V/wr-repair/blob/main/docs/data-protection-concept.md" target="_blank" rel="noreferrer">Datenschutzkonzept</Link> dokumentiert.</p></section>
+    <section><h2>Dienstleister</h2><p>Vercel hostet die Anwendung und liefert Regionsheader. Supabase stellt Authentifizierung, Datenbank und privaten Storage bereit. hCaptcha prueft Bot-Tokens. Auftragsverarbeitung, Regionen und Rechtsgrundlagen dieser Dienste muessen vor dem oeffentlichen Start geprueft werden.</p></section>
+  </article><SiteFooter /></main>;
+}
