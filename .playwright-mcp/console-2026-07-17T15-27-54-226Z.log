@@ -14,3 +14,16 @@
 [  437804ms] [LOG] [Fast Refresh] done in 11ms @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
 [  461168ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
 [  461309ms] [LOG] [Fast Refresh] done in 247ms @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  807543ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  807618ms] [LOG] [Fast Refresh] done in 166ms @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  807724ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  807763ms] [LOG] [Fast Refresh] done in 144ms @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  807935ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  807973ms] [LOG] [Fast Refresh] done in 140ms @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  851795ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  851808ms] [LOG] [Fast Refresh] done in 93ms @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  852095ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/login?_rsc=06zRUfsMSCGZeM4t:0
+[  852132ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  852442ms] [LOG] [Fast Refresh] done in 421ms @ http://localhost:3001/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[  852487ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/login:0
+[ 1701945ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:3001/login:0

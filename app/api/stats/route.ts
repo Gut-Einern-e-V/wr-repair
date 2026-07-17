@@ -1,8 +1,17 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { rateLimit } from "@/lib/rate-limit";
 
 const PAGE_SIZE = 1_000;
 
-export async function GET() {
+export async function GET(request: Request) {
+  const limit = rateLimit(request, "repair-stats", { limit: 120, windowMs: 60 * 1_000 });
+  if (!limit.allowed) {
+    return Response.json(
+      { error: "Zu viele Statistikabfragen. Bitte versuche es gleich erneut." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+    );
+  }
+
   let supabase;
   try {
     supabase = createSupabaseAdminClient();

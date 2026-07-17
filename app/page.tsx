@@ -1,6 +1,19 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import Script from "next/script";
+
+declare global {
+  interface Window {
+    hcaptcha?: {
+      render: (container: HTMLElement, options: {
+        sitekey: string;
+        callback: (token: string) => void;
+        "expired-callback": () => void;
+      }) => number;
+    };
+  }
+}
 
 const categories = [
   { label: "Elektrogeraete", value: "electrical_appliances" },
@@ -12,12 +25,6 @@ const categories = [
   { label: "Werkzeuge", value: "tools" },
   { label: "Spielzeug & Freizeit", value: "toys_and_leisure" },
   { label: "Sonstiges", value: "other" },
-];
-
-const stories = [
-  { category: "Elektrogeraete", title: "Die Kaffeemaschine brueht wieder.", tag: "Repair-Cafe Wuppertal" },
-  { category: "Fahrraeder", title: "Aus acht Jahren Stillstand wird eine neue Tour.", tag: "DIY in Remscheid" },
-  { category: "Textilien & Kleidung", title: "Ein Lieblingsmantel bleibt in der Familie.", tag: "Schule Solingen" },
 ];
 
 const categoryQuestions: Record<string, { id: string; label: string; options: string[] }[]> = {
@@ -34,6 +41,16 @@ const categoryQuestions: Record<string, { id: string; label: string; options: st
 
 const MAX_IMAGE_BYTES = 200 * 1024;
 const compressibleImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+const categoryLabels = new Map(categories.map((category) => [category.value, category.label]));
+
+type GalleryRepair = {
+  id: string;
+  category: string;
+  productName: string | null;
+  description: string | null;
+  imageAltText: string | null;
+  imageUrl: string | null;
+};
 
 function createCompressedImage(file: File): Promise<File> {
   return new Promise((resolve, reject) => {
@@ -99,7 +116,16 @@ export default function Home() {
   const [compressionMessage, setCompressionMessage] = useState("");
   const [isCompressing, setIsCompressing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [repairCount, setRepairCount] = useState(1287);
+  const [repairCount, setRepairCount] = useState<number | null>(null);
+  const [statsState, setStatsState] = useState<"loading" | "ready" | "unavailable">("loading");
+  const [statsUpdatedAt, setStatsUpdatedAt] = useState<Date | null>(null);
+  const [galleryRepairs, setGalleryRepairs] = useState<GalleryRepair[]>([]);
+  const [galleryError, setGalleryError] = useState("");
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [captchaError, setCaptchaError] = useState("");
+  const captchaContainer = useRef<HTMLDivElement>(null);
+  const captchaWidgetId = useRef<number | null>(null);
+  const captchaSiteKey = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY;
   const activeQuestions = categoryQuestions[category] ?? [];
 
   useEffect(() => () => {
@@ -110,18 +136,39 @@ export default function Home() {
 
   useEffect(() => {
     async function loadRepairCount() {
-      const response = await fetch("/api/stats");
-      if (!response.ok) {
-        return;
-      }
+      try {
+        const response = await fetch("/api/stats");
+        if (!response.ok) {
+          throw new Error("Statistik nicht verfuegbar");
+        }
 
-      const stats = await response.json() as { total: number };
-      setRepairCount(stats.total);
+        const stats = await response.json() as { total: number };
+        setRepairCount(stats.total);
+        setStatsState("ready");
+        setStatsUpdatedAt(new Date());
+      } catch {
+        setStatsState("unavailable");
+      }
     }
 
     void loadRepairCount();
     const interval = window.setInterval(() => void loadRepairCount(), 300_000);
     return () => window.clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    async function loadGallery() {
+      const response = await fetch("/api/gallery");
+      if (!response.ok) {
+        setGalleryError("Die Galerie wird gerade vorbereitet.");
+        return;
+      }
+
+      const data = await response.json() as { repairs: GalleryRepair[] };
+      setGalleryRepairs(data.repairs);
+    }
+
+    void loadGallery();
   }, []);
 
   async function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
@@ -164,9 +211,41 @@ export default function Home() {
     }
   }
 
+  function renderCaptcha() {
+    if (!captchaSiteKey || !captchaContainer.current || captchaWidgetId.current !== null || !window.hcaptcha) {
+      return;
+    }
+
+    captchaWidgetId.current = window.hcaptcha.render(captchaContainer.current, {
+      sitekey: captchaSiteKey,
+      callback: (token) => {
+        setCaptchaToken(token);
+        setCaptchaError("");
+      },
+      "expired-callback": () => setCaptchaToken(""),
+    });
+  }
+
+  function closeSubmission() {
+    captchaWidgetId.current = null;
+    setCaptchaToken("");
+    setCaptchaError("");
+    setIsFormOpen(false);
+  }
+
   function submitRepair(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (fileError || !uploadFile || isCompressing) {
+      return;
+    }
+
+    if (!captchaSiteKey) {
+      setSubmissionError("Der Spam-Schutz ist noch nicht konfiguriert.");
+      return;
+    }
+
+    if (!captchaToken) {
+      setCaptchaError("Bitte bestaetige zuerst, dass du kein Bot bist.");
       return;
     }
 
@@ -200,6 +279,7 @@ export default function Home() {
     };
     const formData = new FormData(event.currentTarget);
     formData.set("image", uploadFile);
+    formData.set("h-captcha-response", captchaToken);
     request.send(formData);
   }
 
@@ -232,13 +312,13 @@ export default function Home() {
 
         <div className="counter-panel" id="counter">
           <p className="counter-label">Freigegebene Reparaturen</p>
-          <p className="counter-number" aria-label={`${repairCount} freigegebene Reparaturen`}>{repairCount.toLocaleString("de-DE")}</p>
+          <p className={`counter-number ${repairCount === null ? "is-loading" : ""}`} key={repairCount ?? "loading"} aria-live="polite" aria-label={repairCount === null ? "Freigegebene Reparaturen werden geladen" : `${repairCount} freigegebene Reparaturen`}>{repairCount === null ? "..." : repairCount.toLocaleString("de-DE")}</p>
           <div className="counter-meta">
             <span>Unser Ziel: 10.000</span>
-            <span>{(repairCount / 10_000 * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
+            <span>{((repairCount ?? 0) / 10_000 * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
           </div>
-          <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min(repairCount / 100, 100)}%` }} /></div>
-          <p className="counter-note">Jede Reparatur zaehlt. Auch wenn sie nicht gelungen ist.</p>
+          <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / 100, 100)}%` }} /></div>
+          <p className="counter-note">{statsState === "unavailable" ? "Der Live-Stand ist gerade nicht verfuegbar." : statsUpdatedAt ? `Aktualisiert um ${statsUpdatedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.` : "Live-Stand wird geladen."}</p>
         </div>
 
         <aside className="hero-stamp" aria-label="Weltrekordversuch NRW">
@@ -281,21 +361,16 @@ export default function Home() {
       <section className="stories-section" id="geschichten" aria-labelledby="stories-title">
         <div className="section-heading">
           <div>
-            <p className="section-index">03 / Reparaturgeschichten</p>
+            <p className="section-index">03 / Freigegebene Reparaturen</p>
             <h2 id="stories-title">Gegenstaende mit zweitem Kapitel.</h2>
           </div>
-          <a className="text-button" href="#kontakt">Alle Geschichten <span aria-hidden="true">&#8594;</span></a>
+          <button className="text-button" type="button" onClick={() => setIsFormOpen(true)}>Reparatur einreichen <span aria-hidden="true">&#8594;</span></button>
         </div>
-        <div className="story-grid">
-          {stories.map((story, index) => (
-            <article className={`story-card story-${index + 1}`} key={story.title}>
-              <div className="story-art" aria-hidden="true"><span>{index === 0 ? "KM" : index === 1 ? "RAD" : "TXT"}</span></div>
-              <p>{story.tag}</p>
-              <h3>{story.title}</h3>
-              <a href="#kontakt" aria-label={`${story.title} lesen`}>Lesen <span aria-hidden="true">&#8594;</span></a>
-            </article>
-          ))}
-        </div>
+        {galleryError ? <p className="gallery-empty" role="status">{galleryError}</p> : galleryRepairs.length === 0 ? <p className="gallery-empty">Die ersten freigegebenen Reparaturen erscheinen bald hier.</p> : <div className="story-grid">{galleryRepairs.map((repair) => <article className="story-card" key={repair.id}>{repair.imageUrl ? <>
+          {/* Signed URLs from the private bucket cannot use Next.js image optimization. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="gallery-image" src={repair.imageUrl} alt={repair.imageAltText || `Reparatur aus der Kategorie ${categoryLabels.get(repair.category) ?? "Sonstiges"}`} />
+        </> : <div className="missing-gallery-image">Bild nicht verfuegbar</div>}<p>{categoryLabels.get(repair.category) ?? "Sonstiges"}</p><h3>{repair.productName || "Reparatur aus NRW"}</h3><span className="gallery-description">{repair.description || "Diese Reparatur wurde fuer den Rekord freigegeben."}</span></article>)}</div>}
       </section>
 
       <section className="project-banner" id="ueber-uns">
@@ -310,15 +385,16 @@ export default function Home() {
       </footer>
 
       {isFormOpen && (
-        <div className="modal-backdrop" role="presentation" onMouseDown={() => setIsFormOpen(false)}>
+        <div className="modal-backdrop" role="presentation" onMouseDown={closeSubmission}>
           <section className="submission-panel" role="dialog" aria-modal="true" aria-labelledby="submission-title" onMouseDown={(event) => event.stopPropagation()}>
-            <button className="icon-button" type="button" aria-label="Formular schliessen" onClick={() => setIsFormOpen(false)}>&times;</button>
+            {captchaSiteKey && <Script src="https://js.hcaptcha.com/1/api.js?render=explicit" strategy="afterInteractive" onReady={renderCaptcha} onError={() => setSubmissionError("Der Spam-Schutz konnte nicht geladen werden.")} />}
+            <button className="icon-button" type="button" aria-label="Formular schliessen" onClick={closeSubmission}>&times;</button>
             {isSubmitted ? (
               <div className="success-state">
                 <p className="section-index">Eingereicht</p>
                 <h2>Danke. Deine Reparatur wartet auf die Pruefung.</h2>
                 <p>Nach der Moderation zaehlt sie zum Rekord.</p>
-                <button className="button button-primary" type="button" onClick={() => { setIsSubmitted(false); setIsFormOpen(false); }}>Fertig</button>
+                <button className="button button-primary" type="button" onClick={() => { setIsSubmitted(false); closeSubmission(); }}>Fertig</button>
               </div>
             ) : (
               <form onSubmit={submitRepair}>
@@ -354,6 +430,9 @@ export default function Home() {
                 {fileError && <p className="form-error" role="alert">{fileError}</p>}
                 <label className="repair-outcome"><input name="repair_succeeded" type="checkbox" value="false" /> <span>Die Reparatur ist leider nicht gelungen. Auch dieser Versuch zaehlt und darf eingereicht werden.</span></label>
                 <label className="consent"><input name="consent" type="checkbox" value="true" required /> <span>Ich bin einverstanden, dass mein Bild nach der Pruefung veroeffentlicht wird.</span></label>
+                <p className="geo-notice">Teilnahme ist nur aus Nordrhein-Westfalen moeglich. Der Standort wird beim Absenden ueber die Vercel-Regionserkennung geprueft; die IP-Adresse wird nicht gespeichert.</p>
+                {captchaSiteKey ? <div className="captcha-field"><div ref={captchaContainer} /><small>Der Spam-Schutz von hCaptcha wird erst beim Absenden geprueft.</small></div> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p>}
+                {captchaError && <p className="form-error" role="alert">{captchaError}</p>}
                 {uploadProgress !== null && <div className="upload-progress" aria-live="polite"><span>Bild wird hochgeladen: {uploadProgress} %</span><progress value={uploadProgress} max="100" /></div>}
                 {submissionError && <p className="form-error" role="alert">{submissionError}</p>}
                 <button className="button button-primary" type="submit" disabled={isSubmitting || isCompressing || Boolean(fileError)}>{isSubmitting ? "Wird gesendet ..." : "Zur Pruefung einreichen"} <span aria-hidden="true">&#8594;</span></button>

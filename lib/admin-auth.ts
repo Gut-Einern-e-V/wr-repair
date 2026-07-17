@@ -38,6 +38,20 @@ export async function requireModerator() {
   return { authorized: true as const, currentAdmin };
 }
 
+export async function requireAdmin() {
+  const currentAdmin = await getCurrentAdmin();
+
+  if (!currentAdmin) {
+    return { authorized: false as const, error: "Nicht angemeldet.", status: 401 };
+  }
+
+  if (!currentAdmin.roles.some((role) => ["admin", "superadmin"].includes(role))) {
+    return { authorized: false as const, error: "Nur Admins duerfen Daten exportieren.", status: 403 };
+  }
+
+  return { authorized: true as const, currentAdmin };
+}
+
 export async function requireSuperadmin() {
   const currentAdmin = await getCurrentAdmin();
 

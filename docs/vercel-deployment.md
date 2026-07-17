@@ -24,8 +24,7 @@ Copy `.env.example` to `.env.local` for local work. `.env.local` is intentionall
 | `HCAPTCHA_SECRET` | Secret | Preview, Production | Matching hCaptcha secret. Use the matching test secret locally. |
 | `SUBMISSION_START_AT` | Secret | Preview, Production | Start of the validated participation window in ISO 8601 with timezone. |
 | `SUBMISSION_END_AT` | Secret | Preview, Production | End of the validated participation window in ISO 8601 with timezone. |
-| `GEOIP_API_URL` | Secret | Preview, Production | Chosen GDPR-reviewed server-side geo lookup endpoint. |
-| `GEOIP_API_TOKEN` | Secret | Preview, Production | Credential for the chosen geo provider, if required. |
+| `GEOIP_ALLOW_LOCAL` | Secret | Development only | Set to `true` only for local testing when Vercel geo headers are unavailable. Never set this in Preview or Production. |
 | `ALLOWED_ORIGINS` | Secret | Development, Preview, Production | Comma-separated allowed website origins for future API CORS checks. |
 
 Do not set a `NODE_ENV` variable in Vercel. Next.js supplies `production` for builds and runtime automatically.
@@ -38,10 +37,12 @@ Do not set a `NODE_ENV` variable in Vercel. Next.js supplies `production` for bu
 - Keep the `repair-images` bucket private. The planned Next.js API uses the service-role key after validation; browsers must not receive this key.
 - In Supabase Authentication, add the local URL, the Vercel preview domain pattern and the production domain to the allowed redirect URLs before adding moderator login.
 
-### hCaptcha and geo lookup
+### hCaptcha and NRW region check
 
 - Register all preview and production hostnames with hCaptcha before enabling the upload endpoint.
-- Select and document a GDPR-reviewed geo provider before adding its token. The UI may deploy without this provider, but the public submission endpoint must remain disabled until the NRW check is implemented.
+- The upload endpoint accepts only requests with Vercel headers `x-vercel-ip-country=DE` and `x-vercel-ip-country-region=NW`. It does not call a separate geo provider and does not store an IP address; successful entries store only the regional label `Nordrhein-Westfalen`.
+- Requests with an unknown or inaccurate geo assignment are rejected with a VPN/proxy hint. This is deliberately fail-closed so that all accepted entries meet the participation rule.
+- Use `GEOIP_ALLOW_LOCAL=true` only in `.env.local` while testing locally. This override is limited to `NODE_ENV=development` and must not be configured in Vercel.
 
 ## Deployment checks
 

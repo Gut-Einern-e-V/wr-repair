@@ -1,4 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { verifyNorthrhineWestphalia } from "@/lib/geo";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -38,9 +40,47 @@ function isSubmissionWindowOpen() {
   return now >= startAt && now <= endAt;
 }
 
+async function verifyCaptcha(token: string) {
+  const secret = process.env.HCAPTCHA_SECRET;
+  if (!secret) {
+    return { valid: false, configured: false };
+  }
+
+  try {
+    const response = await fetch("https://hcaptcha.com/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({ secret, response: token }),
+      cache: "no-store",
+    });
+    const result = await response.json() as { success?: boolean };
+    return { valid: result.success === true, configured: true };
+  } catch {
+    return { valid: false, configured: true };
+  }
+}
+
 export async function POST(request: Request) {
   if (!isSubmissionWindowOpen()) {
     return errorResponse("Einreichungen sind derzeit nicht geoeffnet.", 403);
+  }
+
+  const geoCheck = verifyNorthrhineWestphalia(request);
+  if (!geoCheck.allowed) {
+    return errorResponse(
+      geoCheck.reason === "outside-nrw"
+        ? "Einreichungen sind nur aus Nordrhein-Westfalen moeglich."
+        : "Dein Standort konnte nicht eindeutig Nordrhein-Westfalen zugeordnet werden. Bitte deaktiviere VPN oder Proxy und versuche es erneut.",
+      403,
+    );
+  }
+
+  const limit = rateLimit(request, "repair-submission", { limit: 3, windowMs: 15 * 60 * 1_000 });
+  if (!limit.allowed) {
+    return Response.json(
+      { error: "Zu viele Einreichungsversuche. Bitte versuche es spaeter erneut." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+    );
   }
 
   const formData = await request.formData();
@@ -48,6 +88,7 @@ export async function POST(request: Request) {
   const description = formData.get("description");
   const consent = formData.get("consent");
   const image = formData.get("image");
+  const captchaToken = formData.get("h-captcha-response");
   const repairSucceeded = formData.get("repair_succeeded") !== "false";
   const answers = Object.fromEntries(
     [...formData.entries()]
@@ -82,6 +123,19 @@ export async function POST(request: Request) {
     return errorResponse("Das Bild darf maximal 200 KB gross sein.", 400);
   }
 
+  if (typeof captchaToken !== "string" || !captchaToken) {
+    return errorResponse("Bitte bestaetige zuerst den Spam-Schutz.", 403);
+  }
+
+  const captcha = await verifyCaptcha(captchaToken);
+  if (!captcha.configured) {
+    return errorResponse("Der Spam-Schutz ist noch nicht konfiguriert.", 503);
+  }
+
+  if (!captcha.valid) {
+    return errorResponse("Der Spam-Schutz konnte nicht bestaetigt werden. Bitte versuche es erneut.", 403);
+  }
+
   let supabase;
   try {
     supabase = createSupabaseAdminClient();
@@ -107,6 +161,7 @@ export async function POST(request: Request) {
     repair_succeeded: repairSucceeded,
     image_path: imagePath,
     consent_publication: true,
+    location_region: geoCheck.region,
     status: "pending",
   });
 

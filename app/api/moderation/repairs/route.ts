@@ -17,7 +17,7 @@ export async function GET(request: Request) {
   const supabase = createSupabaseAdminClient();
   const { data: repairs, error } = await supabase
     .from("repairs")
-    .select("id, category, product_name, context, description, repair_succeeded, image_path, consent_publication, status, location_region, moderator_comment, created_at, entry_time")
+    .select("id, category, product_name, context, description, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time")
     .eq("status", status)
     .order("entry_time", { ascending: true })
     .limit(100);
