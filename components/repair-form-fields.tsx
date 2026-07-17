@@ -25,8 +25,8 @@ export function RepairFormFields({ category, onChange, includeQuestions = true, 
 
   return <>
     <RepairCategorySelect category={category} onChange={onChange} label={label} />
-    {includeQuestions && questions.map((question) => <label key={question.id}>{question.label}
-      <select name={`answer_${question.id}`} required>
+    {includeQuestions && questions.map((question) => <label key={question.id}>{question.label} <small>(optional)</small>
+      <select name={`answer_${question.id}`}>
         <option value="">Bitte waehlen</option>
         {question.options.map((option) => <option key={option} value={option}>{option}</option>)}
       </select>

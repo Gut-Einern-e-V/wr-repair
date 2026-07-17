@@ -13,13 +13,16 @@ const links = [
 export function MobileNavigation() {
   const [isOpen, setIsOpen] = useState(false);
 
-  return <div className="mobile-navigation">
+  return <div className={`mobile-navigation ${isOpen ? "is-open" : ""}`}>
     <button className="mobile-nav-toggle" type="button" aria-expanded={isOpen} aria-controls="mobile-navigation-panel" onClick={() => setIsOpen((open) => !open)}>
       <span className="sr-only">{isOpen ? "Menue schliessen" : "Menue oeffnen"}</span>
       <i aria-hidden="true" /><i aria-hidden="true" /><i aria-hidden="true" />
     </button>
-    {isOpen && <nav className="mobile-nav-panel" id="mobile-navigation-panel" aria-label="Mobile Hauptnavigation">
-      {links.map(([href, label]) => <Link href={href} key={href} onClick={() => setIsOpen(false)}>{label}</Link>)}
-    </nav>}
+    {isOpen && <>
+      <button className="mobile-nav-backdrop" type="button" aria-label="Menue schliessen" onClick={() => setIsOpen(false)} />
+      <nav className="mobile-nav-panel" id="mobile-navigation-panel" aria-label="Mobile Hauptnavigation">
+        {links.map(([href, label]) => <Link href={href} key={href} onClick={() => setIsOpen(false)}>{label}</Link>)}
+      </nav>
+    </>}
   </div>;
 }

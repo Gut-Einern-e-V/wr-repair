@@ -105,3 +105,12 @@ Stand: 17. Juli 2026
 - [x] Projektseite mit klickbarem Unterstützer-Logoraster, Kontakt-CTA für weitere Unterstützer und Projektbeschreibung ausgebaut.
 - [x] Projektseite um eine responsive Werkstatt-Hero-Illustration, Ziele, Mitwirkungsmöglichkeiten und einen transparenten Rekordnachweis-Hinweis erweitert. Eine konkrete England-Rekordzahl wird nicht genannt, weil die frühere Guinness-Record-Seite aktuell 404 liefert; vor dem Start ist der gültige Wert über Guinness World Records verbindlich zu prüfen.
 - [x] Externen Repair-Café-Finder von Repair Café International im Mitmachbereich verlinkt. Der Finder ist international, nicht spezifisch auf NRW beschränkt.
+
+## extra to-dos
+- [x] Spam-Schutz geprüft: Es gibt keinen zusätzlichen Inhalts-Spamfilter. Friendly Captcha v2 wird vor jeder Einreichung serverseitig validiert. Der verbleibende Upload-Rate-Limiter schützt nur vor wiederholtem Missbrauch und bleibt aktiv.
+- [x] Einreichungsdialog im Viewport zentriert, auf Desktop und Mobilansicht.
+- [x] Kategoriebezogene Zusatzfragen als optionale Angaben umgesetzt; Kategorie, Reparaturbeschreibung, Bild und Veröffentlichungszustimmung bleiben die erforderlichen Angaben.
+- [x] Mobile Navigation mit gleich hohen Links, passender Inhaltsgröße und abdunkelndem, schließbarem Backdrop ergänzt.
+- [x] Mitmach-Ablauf mit drei klaren, farbigen Schritt-Kreisen gestaltet.
+- [x] Förderstreifen auf dunklen Hintergrund umgestellt und Logos auf hellen Flächen für ausreichenden Kontrast platziert.
+- [x] Unterstützer-Logoraster auf einheitlichen weißen Hintergrund umgestellt.

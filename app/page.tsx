@@ -352,9 +352,9 @@ export default function Home() {
           <h2 id="how-title">Ein Foto. Ein paar Fragen. Ein Zeichen für Reparatur.</h2>
         </div>
         <ol className="steps">
-          <li><p>Foto deiner Reparatur aufnehmen.</p></li>
-          <li><p>Gerät und Reparatur kurz beschreiben.</p></li>
-          <li><p>Nach Prüfung wird dein Beitrag gezählt.</p></li>
+          <li><span className="step-number" aria-hidden="true">01</span><p>Foto deiner Reparatur aufnehmen.</p></li>
+          <li><span className="step-number" aria-hidden="true">02</span><p>Gerät und Reparatur kurz beschreiben.</p></li>
+          <li><span className="step-number" aria-hidden="true">03</span><p>Nach Prüfung wird dein Beitrag gezählt.</p></li>
         </ol>
       </section>
 
