@@ -1,6 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
-import { getSubmissionWindowStatus } from "@/lib/submission-window";
+import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
 
 const PAGE_SIZE = 1_000;
 const TIMELINE_DAYS = 30;
@@ -17,8 +17,7 @@ function getBerlinDate(value: Date) {
 }
 
 export async function GET(request: Request) {
-  const windowStatus = getSubmissionWindowStatus();
-  if (windowStatus !== "open") {
+  if ((await getConfiguredSubmissionWindow()).status !== "open") {
     return Response.json(
       { error: "Die oeffentliche Statistik ist nur waehrend des Weltrekordversuchs verfuegbar.", code: "outside-campaign-window" },
       { status: 403, headers: { "Cache-Control": "no-store" } },

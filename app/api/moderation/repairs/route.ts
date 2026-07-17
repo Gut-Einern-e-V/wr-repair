@@ -1,4 +1,5 @@
 import { requireModerator } from "@/lib/admin-auth";
+import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const statuses = new Set(["pending", "approved", "rejected"]);
@@ -7,6 +8,10 @@ export async function GET(request: Request) {
   const authorization = await requireModerator();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
+  }
+
+  if (!authorization.currentAdmin.roles.includes("superadmin") && (await getConfiguredSubmissionWindow()).status !== "open") {
+    return Response.json({ error: "Moderation ist nur waehrend des Einreichungszeitraums moeglich." }, { status: 403 });
   }
 
   const status = new URL(request.url).searchParams.get("status") ?? "pending";

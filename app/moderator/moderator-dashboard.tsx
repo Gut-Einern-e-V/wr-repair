@@ -7,6 +7,8 @@ import { repairCategoryValues as repairCategories } from "@/lib/repair-catalog";
 type Role = "moderator" | "admin" | "superadmin";
 type ManagedUser = { id: string; email: string; displayName: string | null; roles: Role[]; createdAt: string };
 type RepairStatus = "pending" | "approved" | "rejected";
+type CampaignSettings = { startAt: string | null; endAt: string | null };
+type ManagedPartner = { id: string; name: string; website_url: string; logo_path: string | null; sort_order: number };
 type ModerationRepair = {
   id: string;
   category: string;
@@ -24,6 +26,13 @@ type ModerationRepair = {
 };
 
 const roleLabels: Record<Role, string> = { moderator: "Moderation", admin: "Admin", superadmin: "Superadmin" };
+function formatDateTimeLocal(value: string | null) {
+  if (!value) return "";
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset() * 60_000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+}
+
 export default function ModeratorDashboard({ email, roles }: { email: string; roles: Role[] }) {
   const isSuperadmin = roles.includes("superadmin");
   const isAdmin = roles.some((role) => ["admin", "superadmin"].includes(role));
@@ -33,6 +42,8 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
   const [isLoadingRepairs, setIsLoadingRepairs] = useState(true);
   const [comments, setComments] = useState<Record<string, string>>({});
   const [metadataDrafts, setMetadataDrafts] = useState<Record<string, { category: string; productName: string; description: string; imageAltText: string; tags: string }>>({});
+  const [campaignSettings, setCampaignSettings] = useState<CampaignSettings>({ startAt: null, endAt: null });
+  const [partners, setPartners] = useState<ManagedPartner[]>([]);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
 
@@ -118,6 +129,32 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
 
     return () => { cancelled = true; };
   }, [isSuperadmin]);
+
+  useEffect(() => {
+    if (!isSuperadmin) return;
+    void fetch("/api/admin/campaign")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Zeitraum konnte nicht geladen werden.");
+        return response.json() as Promise<CampaignSettings>;
+      })
+      .then(setCampaignSettings)
+      .catch((loadError: Error) => setError(loadError.message));
+  }, [isSuperadmin]);
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    void loadPartners();
+  }, [isAdmin]);
+
+  async function loadPartners() {
+    const response = await fetch("/api/admin/partners");
+    const data = await response.json() as { partners?: ManagedPartner[]; error?: string };
+    if (!response.ok) {
+      setError(data.error ?? "Partner konnten nicht geladen werden.");
+      return;
+    }
+    setPartners(data.partners ?? []);
+  }
 
   async function updateRepair(repairId: string, nextStatus: "approved" | "rejected") {
     setStatus("");
@@ -219,6 +256,53 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
     await loadUsers();
   }
 
+  async function saveCampaign(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus("");
+    setError("");
+    const formData = new FormData(event.currentTarget);
+    const response = await fetch("/api/admin/campaign", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ startAt: new Date(String(formData.get("startAt"))).toISOString(), endAt: new Date(String(formData.get("endAt"))).toISOString() }),
+    });
+    const data = await response.json() as { error?: string };
+    if (!response.ok) {
+      setError(data.error ?? "Der Zeitraum konnte nicht gespeichert werden.");
+      return;
+    }
+    setStatus("Der Teilnahmezeitraum wurde aktualisiert.");
+  }
+
+  async function createPartner(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus("");
+    setError("");
+    const form = event.currentTarget;
+    const response = await fetch("/api/admin/partners", { method: "POST", body: new FormData(form) });
+    const data = await response.json() as { error?: string };
+    if (!response.ok) {
+      setError(data.error ?? "Partner konnte nicht gespeichert werden.");
+      return;
+    }
+    form.reset();
+    setStatus("Partner wurde hinzugefuegt.");
+    await loadPartners();
+  }
+
+  async function deletePartner(id: string) {
+    setStatus("");
+    setError("");
+    const response = await fetch(`/api/admin/partners?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+    const data = await response.json() as { error?: string };
+    if (!response.ok) {
+      setError(data.error ?? "Partner konnte nicht entfernt werden.");
+      return;
+    }
+    setStatus("Partner wurde entfernt.");
+    await loadPartners();
+  }
+
   async function signOut() {
     await fetch("/api/auth/signout", { method: "POST" });
     window.location.assign("/login");
@@ -251,6 +335,27 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
           {users.map((managedUser) => <div className="user-row" key={managedUser.id}><div><strong>{managedUser.displayName ?? "Ohne Namen"}</strong><span>{managedUser.email}</span></div><select aria-label={`Rolle von ${managedUser.email}`} value={managedUser.roles[0] ?? "moderator"} onChange={(event) => void updateRole(managedUser.id, event.target.value as Role)}><option value="moderator">Moderation</option><option value="admin">Admin</option><option value="superadmin">Superadmin</option></select></div>)}
         </div>
       </section>}
+      {isSuperadmin && <section className="user-management" aria-labelledby="campaign-heading">
+        <div className="section-heading"><div><p className="section-index">Kampagne</p><h2 id="campaign-heading">Teilnahmezeitraum</h2></div></div>
+        <form className="campaign-form" onSubmit={saveCampaign}>
+          <label>Beginn<input name="startAt" type="datetime-local" required value={formatDateTimeLocal(campaignSettings.startAt)} onChange={(event) => setCampaignSettings({ ...campaignSettings, startAt: event.target.value ? new Date(event.target.value).toISOString() : null })} /></label>
+          <label>Ende<input name="endAt" type="datetime-local" required value={formatDateTimeLocal(campaignSettings.endAt)} onChange={(event) => setCampaignSettings({ ...campaignSettings, endAt: event.target.value ? new Date(event.target.value).toISOString() : null })} /></label>
+          <button className="button button-primary" type="submit">Zeitraum speichern</button>
+        </form>
+        <p className="form-notice">Außerhalb dieses Zeitraums können Moderator*innen keine Einreichungen bearbeiten. Superadmins behalten den Zugriff für die Administration.</p>
+      </section>}
+      {isAdmin && <section className="user-management" aria-labelledby="partners-heading">
+        <div className="section-heading"><div><p className="section-index">Partner</p><h2 id="partners-heading">Weitere Einrichtungen</h2></div></div>
+        <form className="partner-form" onSubmit={createPartner}>
+          <label>Name<input name="name" maxLength={120} required /></label>
+          <label>Website<input name="websiteUrl" type="url" placeholder="https://" required /></label>
+          <label>Logo<input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" required /><small>Transparentes PNG, WebP oder SVG, maximal 1 MB.</small></label>
+          <button className="button button-primary" type="submit">Partner hinzufügen</button>
+        </form>
+        <div className="partner-admin-list">{partners.map((partner) => <div key={partner.id}><span>{partner.name}</span><button className="text-button" type="button" onClick={() => void deletePartner(partner.id)}>Entfernen</button></div>)}</div>
+      </section>}
+      {status && <p className="moderator-feedback form-notice" role="status">{status}</p>}
+      {error && <p className="moderator-feedback form-error" role="alert">{error}</p>}
     </main>
   );
 }

@@ -82,3 +82,16 @@ Stand: 17. Juli 2026
 - [x] Datenschutzseite mit einer eigenstaendigen, an der FAB-Struktur orientierten Darstellung der tatsaechlich verarbeiteten Daten, Dienstleister, Loeschkontakte und Rechte erweitert. Verantwortlichkeit, Rechtsgrundlage, AVV und Fristen bleiben vor Launch rechtlich zu bestaetigen.
 - [x] Startseite um eine datensparsame Statistikvorschau nach Kategorie ergaenzt; `/stats` liefert weiterhin Kategorie- und 30-Tage-Verlauf. Eine Standortkarte wird bewusst nicht umgesetzt, weil nur die grobe Region Nordrhein-Westfalen gespeichert wird. Das Datenschutzkonzept dokumentiert diese Grenze.
 - [x] Gemeinsamen Reparaturkatalog und wiederverwendbare Kategorie-/Fragefelder in `lib/repair-catalog.ts` und `components/repair-form-fields.tsx` zentralisiert. Die Moderation bearbeitet Einreichungen bereits inline und kann sie ohne Seitenwechsel freigeben oder ablehnen.
+
+## Kür, also überprüfung und verbesserungen des jetzigen standes
+- [x] Partnerlogos erscheinen als einheitliches, logo-zentriertes Raster ohne sichtbare Namen. Der Partnername ist über Hover, Fokus und Tooltip erreichbar; dynamische Logos können transparent als PNG, WebP oder SVG hochgeladen werden.
+- [x] Superadmins können den Teilnahmezeitraum im Moderationsbereich einstellen. Moderator*innen und Admins erhalten außerhalb des Zeitraums serverseitig keinen Moderationszugriff; Superadmins behalten den Verwaltungszugriff.
+- [x] Admins und Superadmins können weitere Einrichtungen mit Name, Website und Logo im Moderationsbereich anlegen oder entfernen. Die Datenbasis liegt in der neuen Migration `202607170007_campaign_and_partners.sql` und muss vor dem produktiven Einsatz mit `npx supabase@latest db push` ausgerollt werden.
+- [x] Hover-Effekte für Buttons, Kategorie- und Partnerkacheln bleiben innerhalb ihrer Begrenzung; das Raster verschiebt sich nicht mehr über Linien hinweg.
+- [x] Kategorien auf der Startseite sind kompakter und zeigen die echte Zahl freigegebener Reparaturen je Kategorie.
+- [x] Der Live-Zähler zählt bei jeder bestätigten Fünf-Minuten-Aktualisierung animiert vom vorherigen zum neuen Wert. Zwischenstände werden nicht künstlich erfunden.
+- [x] Freigegebene Einreichungen erscheinen als kompaktes Mini-Bildraster. Fehlt eine Bild-URL, wird ein datensparsamer Platzhalter in einer Kategorievariation gezeigt.
+- [x] Dekorative Abschnittsnummern in Hauptablauf und Projektseite durch aussagekräftige Beschriftungen ersetzt.
+- [x] Prominente öffentliche Texte, Kategorien, Navigation und Projektseite auf echte deutsche Umlaute umgestellt; technische IDs und Pfade bleiben ASCII.
+- [x] Projektseite vollständig auf Deutsch übersetzt.
+- [x] Retro-Idle-Animation mit pixelartigen Punkten im Hero-Zähler ergänzt; die Animation respektiert `prefers-reduced-motion`.

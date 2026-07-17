@@ -1,6 +1,6 @@
 export const messages = {
   de: {
-    navigation: { stories: "Geschichten", project: "Projekt", supporters: "Unterstuetzer", live: "Live-Stand" },
+    navigation: { stories: "Geschichten", project: "Projekt", supporters: "Unterstützer", live: "Live-Stand" },
     footer: { privacy: "Datenschutz", imprint: "Impressum", accessibility: "Barrierefreiheit" },
   },
   en: {

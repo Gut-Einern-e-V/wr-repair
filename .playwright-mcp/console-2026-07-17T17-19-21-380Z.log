@@ -9,3 +9,49 @@
 [  900217ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
 [ 1200188ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
 [ 1500173ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[ 1800146ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[ 2100132ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[ 2400121ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[ 2550852ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2550988ms] [LOG] [Fast Refresh] done in 201ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2573989ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2573994ms] [LOG] [Fast Refresh] done in 81ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2574342ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2574462ms] [LOG] [Fast Refresh] done in 222ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2577143ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2577148ms] [LOG] [Fast Refresh] done in 82ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2577413ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2577414ms] [LOG] [Fast Refresh] done in 103ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2577520ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2577530ms] [LOG] [Fast Refresh] done in 111ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2577639ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2577651ms] [LOG] [Fast Refresh] done in 116ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2578040ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2578070ms] [LOG] [Fast Refresh] done in 130ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2589617ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2589621ms] [LOG] [Fast Refresh] done in 80ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2589628ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2589664ms] [LOG] [Fast Refresh] done in 42ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2589919ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2589987ms] [LOG] [Fast Refresh] done in 172ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2590163ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2590164ms] [LOG] [Fast Refresh] done in 102ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2662095ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2662127ms] [LOG] [Fast Refresh] done in 16ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2688294ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2688433ms] [LOG] [Fast Refresh] done in 167ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2700154ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[ 2704749ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2704768ms] [LOG] [Fast Refresh] done in 68ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2726930ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2727005ms] [LOG] [Fast Refresh] done in 77ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2727058ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[ 2727122ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2727140ms] [ERROR] Failed to load resource: the server responded with a status of 503 (Service Unavailable) @ http://localhost:3002/api/gallery:0
+[ 2727147ms] [LOG] [Fast Refresh] done in 140ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2736258ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2736288ms] [LOG] [Fast Refresh] done in 10ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2760173ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2760287ms] [LOG] [Fast Refresh] done in 104ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2779237ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2779259ms] [LOG] [Fast Refresh] done in 60ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477

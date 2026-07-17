@@ -1,4 +1,5 @@
 import { requireModerator } from "@/lib/admin-auth";
+import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const statuses = new Set(["approved", "rejected"]);
@@ -30,6 +31,10 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
   const authorization = await requireModerator();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
+  }
+
+  if (!authorization.currentAdmin.roles.includes("superadmin") && (await getConfiguredSubmissionWindow()).status !== "open") {
+    return Response.json({ error: "Moderation ist nur waehrend des Einreichungszeitraums moeglich." }, { status: 403 });
   }
 
   const { repairId } = await context.params;

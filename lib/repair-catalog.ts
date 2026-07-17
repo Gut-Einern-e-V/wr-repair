@@ -1,9 +1,9 @@
 export const repairCategories = [
-  { label: "Elektrogeraete", value: "electrical_appliances" },
-  { label: "Haushaltsgeraete", value: "household_appliances" },
+  { label: "Elektrogeräte", value: "electrical_appliances" },
+  { label: "Haushaltsgeräte", value: "household_appliances" },
   { label: "Computer & Kommunikation", value: "computers_and_communication" },
-  { label: "Fahrraeder", value: "bicycles" },
-  { label: "Moebel", value: "furniture" },
+  { label: "Fahrräder", value: "bicycles" },
+  { label: "Möbel", value: "furniture" },
   { label: "Textilien & Kleidung", value: "textiles_and_clothing" },
   { label: "Werkzeuge", value: "tools" },
   { label: "Spielzeug & Freizeit", value: "toys_and_leisure" },

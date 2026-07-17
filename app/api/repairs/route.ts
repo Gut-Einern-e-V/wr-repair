@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { verifyNorthrhineWestphalia } from "@/lib/geo";
 import { rateLimit } from "@/lib/rate-limit";
-import { isSubmissionWindowOpen } from "@/lib/submission-window";
+import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
 
 export const runtime = "nodejs";
 
@@ -54,7 +54,7 @@ async function verifyCaptcha(token: string) {
 }
 
 export async function POST(request: Request) {
-  if (!isSubmissionWindowOpen()) {
+  if ((await getConfiguredSubmissionWindow()).status !== "open") {
     return errorResponse("Einreichungen sind derzeit nicht geoeffnet.", 403);
   }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
 import { CampaignWindowNotice } from "@/components/campaign-window-notice";
@@ -42,7 +42,7 @@ function createCompressedImage(file: File): Promise<File> {
       const context = canvas.getContext("2d");
 
       if (!context) {
-        reject(new Error("Bildkomprimierung ist in diesem Browser nicht verfuegbar."));
+        reject(new Error("Bildkomprimierung ist in diesem Browser nicht verfügbar."));
         return;
       }
 
@@ -71,7 +71,7 @@ function createCompressedImage(file: File): Promise<File> {
         longestSide = Math.round(longestSide * 0.78);
       }
 
-      reject(new Error("Das Bild konnte nicht klein genug komprimiert werden. Bitte waehle ein anderes Bild."));
+      reject(new Error("Das Bild konnte nicht klein genug komprimiert werden. Bitte wähle ein anderes Bild."));
     };
 
     image.onerror = () => {
@@ -81,6 +81,30 @@ function createCompressedImage(file: File): Promise<File> {
 
     image.src = sourceUrl;
   });
+}
+
+function useAnimatedCounter(value: number | null) {
+  const [displayValue, setDisplayValue] = useState<number | null>(value);
+  const previousValue = useRef(value ?? 0);
+
+  useEffect(() => {
+    if (value === null) return;
+    const startValue = previousValue.current;
+    const startedAt = performance.now();
+    const duration = 900;
+    let frame = 0;
+    const animate = (now: number) => {
+      const progress = Math.min((now - startedAt) / duration, 1);
+      const eased = 1 - (1 - progress) ** 3;
+      setDisplayValue(Math.round(startValue + (value - startValue) * eased));
+      if (progress < 1) frame = requestAnimationFrame(animate);
+      else previousValue.current = value;
+    };
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [value]);
+
+  return displayValue;
 }
 
 export default function Home() {
@@ -104,6 +128,7 @@ export default function Home() {
   const [captchaError, setCaptchaError] = useState("");
   const [campaign, setCampaign] = useState<CampaignStatus>({ status: "invalid", startAt: null });
   const friendlyCaptchaSiteKey = process.env.NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY;
+  const animatedRepairCount = useAnimatedCounter(repairCount);
 
   useEffect(() => () => {
     if (previewUrl) {
@@ -180,7 +205,7 @@ export default function Home() {
     }
 
     if (!compressibleImageTypes.has(file.type)) {
-      setFileError("Bitte waehle ein JPG, PNG oder WebP. Dieses Format kann nicht datenschutzsicher verarbeitet werden.");
+      setFileError("Bitte wähle ein JPG, PNG oder WebP. Dieses Format kann nicht datenschutzsicher verarbeitet werden.");
       setPreviewUrl("");
       event.target.value = "";
       return;
@@ -255,7 +280,7 @@ export default function Home() {
     request.onerror = () => {
       setIsSubmitting(false);
       setUploadProgress(null);
-      setSubmissionError("Netzwerkfehler. Bitte pruefe deine Verbindung und versuche es erneut.");
+      setSubmissionError("Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.");
     };
     const formData = new FormData(event.currentTarget);
     formData.set("image", uploadFile);
@@ -283,7 +308,7 @@ export default function Home() {
         <nav aria-label="Hauptnavigation">
           <Link href="/stories">Geschichten</Link>
           <Link href="/about">Projekt</Link>
-          <Link href="/supporters">Unterstuetzer</Link>
+          <Link href="/supporters">Unterstützer</Link>
         </nav>
         <Link className="header-link" href="/stats">Live-Stand</Link>
         <MobileNavigation />
@@ -292,7 +317,7 @@ export default function Home() {
       <section id="top" className="hero-grid" aria-labelledby="hero-title">
         <div className="hero-copy">
           <p className="eyebrow">FAB Region Bergisches Land · Oktober 2026</p>
-          <h1 id="hero-title">Reparieren.<br /><span>Zaehlen.</span><br />Rekord machen.</h1>
+          <h1 id="hero-title">Reparieren.<br /><span>Zählen.</span><br />Rekord machen.</h1>
           <p className="hero-intro">
             Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.
           </p>
@@ -303,13 +328,14 @@ export default function Home() {
 
         <div className="counter-panel" id="counter">
           <p className="counter-label">Freigegebene Reparaturen</p>
-          <p className={`counter-number ${repairCount === null ? "is-loading" : ""}`} key={repairCount ?? "loading"} aria-live="polite" aria-label={repairCount === null ? "Freigegebene Reparaturen werden geladen" : `${repairCount} freigegebene Reparaturen`}>{repairCount === null ? "..." : repairCount.toLocaleString("de-DE")}</p>
+          <div className="counter-sparks" aria-hidden="true">{Array.from({ length: 12 }, (_, index) => <i key={index} />)}</div>
+          <p className={`counter-number ${animatedRepairCount === null ? "is-loading" : ""}`} aria-live="polite" aria-label={animatedRepairCount === null ? "Freigegebene Reparaturen werden geladen" : `${animatedRepairCount} freigegebene Reparaturen`}>{animatedRepairCount === null ? "..." : animatedRepairCount.toLocaleString("de-DE")}</p>
           <div className="counter-meta">
             <span>Unser Ziel: 10.000</span>
             <span>{((repairCount ?? 0) / 10_000 * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
           </div>
           <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / 100, 100)}%` }} /></div>
-          <p className="counter-note">{statsState === "unavailable" ? "Der Live-Stand ist gerade nicht verfuegbar." : statsUpdatedAt ? `Aktualisiert um ${statsUpdatedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.` : "Live-Stand wird geladen."}</p>
+          <p className="counter-note">{statsState === "unavailable" ? "Der Live-Stand ist gerade nicht verfügbar." : statsUpdatedAt ? `Aktualisiert um ${statsUpdatedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.` : "Live-Stand wird geladen."}</p>
         </div>
 
         <aside className="hero-stamp" aria-label="Weltrekordversuch NRW">
@@ -322,25 +348,25 @@ export default function Home() {
 
       <section className="how-it-works" aria-labelledby="how-title">
         <div>
-          <p className="section-index">01 / Mitmachen</p>
-          <h2 id="how-title">Ein Foto. Ein paar Fragen. Ein Zeichen fuer Reparatur.</h2>
+          <p className="section-index">Mitmachen</p>
+          <h2 id="how-title">Ein Foto. Ein paar Fragen. Ein Zeichen für Reparatur.</h2>
         </div>
         <ol className="steps">
-          <li><span>01</span><p>Foto deiner Reparatur aufnehmen.</p></li>
-          <li><span>02</span><p>Gerat und Reparatur kurz beschreiben.</p></li>
-          <li><span>03</span><p>Nach Pruefung wird dein Beitrag gezaehlt.</p></li>
+          <li><p>Foto deiner Reparatur aufnehmen.</p></li>
+          <li><p>Gerät und Reparatur kurz beschreiben.</p></li>
+          <li><p>Nach Prüfung wird dein Beitrag gezählt.</p></li>
         </ol>
       </section>
 
       <section className="home-stats-preview" aria-labelledby="home-stats-title">
-        <div><p className="section-index">Live-Auswertung</p><h2 id="home-stats-title">Was gerade repariert wird.</h2><p>Die Auswertung zeigt ausschliesslich freigegebene Einreichungen. Aus Datenschutzgruenden werden keine Orte auf einer Karte dargestellt.</p><Link className="text-button" href="/stats">Alle Statistiken <span aria-hidden="true">&#8594;</span></Link></div>
-        <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? "Die Statistik wird waehrend des Weltrekordversuchs freigeschaltet." : "Die ersten freigegebenen Reparaturen erscheinen hier."}</li>}</ol>
+        <div><p className="section-index">Live-Auswertung</p><h2 id="home-stats-title">Was gerade repariert wird.</h2><p>Die Auswertung zeigt ausschließlich freigegebene Einreichungen. Aus Datenschutzgründen werden keine Orte auf einer Karte dargestellt.</p><Link className="text-button" href="/stats">Alle Statistiken <span aria-hidden="true">&#8594;</span></Link></div>
+        <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? "Die Statistik wird während des Weltrekordversuchs freigeschaltet." : "Die ersten freigegebenen Reparaturen erscheinen hier."}</li>}</ol>
       </section>
 
       <section className="category-section" aria-labelledby="category-title">
         <div className="section-heading">
           <div>
-            <p className="section-index">02 / Alles bleibt</p>
+            <p className="section-index">Kategorien</p>
             <h2 id="category-title">Was hast du wieder in Bewegung gebracht?</h2>
           </div>
           <button className="text-button" type="button" onClick={() => startSubmission()}>{campaign.status === "open" ? "Jetzt einreichen" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span></button>
@@ -348,7 +374,7 @@ export default function Home() {
         <div className="category-grid">
           {repairCategories.map((item, index) => (
             <button className={`category-card category-${index + 1}`} type="button" key={item.value} onClick={() => startSubmission(item.value)}>
-              <span>0{index + 1}</span>
+              <span>{(repairStats?.categories[item.value] ?? 0).toLocaleString("de-DE")} Reparaturen</span>
               <strong>{item.label}</strong>
               <i aria-hidden="true">&#8599;</i>
             </button>
@@ -359,16 +385,16 @@ export default function Home() {
       <section className="stories-section" id="geschichten" aria-labelledby="stories-title">
         <div className="section-heading">
           <div>
-            <p className="section-index">03 / Freigegebene Reparaturen</p>
+            <p className="section-index">Freigegebene Reparaturen</p>
             <h2 id="stories-title">Gegenstaende mit zweitem Kapitel.</h2>
           </div>
           <Link className="text-button" href="/stories">Alle Geschichten <span aria-hidden="true">&#8594;</span></Link>
         </div>
-        {galleryError ? <p className="gallery-empty" role="status">{galleryError}</p> : galleryRepairs.length === 0 ? <p className="gallery-empty">Die ersten freigegebenen Reparaturen erscheinen bald hier.</p> : <div className="story-grid">{galleryRepairs.map((repair) => <article className="story-card" key={repair.id}>{repair.imageUrl ? <>
+        {galleryError ? <p className="gallery-empty" role="status">{galleryError}</p> : galleryRepairs.length === 0 ? <p className="gallery-empty">Die ersten freigegebenen Reparaturen erscheinen bald hier.</p> : <div className="gallery-mini-grid">{galleryRepairs.map((repair) => { const categoryIndex = Math.max(repairCategories.findIndex((categoryItem) => categoryItem.value === repair.category), 0) + 1; return <article className="gallery-mini-card" key={repair.id}>{repair.imageUrl ? <>
           {/* Signed URLs from the private bucket cannot use Next.js image optimization. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="gallery-image" src={repair.imageUrl} alt={repair.imageAltText || `Reparatur aus der Kategorie ${repairCategoryLabel(repair.category)}`} />
-        </> : <div className="missing-gallery-image">Bild nicht verfuegbar</div>}<p>{repairCategoryLabel(repair.category)}</p><h3>{repair.productName || "Reparatur aus NRW"}</h3><span className="gallery-description">{repair.description || "Diese Reparatur wurde fuer den Rekord freigegeben."}</span></article>)}</div>}
+          <img src={repair.imageUrl} alt={repair.imageAltText || `Reparatur aus der Kategorie ${repairCategoryLabel(repair.category)}`} />
+        </> : <div className={`gallery-placeholder category-${categoryIndex}`} aria-label={`Kein Bild: ${repairCategoryLabel(repair.category)}`} /> }<div><span>{repairCategoryLabel(repair.category)}</span><strong>{repair.productName || "Reparatur aus NRW"}</strong></div></article>; })}</div>}
       </section>
 
       <section className="project-banner" id="ueber-uns">

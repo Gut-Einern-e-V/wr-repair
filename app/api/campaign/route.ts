@@ -1,9 +1,9 @@
-import { getSubmissionWindow } from "@/lib/submission-window";
+import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
 
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  const campaign = getSubmissionWindow();
+export async function GET() {
+  const campaign = await getConfiguredSubmissionWindow();
 
   return Response.json(
     {
