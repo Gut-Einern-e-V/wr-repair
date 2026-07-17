@@ -14,16 +14,16 @@ Stand: 17. Juli 2026
 
 ## Naechster Meilenstein: Echte Einreichungen
 
-- [ ] Supabase-Umgebungsvariablen lokal und bei Vercel konfigurieren.
-- [ ] Datenbankschema fuer `repairs` anlegen, inklusive Status, Kategorien, Moderationsdaten und Zeitstempeln.
-- [ ] Row Level Security (RLS) und Rollen fuer oeffentliche Einreichungen, Moderator*innen und Admins definieren.
-- [ ] Supabase-Storage-Bucket fuer Reparaturbilder anlegen und Zugriffsregeln setzen.
+- [ ] Supabase-Umgebungsvariablen lokal und bei Vercel konfigurieren. Vorlage: `.env.example`; genaue Vercel-Schritte: `docs/vercel-deployment.md`.
+- [x] Datenbankschema fuer `repairs` anlegen, inklusive Status, Kategorien, Moderationsdaten und Zeitstempeln.
+- [x] Row Level Security (RLS) und Rollen fuer oeffentliche Einreichungen, Moderator*innen und Admins definieren.
+- [x] Privaten Supabase-Storage-Bucket fuer Reparaturbilder definieren; serverseitige Upload-API und Zugriffsregeln folgen.
 - [ ] Upload-API implementieren: Dateityp und maximale Dateigroesse von 5 MB serverseitig pruefen.
 - [ ] Bildvorschau, Upload-Fortschritt und Fehleranzeige im Formular ergaenzen.
 - [ ] Einreichung als `pending` in Supabase speichern statt nur den lokalen Erfolgszustand zu zeigen.
 - [ ] Dynamischen Fragekatalog je Kategorie definieren und speichern.
 - [ ] UI-Option fuer gescheiterte Reparaturen mit Hinweis umsetzen.
-- [ ] EXIF-Daten und GPS-Informationen vor der Speicherung sicher entfernen oder die Verarbeitung datenschutzrechtlich festlegen.
+- [ ] EXIF-Daten und GPS-Informationen vor der Speicherung sicher entfernen oder die Verarbeitung datenschutzrechtlich festlegen (per Checkbox opt-in).
 
 ## Schutz und Teilnahmebedingungen
 
