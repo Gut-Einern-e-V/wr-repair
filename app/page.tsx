@@ -1,49 +1,16 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
-import Script from "next/script";
-
-declare global {
-  interface Window {
-    hcaptcha?: {
-      render: (container: HTMLElement, options: {
-        sitekey: string;
-        callback: (token: string) => void;
-        "expired-callback": () => void;
-      }) => number;
-    };
-  }
-}
-
-const categories = [
-  { label: "Elektrogeraete", value: "electrical_appliances" },
-  { label: "Haushaltsgeraete", value: "household_appliances" },
-  { label: "Computer & Kommunikation", value: "computers_and_communication" },
-  { label: "Fahrraeder", value: "bicycles" },
-  { label: "Moebel", value: "furniture" },
-  { label: "Textilien & Kleidung", value: "textiles_and_clothing" },
-  { label: "Werkzeuge", value: "tools" },
-  { label: "Spielzeug & Freizeit", value: "toys_and_leisure" },
-  { label: "Sonstiges", value: "other" },
-];
-
-const categoryQuestions: Record<string, { id: string; label: string; options: string[] }[]> = {
-  electrical_appliances: [{ id: "device", label: "Was fuer ein Elektrogeraet?", options: ["Kleingeraet", "Audio oder Video", "Lampe", "Anderes"] }],
-  household_appliances: [{ id: "device", label: "Welches Haushaltsgeraet?", options: ["Kueche", "Waschen", "Reinigen", "Anderes"] }],
-  computers_and_communication: [{ id: "device", label: "Welches Geraet?", options: ["Computer", "Smartphone", "Netzwerk", "Anderes"] }],
-  bicycles: [{ id: "repair", label: "Was wurde repariert?", options: ["Bremse", "Antrieb", "Reifen", "Anderes"] }],
-  furniture: [{ id: "material", label: "Woraus besteht das Moebel?", options: ["Holz", "Metall", "Kunststoff", "Anderes"] }],
-  textiles_and_clothing: [{ id: "repair", label: "Welche Reparatur war es?", options: ["Naht", "Flicken", "Reissverschluss", "Anderes"] }],
-  tools: [{ id: "tool", label: "Welches Werkzeug?", options: ["Elektrowerkzeug", "Handwerkzeug", "Gartengeraet", "Anderes"] }],
-  toys_and_leisure: [{ id: "item", label: "Was wurde repariert?", options: ["Spielzeug", "Sport", "Musik", "Anderes"] }],
-  other: [{ id: "item", label: "Was wurde repariert?", options: ["Alltagsgegenstand", "Dekoration", "Anderes", "Sonstiges"] }],
-};
+import { CampaignWindowNotice } from "@/components/campaign-window-notice";
+import { FriendlyCaptcha } from "@/components/friendly-captcha";
+import { MobileNavigation } from "@/components/mobile-navigation";
+import { RepairFormFields } from "@/components/repair-form-fields";
+import { repairCategories, repairCategoryLabel, type RepairCategory } from "@/lib/repair-catalog";
 
 const MAX_IMAGE_BYTES = 200 * 1024;
 const compressibleImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
-const categoryLabels = new Map(categories.map((category) => [category.value, category.label]));
 
 type GalleryRepair = {
   id: string;
@@ -52,6 +19,16 @@ type GalleryRepair = {
   description: string | null;
   imageAltText: string | null;
   imageUrl: string | null;
+};
+
+type RepairStats = {
+  total: number;
+  categories: Record<string, number>;
+};
+
+type CampaignStatus = {
+  status: "open" | "before" | "after" | "invalid";
+  startAt: string | null;
 };
 
 function createCompressedImage(file: File): Promise<File> {
@@ -108,7 +85,7 @@ function createCompressedImage(file: File): Promise<File> {
 
 export default function Home() {
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [category, setCategory] = useState(categories[0].value);
+  const [category, setCategory] = useState<RepairCategory>(repairCategories[0].value);
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState("");
@@ -119,16 +96,14 @@ export default function Home() {
   const [isCompressing, setIsCompressing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [repairCount, setRepairCount] = useState<number | null>(null);
+  const [repairStats, setRepairStats] = useState<RepairStats | null>(null);
   const [statsState, setStatsState] = useState<"loading" | "ready" | "unavailable">("loading");
   const [statsUpdatedAt, setStatsUpdatedAt] = useState<Date | null>(null);
   const [galleryRepairs, setGalleryRepairs] = useState<GalleryRepair[]>([]);
   const [galleryError, setGalleryError] = useState("");
-  const [captchaToken, setCaptchaToken] = useState("");
   const [captchaError, setCaptchaError] = useState("");
-  const captchaContainer = useRef<HTMLDivElement>(null);
-  const captchaWidgetId = useRef<number | null>(null);
-  const captchaSiteKey = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY;
-  const activeQuestions = categoryQuestions[category] ?? [];
+  const [campaign, setCampaign] = useState<CampaignStatus>({ status: "invalid", startAt: null });
+  const friendlyCaptchaSiteKey = process.env.NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY;
 
   useEffect(() => () => {
     if (previewUrl) {
@@ -144,8 +119,9 @@ export default function Home() {
           throw new Error("Statistik nicht verfuegbar");
         }
 
-        const stats = await response.json() as { total: number };
+        const stats = await response.json() as RepairStats;
         setRepairCount(stats.total);
+        setRepairStats(stats);
         setStatsState("ready");
         setStatsUpdatedAt(new Date());
       } catch {
@@ -171,6 +147,21 @@ export default function Home() {
     }
 
     void loadGallery();
+  }, []);
+
+  useEffect(() => {
+    async function loadCampaign() {
+      try {
+        const response = await fetch("/api/campaign", { cache: "no-store" });
+        if (!response.ok) throw new Error("Kampagnenstatus nicht verfuegbar");
+        const data = await response.json() as CampaignStatus;
+        setCampaign(data);
+      } catch {
+        setCampaign({ status: "invalid", startAt: null });
+      }
+    }
+
+    void loadCampaign();
   }, []);
 
   async function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
@@ -213,26 +204,18 @@ export default function Home() {
     }
   }
 
-  function renderCaptcha() {
-    if (!captchaSiteKey || !captchaContainer.current || captchaWidgetId.current !== null || !window.hcaptcha) {
-      return;
-    }
-
-    captchaWidgetId.current = window.hcaptcha.render(captchaContainer.current, {
-      sitekey: captchaSiteKey,
-      callback: (token) => {
-        setCaptchaToken(token);
-        setCaptchaError("");
-      },
-      "expired-callback": () => setCaptchaToken(""),
-    });
-  }
-
   function closeSubmission() {
-    captchaWidgetId.current = null;
-    setCaptchaToken("");
     setCaptchaError("");
     setIsFormOpen(false);
+  }
+
+  function startSubmission(categoryValue?: RepairCategory) {
+    if (categoryValue) setCategory(categoryValue);
+    if (campaign.status !== "open") {
+      document.getElementById("campaign-window")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    setIsFormOpen(true);
   }
 
   function submitRepair(event: FormEvent<HTMLFormElement>) {
@@ -241,13 +224,8 @@ export default function Home() {
       return;
     }
 
-    if (!captchaSiteKey) {
+    if (!friendlyCaptchaSiteKey) {
       setSubmissionError("Der Spam-Schutz ist noch nicht konfiguriert.");
-      return;
-    }
-
-    if (!captchaToken) {
-      setCaptchaError("Bitte bestaetige zuerst, dass du kein Bot bist.");
       return;
     }
 
@@ -281,9 +259,19 @@ export default function Home() {
     };
     const formData = new FormData(event.currentTarget);
     formData.set("image", uploadFile);
-    formData.set("h-captcha-response", captchaToken);
+    const captchaResponse = formData.get("frc-captcha-response");
+    if (typeof captchaResponse !== "string" || !captchaResponse) {
+      setIsSubmitting(false);
+      setUploadProgress(null);
+      setCaptchaError("Der Spam-Schutz wird noch vorbereitet. Bitte versuche es gleich erneut.");
+      return;
+    }
     request.send(formData);
   }
+
+  const topCategories = Object.entries(repairStats?.categories ?? {})
+    .sort(([, left], [, right]) => right - left)
+    .slice(0, 3);
 
   return (
     <main className="page-shell">
@@ -298,6 +286,7 @@ export default function Home() {
           <Link href="/supporters">Unterstuetzer</Link>
         </nav>
         <Link className="header-link" href="/stats">Live-Stand</Link>
+        <MobileNavigation />
       </header>
 
       <section id="top" className="hero-grid" aria-labelledby="hero-title">
@@ -307,8 +296,8 @@ export default function Home() {
           <p className="hero-intro">
             Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.
           </p>
-          <button className="button button-primary" type="button" onClick={() => setIsFormOpen(true)}>
-            Reparatur einreichen <span aria-hidden="true">&#8594;</span>
+          <button className="button button-primary" type="button" onClick={() => startSubmission()}>
+            {campaign.status === "open" ? "Reparatur einreichen" : campaign.status === "before" ? "Countdown ansehen" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span>
           </button>
         </div>
 
@@ -329,6 +318,8 @@ export default function Home() {
         </aside>
       </section>
 
+      {campaign.status !== "open" && <CampaignWindowNotice status={campaign.status} startAt={campaign.startAt} />}
+
       <section className="how-it-works" aria-labelledby="how-title">
         <div>
           <p className="section-index">01 / Mitmachen</p>
@@ -341,17 +332,22 @@ export default function Home() {
         </ol>
       </section>
 
+      <section className="home-stats-preview" aria-labelledby="home-stats-title">
+        <div><p className="section-index">Live-Auswertung</p><h2 id="home-stats-title">Was gerade repariert wird.</h2><p>Die Auswertung zeigt ausschliesslich freigegebene Einreichungen. Aus Datenschutzgruenden werden keine Orte auf einer Karte dargestellt.</p><Link className="text-button" href="/stats">Alle Statistiken <span aria-hidden="true">&#8594;</span></Link></div>
+        <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? "Die Statistik wird waehrend des Weltrekordversuchs freigeschaltet." : "Die ersten freigegebenen Reparaturen erscheinen hier."}</li>}</ol>
+      </section>
+
       <section className="category-section" aria-labelledby="category-title">
         <div className="section-heading">
           <div>
             <p className="section-index">02 / Alles bleibt</p>
             <h2 id="category-title">Was hast du wieder in Bewegung gebracht?</h2>
           </div>
-          <button className="text-button" type="button" onClick={() => setIsFormOpen(true)}>Jetzt einreichen <span aria-hidden="true">&#8594;</span></button>
+          <button className="text-button" type="button" onClick={() => startSubmission()}>{campaign.status === "open" ? "Jetzt einreichen" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span></button>
         </div>
         <div className="category-grid">
-          {categories.map((item, index) => (
-            <button className={`category-card category-${index + 1}`} type="button" key={item.value} onClick={() => { setCategory(item.value); setIsFormOpen(true); }}>
+          {repairCategories.map((item, index) => (
+            <button className={`category-card category-${index + 1}`} type="button" key={item.value} onClick={() => startSubmission(item.value)}>
               <span>0{index + 1}</span>
               <strong>{item.label}</strong>
               <i aria-hidden="true">&#8599;</i>
@@ -371,8 +367,8 @@ export default function Home() {
         {galleryError ? <p className="gallery-empty" role="status">{galleryError}</p> : galleryRepairs.length === 0 ? <p className="gallery-empty">Die ersten freigegebenen Reparaturen erscheinen bald hier.</p> : <div className="story-grid">{galleryRepairs.map((repair) => <article className="story-card" key={repair.id}>{repair.imageUrl ? <>
           {/* Signed URLs from the private bucket cannot use Next.js image optimization. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="gallery-image" src={repair.imageUrl} alt={repair.imageAltText || `Reparatur aus der Kategorie ${categoryLabels.get(repair.category) ?? "Sonstiges"}`} />
-        </> : <div className="missing-gallery-image">Bild nicht verfuegbar</div>}<p>{categoryLabels.get(repair.category) ?? "Sonstiges"}</p><h3>{repair.productName || "Reparatur aus NRW"}</h3><span className="gallery-description">{repair.description || "Diese Reparatur wurde fuer den Rekord freigegeben."}</span></article>)}</div>}
+          <img className="gallery-image" src={repair.imageUrl} alt={repair.imageAltText || `Reparatur aus der Kategorie ${repairCategoryLabel(repair.category)}`} />
+        </> : <div className="missing-gallery-image">Bild nicht verfuegbar</div>}<p>{repairCategoryLabel(repair.category)}</p><h3>{repair.productName || "Reparatur aus NRW"}</h3><span className="gallery-description">{repair.description || "Diese Reparatur wurde fuer den Rekord freigegeben."}</span></article>)}</div>}
       </section>
 
       <section className="project-banner" id="ueber-uns">
@@ -396,7 +392,6 @@ export default function Home() {
       {isFormOpen && (
         <div className="modal-backdrop" role="presentation" onMouseDown={closeSubmission}>
           <section className="submission-panel" role="dialog" aria-modal="true" aria-labelledby="submission-title" onMouseDown={(event) => event.stopPropagation()}>
-            {captchaSiteKey && <Script src="https://js.hcaptcha.com/1/api.js?render=explicit" strategy="afterInteractive" onReady={renderCaptcha} onError={() => setSubmissionError("Der Spam-Schutz konnte nicht geladen werden.")} />}
             <button className="icon-button" type="button" aria-label="Formular schliessen" onClick={closeSubmission}>&times;</button>
             {isSubmitted ? (
               <div className="success-state">
@@ -409,22 +404,11 @@ export default function Home() {
               <form onSubmit={submitRepair}>
                 <p className="section-index">Deine Reparatur / Schritt 1 von 3</p>
                 <h2 id="submission-title">Was wurde repariert?</h2>
-                <label>Geraetekategorie
-                  <select name="category" value={category} onChange={(event) => setCategory(event.target.value)}>
-                    {categories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
-                  </select>
-                </label>
+                <input name="category" type="hidden" value={category} />
+                <RepairFormFields category={category} onChange={setCategory} />
                 <label>Was war kaputt und was hast du getan?
                   <textarea name="description" required rows={4} maxLength={2000} placeholder="Zum Beispiel: Kabel getauscht, Schalter gereinigt ..." />
                 </label>
-                {activeQuestions.map((question) => (
-                  <label key={question.id}>{question.label}
-                    <select name={`answer_${question.id}`} required>
-                      <option value="">Bitte waehlen</option>
-                      {question.options.map((option) => <option key={option} value={option}>{option}</option>)}
-                    </select>
-                  </label>
-                ))}
                 <label className="upload-field">Foto hinzufuegen
                   <input name="image" type="file" accept="image/jpeg,image/png,image/webp" required onChange={handleImageChange} />
                   <small>JPG, PNG oder WebP · maximal 200 KB · Bild- und Standortdaten werden vor dem Upload entfernt</small>
@@ -440,7 +424,7 @@ export default function Home() {
                 <label className="repair-outcome"><input name="repair_succeeded" type="checkbox" value="false" /> <span>Die Reparatur ist leider nicht gelungen. Auch dieser Versuch zaehlt und darf eingereicht werden.</span></label>
                 <label className="consent"><input name="consent" type="checkbox" value="true" required /> <span>Ich bin einverstanden, dass mein Bild nach der Pruefung veroeffentlicht wird.</span></label>
                 <p className="geo-notice">Teilnahme ist nur aus Nordrhein-Westfalen moeglich. Der Standort wird beim Absenden ueber die Vercel-Regionserkennung geprueft; die IP-Adresse wird nicht gespeichert.</p>
-                {captchaSiteKey ? <div className="captcha-field"><div ref={captchaContainer} /><small>Der Spam-Schutz von hCaptcha wird erst beim Absenden geprueft.</small></div> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p>}
+                {friendlyCaptchaSiteKey ? <div className="captcha-field"><FriendlyCaptcha sitekey={friendlyCaptchaSiteKey} onError={setCaptchaError} /><small>Der Spam-Schutz von Friendly Captcha wird vor dem Absenden automatisch vorbereitet.</small></div> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p>}
                 {captchaError && <p className="form-error" role="alert">{captchaError}</p>}
                 {uploadProgress !== null && <div className="upload-progress" aria-live="polite"><span>Bild wird hochgeladen: {uploadProgress} %</span><progress value={uploadProgress} max="100" /></div>}
                 {submissionError && <p className="form-error" role="alert">{submissionError}</p>}

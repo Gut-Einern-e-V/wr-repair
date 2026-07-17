@@ -1,0 +1,132 @@
+- generic [active] [ref=f9e1]:
+  - main [ref=f9e2]:
+    - link "Reparaturrekord NRW Startseite" [ref=f9e4] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f9e5]: R
+      - generic [ref=f9e6]: ReparaturrekordNRW
+    - region [ref=f9e7]:
+      - generic [ref=f9e8]:
+        - paragraph [ref=f9e9]: FAB Region Bergisches Land · Oktober 2026
+        - heading "Reparieren. Zaehlen. Rekord machen." [level=1] [ref=f9e10]: Reparieren.Zaehlen.Rekord machen.
+        - paragraph [ref=f9e11]: Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.
+        - button "Teilnahmezeitraum ansehen" [ref=f9e12] [cursor=pointer]: Teilnahmezeitraum ansehen →
+      - generic [ref=f9e13]:
+        - paragraph [ref=f9e14]: Freigegebene Reparaturen
+        - paragraph [ref=f9e15]: ...
+        - generic [ref=f9e16]:
+          - generic [ref=f9e17]: "Unser Ziel: 10.000"
+          - generic [ref=f9e18]: 0 %
+        - paragraph [ref=f9e20]: Live-Stand wird geladen.
+      - complementary "Weltrekordversuch NRW" [ref=f9e21]:
+        - generic [ref=f9e22]: Weltrekordversuch
+        - strong [ref=f9e24]: NRW2026
+    - region [ref=f9e26]:
+      - paragraph [ref=f9e27]: Weltrekordversuch NRW
+      - heading "Der Einreichungszeitraum wird vorbereitet." [level=2] [ref=f9e28]
+      - paragraph [ref=f9e29]: Der genaue Zeitraum wird gerade eingerichtet. Bis dahin kannst du die Projektpartner und Reparaturgeschichten entdecken.
+      - paragraph [ref=f9e30]:
+        - link "Partner kennenlernen" [ref=f9e31] [cursor=pointer]:
+          - /url: /supporters
+          - text: Partner kennenlernen →
+        - link "Geschichten lesen" [ref=f9e32] [cursor=pointer]:
+          - /url: /stories
+          - text: Geschichten lesen →
+    - region [ref=f9e33]:
+      - generic [ref=f9e34]:
+        - paragraph [ref=f9e35]: 01 / Mitmachen
+        - heading "Ein Foto. Ein paar Fragen. Ein Zeichen fuer Reparatur." [level=2] [ref=f9e36]
+      - list [ref=f9e37]:
+        - listitem [ref=f9e38]:
+          - generic [ref=f9e39]: "01"
+          - paragraph [ref=f9e40]: Foto deiner Reparatur aufnehmen.
+        - listitem [ref=f9e41]:
+          - generic [ref=f9e42]: "02"
+          - paragraph [ref=f9e43]: Gerat und Reparatur kurz beschreiben.
+        - listitem [ref=f9e44]:
+          - generic [ref=f9e45]: "03"
+          - paragraph [ref=f9e46]: Nach Pruefung wird dein Beitrag gezaehlt.
+    - region [ref=f9e47]:
+      - generic [ref=f9e48]:
+        - generic [ref=f9e49]:
+          - paragraph [ref=f9e50]: 02 / Alles bleibt
+          - heading "Was hast du wieder in Bewegung gebracht?" [level=2] [ref=f9e51]
+        - button "Teilnahmezeitraum ansehen" [ref=f9e52] [cursor=pointer]: Teilnahmezeitraum ansehen →
+      - generic [ref=f9e53]:
+        - button "01 Elektrogeraete" [ref=f9e54] [cursor=pointer]:
+          - generic [ref=f9e55]: "01"
+          - strong [ref=f9e56]: Elektrogeraete
+          - generic [ref=f9e57]: ↗
+        - button "02 Haushaltsgeraete" [ref=f9e58] [cursor=pointer]:
+          - generic [ref=f9e59]: "02"
+          - strong [ref=f9e60]: Haushaltsgeraete
+          - generic [ref=f9e61]: ↗
+        - button "03 Computer & Kommunikation" [ref=f9e62] [cursor=pointer]:
+          - generic [ref=f9e63]: "03"
+          - strong [ref=f9e64]: Computer & Kommunikation
+          - generic [ref=f9e65]: ↗
+        - button "04 Fahrraeder" [ref=f9e66] [cursor=pointer]:
+          - generic [ref=f9e67]: "04"
+          - strong [ref=f9e68]: Fahrraeder
+          - generic [ref=f9e69]: ↗
+        - button "05 Moebel" [ref=f9e70] [cursor=pointer]:
+          - generic [ref=f9e71]: "05"
+          - strong [ref=f9e72]: Moebel
+          - generic [ref=f9e73]: ↗
+        - button "06 Textilien & Kleidung" [ref=f9e74] [cursor=pointer]:
+          - generic [ref=f9e75]: "06"
+          - strong [ref=f9e76]: Textilien & Kleidung
+          - generic [ref=f9e77]: ↗
+        - button "07 Werkzeuge" [ref=f9e78] [cursor=pointer]:
+          - generic [ref=f9e79]: "07"
+          - strong [ref=f9e80]: Werkzeuge
+          - generic [ref=f9e81]: ↗
+        - button "08 Spielzeug & Freizeit" [ref=f9e82] [cursor=pointer]:
+          - generic [ref=f9e83]: "08"
+          - strong [ref=f9e84]: Spielzeug & Freizeit
+          - generic [ref=f9e85]: ↗
+        - button "09 Sonstiges" [ref=f9e86] [cursor=pointer]:
+          - generic [ref=f9e87]: "09"
+          - strong [ref=f9e88]: Sonstiges
+          - generic [ref=f9e89]: ↗
+    - region [ref=f9e90]:
+      - generic [ref=f9e91]:
+        - generic [ref=f9e92]:
+          - paragraph [ref=f9e93]: 03 / Freigegebene Reparaturen
+          - heading "Gegenstaende mit zweitem Kapitel." [level=2] [ref=f9e94]
+        - link "Alle Geschichten" [ref=f9e95] [cursor=pointer]:
+          - /url: /stories
+          - text: Alle Geschichten →
+      - paragraph [ref=f9e96]: Die ersten freigegebenen Reparaturen erscheinen bald hier.
+    - generic [ref=f9e97]:
+      - paragraph [ref=f9e98]: Reparatur ist keine Ausnahme.Sie ist Infrastruktur.
+      - link "Ueber das Projekt" [ref=f9e99] [cursor=pointer]:
+        - /url: /about
+        - text: Ueber das Projekt →
+    - region "Projekt- und Foerderhinweise" [ref=f9e100]:
+      - paragraph [ref=f9e101]: Teil der FAB Region Bergisches Staedtedreieck
+      - link [ref=f9e102] [cursor=pointer]:
+        - /url: https://www.fab-bergisch.org/
+        - img "FAB Region Bergisches Staedtedreieck" [ref=f9e103]
+      - link [ref=f9e104] [cursor=pointer]:
+        - /url: https://www.fab-bergisch.org/
+        - img "Kofinanziert von der Europaeischen Union" [ref=f9e105]
+      - link [ref=f9e106] [cursor=pointer]:
+        - /url: https://www.fab-bergisch.org/
+        - img "Ministerium fuer Umwelt, Naturschutz und Verkehr des Landes Nordrhein-Westfalen" [ref=f9e107]
+    - generic [ref=f9e108]:
+      - paragraph [ref=f9e109]:
+        - strong [ref=f9e110]: Reparaturrekord NRW
+        - text: Ein Projekt der FAB Region Bergisches Land.
+      - generic [ref=f9e111]:
+        - link "Datenschutz" [ref=f9e112] [cursor=pointer]:
+          - /url: /privacy
+        - link "Impressum" [ref=f9e113] [cursor=pointer]:
+          - /url: /imprint
+        - link "Barrierefreiheit" [ref=f9e114] [cursor=pointer]:
+          - /url: /accessibility
+      - paragraph [ref=f9e115]:
+        - text: Teil der
+        - link "FAB Region" [ref=f9e116] [cursor=pointer]:
+          - /url: https://www.fab-bergisch.org/
+  - button "Open Next.js Dev Tools" [ref=f9e122] [cursor=pointer]
+  - alert [ref=f9e126]

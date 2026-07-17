@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getMessages } from "@/lib/i18n";
+import { MobileNavigation } from "@/components/mobile-navigation";
 
 const messages = getMessages();
 
@@ -8,6 +9,7 @@ export function SiteHeader() {
     <Link className="brand" href="/" aria-label="Reparaturrekord NRW Startseite"><span className="brand-mark">R</span><span>Reparaturrekord<br />NRW</span></Link>
     <nav aria-label="Hauptnavigation"><Link href="/stories">{messages.navigation.stories}</Link><Link href="/about">{messages.navigation.project}</Link><Link href="/supporters">{messages.navigation.supporters}</Link></nav>
     <Link className="header-link" href="/stats">{messages.navigation.live}</Link>
+    <MobileNavigation />
   </header>;
 }
 

@@ -14,7 +14,7 @@ Die Plattform erfasst Reparaturen fuer den Weltrekordversuch, moderiert sie und 
 | Bild | Vom Browser neu gerendertes JPEG ohne EXIF- und GPS-Metadaten | Privater Supabase-Storage-Bucket `repair-images`; oeffentliche Galerie und Moderation erhalten nur kurzlebige signierte URLs. |
 | Grobe Region | Ausschliesslich der Wert `Nordrhein-Westfalen` nach erfolgreicher Vercel-Header-Pruefung | Spalte `location_region` in `repairs`; keine Stadt-, Postleitzahl- oder Koordinatendaten. |
 | IP-Adresse | Kurzzeitig als Schlüssel des prozesslokalen Rate Limits | Nicht in `repairs` geschrieben. Der Zaehlereintrag wird nach dem jeweiligen Limitfenster verworfen: 15 Minuten fuer Einreichungen, 1 Minute fuer Statistikabfragen. |
-| hCaptcha-Token | Token aus dem Formular zur Bot-Pruefung | Nicht in der Datenbank gespeichert; wird serverseitig an hCaptcha `siteverify` gesendet. |
+| Friendly-Captcha-Loesung | Loesungswert aus dem Formular zur Bot-Pruefung | Nicht in der Datenbank gespeichert; wird serverseitig an Friendly Captcha `siteverify` gesendet. |
 | Admin-Konten | Auth-E-Mail, optionaler Anzeigename und Anwendungrolle | Supabase Auth sowie die Tabellen `profiles` und `user_roles`; nur fuer den Moderationsbetrieb. |
 
 Die Datenbankmigration enthaelt derzeit die Spalte `entry_ip`. Die aktuelle Upload-API setzt sie nicht. Sie darf nicht fuer neue Funktionen verwendet werden, bevor Notwendigkeit, Rechtsgrundlage und Aufbewahrungsfrist rechtlich festgelegt sind.
@@ -23,7 +23,7 @@ Die Datenbankmigration enthaelt derzeit die Spalte `entry_ip`. Die aktuelle Uplo
 
 Der NRW-Check verwendet die von Vercel bereitgestellten Request-Header `x-vercel-ip-country` und `x-vercel-ip-country-region`. Akzeptiert wird nur `DE` und `NW`. Die Anwendung ruft keinen separaten Geo-IP-Anbieter auf und speichert keine Roh-IP. Bei nicht eindeutiger Zuordnung wird die Einreichung abgelehnt und die Person auf VPN oder Proxy hingewiesen.
 
-hCaptcha muss vor dem Produktionsstart datenschutzrechtlich freigegeben werden. Insbesondere sind dessen Datenschutzinformationen, ein moeglicher Auftragsverarbeitungsvertrag und die Einbindung in die oeffentliche Datenschutzerklaerung zu pruefen.
+Friendly Captcha muss vor dem Produktionsstart datenschutzrechtlich freigegeben werden. Insbesondere sind dessen Datenschutzinformationen, ein moeglicher Auftragsverarbeitungsvertrag, der vom Widget geladene CDN-Code und die Einbindung in die oeffentliche Datenschutzerklaerung zu pruefen.
 
 ## Zugriff und Veroeffentlichung
 
@@ -32,6 +32,7 @@ hCaptcha muss vor dem Produktionsstart datenschutzrechtlich freigegeben werden. 
 - Nur `approved` Reparaturen mit Veroeffentlichungszustimmung erscheinen in Galerie und Statistik.
 - Moderator*innen erhalten zeitlich begrenzte Bild-URLs. Admins und Superadmins koennen einen nicht gecachten CSV-Export erstellen.
 - Der CSV-Export enthaelt keine Bild-URLs oder Roh-IP-Adressen, aber Reparatur- und Moderationsdaten. Er darf nur in einem geschuetzten Arbeitsumfeld verarbeitet werden.
+- Die oeffentliche Statistik verarbeitet nur aggregierte Zahlen freigegebener Reparaturen. Da ausschliesslich die grobe Region `Nordrhein-Westfalen` gespeichert wird, gibt es keine Karte und keine ortsbezogene Auswertung einzelner oder gruppierter Einreichungen.
 
 ## Aufbewahrung und Loeschung
 
@@ -58,13 +59,13 @@ Bis diese Entscheidungen als automatisierbare Regeln vorliegen, muss eine autori
 | --- | --- | --- |
 | Vercel | Hosting, serverseitige Routen, Regionenheader | Vertragliche Grundlage, Regionen, Logs, Deployment Protection und WAF/Rate Limits. |
 | Supabase | Authentifizierung, Postgres-Datenbank, privater Storage | Projektregion, AVV, Backups, RLS und Zugriff auf Service-Role-Secret. |
-| hCaptcha | Bot-Erkennung beim Upload | Rechtsgrundlage, Anbieterinformationen, erlaubte Domains und Datenschutztext. |
+| Friendly Captcha | Bot-Erkennung beim Upload | Rechtsgrundlage, Anbieterinformationen, erlaubte Domains, CDN-Code und Datenschutztext. |
 
 ## Verbindliche Vorab-Checkliste
 
 - [ ] Verantwortliche Stelle, Datenschutzkontakt und Kontaktweg fuer Loeschanfragen festlegen.
 - [ ] Oeffentliche Seiten fuer Datenschutz, Impressum und Barrierefreiheit rechtlich freigeben.
 - [ ] Aufbewahrungsfristen beschliessen und einen automatischen Loeschprozess implementieren.
-- [ ] AVV, Regionen und Sicherheitsdokumentation von Vercel, Supabase und hCaptcha pruefen.
-- [ ] Vercel-Produktionsvariablen sowie hCaptcha-Domains konfigurieren.
+- [ ] AVV, Regionen und Sicherheitsdokumentation von Vercel, Supabase und Friendly Captcha pruefen.
+- [ ] Vercel-Produktionsvariablen sowie Friendly-Captcha-Domains konfigurieren.
 - [ ] Globales WAF- oder Redis-basiertes Rate Limit zusaetzlich zum prozesslokalen Limit aktivieren.

@@ -30,20 +30,24 @@ function errorResponse(message: string, status: number) {
 }
 
 async function verifyCaptcha(token: string) {
-  const secret = process.env.HCAPTCHA_SECRET;
-  if (!secret) {
+  const apiKey = process.env.FRIENDLY_CAPTCHA_API_KEY;
+  const sitekey = process.env.NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY;
+  if (!apiKey || !sitekey) {
     return { valid: false, configured: false };
   }
 
   try {
-    const response = await fetch("https://hcaptcha.com/siteverify", {
+    const response = await fetch("https://global.frcapi.com/api/v2/captcha/siteverify", {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({ secret, response: token }),
+      headers: {
+        "Content-Type": "application/json",
+        "X-API-Key": apiKey,
+      },
+      body: JSON.stringify({ response: token, sitekey }),
       cache: "no-store",
     });
     const result = await response.json() as { success?: boolean };
-    return { valid: result.success === true, configured: true };
+    return { valid: response.ok && result.success === true, configured: true };
   } catch {
     return { valid: false, configured: true };
   }
@@ -77,7 +81,7 @@ export async function POST(request: Request) {
   const description = formData.get("description");
   const consent = formData.get("consent");
   const image = formData.get("image");
-  const captchaToken = formData.get("h-captcha-response");
+  const captchaToken = formData.get("frc-captcha-response");
   const repairSucceeded = formData.get("repair_succeeded") !== "false";
   const answers = Object.fromEntries(
     [...formData.entries()]

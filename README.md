@@ -14,7 +14,7 @@ copy .env.example .env.local
 npm run dev
 ```
 
-Configure the Supabase and hCaptcha values described in `.env.example` before testing real submissions. The application intentionally blocks public submissions until hCaptcha is configured.
+Configure the Supabase and Friendly Captcha values described in `.env.example` before testing real submissions. The application intentionally blocks public submissions until Friendly Captcha is configured.
 
 ## Content
 
@@ -42,7 +42,7 @@ Stories are statically generated at `/stories/[slug]` during the production buil
 
 This repository is meant to be adaptable for other repair campaigns. Before deploying a copy, replace all campaign dates, responsible organisation details, legal pages, data retention rules, support contacts, branding and partner/funding references.
 
-Do not copy the production secrets, Supabase project, hCaptcha keys or administrator accounts. Create a separate Supabase project and apply the migrations in `supabase/migrations/` for each deployment.
+Do not copy the production secrets, Supabase project, Friendly Captcha keys or administrator accounts. Create a separate Supabase project and apply the migrations in `supabase/migrations/` for each deployment.
 
 The technical privacy data flow and outstanding legal decisions are recorded in `docs/data-protection-concept.md`. Deployment setup is described in `docs/vercel-deployment.md`.
 

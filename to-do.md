@@ -14,7 +14,6 @@ Stand: 17. Juli 2026
 
 ## Naechster Meilenstein: Echte Einreichungen
 
-- [ ] Supabase-Umgebungsvariablen lokal und bei Vercel konfigurieren. Vorlage: `.env.example`; genaue Vercel-Schritte: `docs/vercel-deployment.md`.
 - [x] Datenbankschema fuer `repairs` anlegen, inklusive Status, Kategorien, Moderationsdaten und Zeitstempeln.
 - [x] Row Level Security (RLS) und Rollen fuer oeffentliche Einreichungen, Moderator*innen und Admins definieren.
 - [x] Privaten Supabase-Storage-Bucket fuer Reparaturbilder definieren; serverseitige Upload-API und Zugriffsregeln folgen.
@@ -29,7 +28,7 @@ Stand: 17. Juli 2026
 
 - [x] Zeitfenster fuer Einreichungen serverseitig ueber `SUBMISSION_START_AT` und `SUBMISSION_END_AT` konfigurierbar machen und ausserhalb des Zeitfensters standardmaessig sperren.
 - [x] NRW-Geo-Check serverseitig mit Vercels Laender- und Regionsheadern umsetzen. Es gibt keine externe Geo-IP-Anfrage und keine Speicherung der IP; bei Erfolg wird nur `Nordrhein-Westfalen` gespeichert. Unklare Zuordnungen werden sicher abgelehnt und geben einen VPN-/Proxy-Hinweis; lokal ist der Check nur mit `GEOIP_ALLOW_LOCAL=true` testbar.
-- [x] hCaptcha im Einreichungsdialog integrieren und das Token serverseitig vor jedem Upload validieren. Vor dem oeffentlichen Start muessen `NEXT_PUBLIC_HCAPTCHA_SITE_KEY` und `HCAPTCHA_SECRET` in Vercel gesetzt und die Domains bei hCaptcha freigegeben werden.
+- [x] Friendly Captcha v2 im Einreichungsdialog integrieren und `frc-captcha-response` serverseitig vor jedem Upload validieren. Vor dem oeffentlichen Start muessen `NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY` und `FRIENDLY_CAPTCHA_API_KEY` in Vercel gesetzt sowie die Domains in Friendly Captcha freigegeben werden.
 - [x] Rate Limits fuer Upload- und Statistik-Endpunkte einrichten: 3 Einreichungsversuche je IP / 15 Minuten und 120 Statistikabfragen je IP / Minute. Die Begrenzung ist pro Serverinstanz; vor dem oeffentlichen Start ist ergaenzend ein plattformweites Vercel- oder Cloudflare-WAF-Limit erforderlich.
 - [x] Datenschutzkonzept fuer IP-Adressen, Bilder, Loeschanfragen und Aufbewahrungsfristen dokumentieren: `docs/data-protection-concept.md` beschreibt Datenfluss, aktuelle technische Grenzen und die vor dem Start noch verbindlich zu entscheidenden Fristen.
 
@@ -63,13 +62,14 @@ Stand: 17. Juli 2026
 - [x] Datenschutz, Impressum und Barrierefreiheit als echte, verlinkte Seiten erstellt. Die Impressums- und Datenschutzangaben muessen vor Launch rechtlich freigegeben werden.
 - [x] Texte in `lib/i18n.ts` zentralisiert und deutsche/englische Nachrichtenbasis fuer die weitere Internationalisierung angelegt.
 - [ ] Foerderhinweise fuer EFRE, NRW, Deutschland und EU rechtlich abgestimmt einpflegen. Die offiziellen FAB-/EU-/NRW-Logos sind lokal unter `public/funding/` eingebunden; verbindlicher Wortlaut und Platzierung warten auf Freigabe.
-- [] checke den assets ordner für die logos und binde es schick ein mit den richtigen links pro logo
+- [x] Lokale Logo-Assets geprueft und auf der Unterstuetzerseite mit passenden Partnerlinks eingebunden. Das Raster wurde fuer schmale Mobilansichten gegen horizontalen Ueberlauf abgesichert.
 
 ## Qualitaet, Betrieb und Release
 
-- [ ] Teststrategie erstellen: Formular, Upload-Validierung, API, Moderation und Berechtigungen.
-- [ ] Automatisierte Tests fuer kritische Serverpfade und Komponenten schreiben.
+- [x] Teststrategie fuer Formular, Upload-Validierung, API, Moderation und Berechtigungen dokumentiert: `docs/test-strategy.md` trennt automatisierte Sicherheitschecks von geschuetzten Preview- und manuellen Launchchecks.
+- [x] Automatisierte Tests fuer kritische Serverpfade geschrieben: `npm test` prueft Zeitfenster, NRW-Geopruefung und Rate Limit ohne Produktionsgeheimnisse oder Datenbank.
 - [ ] Mobile, Tablet- und Desktop-Ansichten mit 360 px, 768 px und 1280 px pruefen. (Burger-Menu, Fokuszustand, Scrollen, Bildgroesse, Ladezeiten)
+- [x] Responsive Layout-Sichtung bei 360 px, 768 px und 1280 px: Navigation, Kampagnenhinweis, Kategorie- und Partner-Raster wurden auf sichtbaren horizontalen Ueberlauf geprueft. Das Mobile Burger-Menue ist erreichbar, zeigt alle vier Hauptziele und schliesst nach der Navigation.
 - [ ] Barrierefreiheit pruefen: Tastaturbedienung, Screenreader, Kontrast und Fehlermeldungen.
 - [ ] Supabase-Backup, Wiederherstellung und Monitoring festlegen.
 - [ ] Sicherheits- und Datenschutzpruefung vor dem oeffentlichen Start durchfuehren.
@@ -77,7 +77,8 @@ Stand: 17. Juli 2026
 - [x] Uploader komprimiert grosse JPEG-, PNG- und WebP-Bilder vor dem Upload auf unter 200 KiB und informiert ueber die reduzierte Dateigroesse. Grosse HEIC-Dateien erfordern wegen uneinheitlicher Browserunterstuetzung ein bereits komprimiertes Bild.
 
 ## Weitere Ideen
-- [ ] Falls der Aufruf außerhalb der erlaubten Zeitfenster erfolgt, eine freundliche Seite mit Countdown wann der Weltrekord startet. Gerne mit kleinen Text zum Projekt und dem Link zu den Partnern. (z.B. Fab-Region Bergisches Land, NRW, Deutschland, EU) mit einfach an und ausschalten im Adminbereich. (z.B. `SUBMISSION_START_AT` und `SUBMISSION_END_AT` in der `.env.local` Datei) damit man testen kann, ob die Seite korrekt angezeigt wird. (z.B. Countdown bis zum Start des Weltrekords)
-- [] Impressum nach https://www.fab-bergisch.org/impressum kopieren
-- [ ] Datenschutz nach https://www.fab-bergisch.org/datenschutz kopieren und entsprechend anpassen mit den Daten die wir in Supabase speichern. (z.B. IP-Adresse, E-Mail-Adresse, Name, Bild, Standort) und kontakt adresse für löschanfragen.
-- [] Startseite mit mehr Stats also vlt einen verlauf der Einreichungen pro Tag oder Woche, oder eine Karte mit den Standorten der Einreichungen. (z.B. Google Maps oder OpenStreetMap) auch pro kategorie wie viel eingereicht wurde. also einmal auf der startseite mehr daten und dann eine zusätzliche seite als eine Auswertungsseite mit Statistiken und Diagrammen. (z.B. Balkendiagramm, Liniendiagramm, Kreisdiagramm) und eine Karte mit den Standorten der Einreichungen. (z.B. Google Maps oder OpenStreetMap) (datenschutzseite anpassen in data-protocction-concept.md eintragen)
+- [x] Ausserhalb des Zeitfensters zeigt die Startseite einen freundlichen Kampagnenhinweis mit Countdown bis zum Start sowie Links zu Partnern und Projekt. `/api/campaign` nutzt dieselben `SUBMISSION_START_AT`- und `SUBMISSION_END_AT`-Werte wie die Upload-Sperre; alle Einreichungs-CTAs bleiben bis `open` fail-closed.
+- [x] Impressum strukturell an die FAB-Informationen angelehnt und mit den tatsaechlichen Angaben der Anwendung ergaenzt. Die verantwortliche Organisation muss die Pflichtangaben vor Launch rechtlich freigeben.
+- [x] Datenschutzseite mit einer eigenstaendigen, an der FAB-Struktur orientierten Darstellung der tatsaechlich verarbeiteten Daten, Dienstleister, Loeschkontakte und Rechte erweitert. Verantwortlichkeit, Rechtsgrundlage, AVV und Fristen bleiben vor Launch rechtlich zu bestaetigen.
+- [x] Startseite um eine datensparsame Statistikvorschau nach Kategorie ergaenzt; `/stats` liefert weiterhin Kategorie- und 30-Tage-Verlauf. Eine Standortkarte wird bewusst nicht umgesetzt, weil nur die grobe Region Nordrhein-Westfalen gespeichert wird. Das Datenschutzkonzept dokumentiert diese Grenze.
+- [x] Gemeinsamen Reparaturkatalog und wiederverwendbare Kategorie-/Fragefelder in `lib/repair-catalog.ts` und `components/repair-form-fields.tsx` zentralisiert. Die Moderation bearbeitet Einreichungen bereits inline und kann sie ohne Seitenwechsel freigeben oder ablehnen.

@@ -1,0 +1,94 @@
+- generic [active] [ref=f2e1]:
+  - main [ref=f2e2]:
+    - generic [ref=f2e3]:
+      - link "Reparaturrekord NRW Startseite" [ref=f2e4] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f2e5]: R
+        - generic [ref=f2e6]: ReparaturrekordNRW
+      - navigation "Hauptnavigation" [ref=f2e7]:
+        - link "Geschichten" [ref=f2e8] [cursor=pointer]:
+          - /url: /stories
+        - link "Projekt" [ref=f2e9] [cursor=pointer]:
+          - /url: /about
+        - link "Unterstuetzer" [ref=f2e10] [cursor=pointer]:
+          - /url: /supporters
+      - link "Live-Stand" [ref=f2e11] [cursor=pointer]:
+        - /url: /stats
+    - region [ref=f2e12]:
+      - paragraph [ref=f2e13]: Unterstuetzer
+      - heading "Reparatur braucht Rueckenwind." [level=1] [ref=f2e14]: Reparatur brauchtRueckenwind.
+      - paragraph [ref=f2e15]: Der Weltrekordversuch verbindet Menschen, Orte und Wissen. Diese Partner stehen fuer die FAB Region und ihre Arbeit an einer regionalen Kreislaufwirtschaft.
+    - region "Projektpartner" [ref=f2e16]:
+      - generic [ref=f2e17]:
+        - link "Bergische Gesellschaft Logo Bergische Gesellschaft Regionale Zusammenarbeit und wirtschaftliche Innovation" [ref=f2e18] [cursor=pointer]:
+          - /url: https://bergische-gesellschaft.de/
+          - img "Bergische Gesellschaft Logo" [ref=f2e20]
+          - strong [ref=f2e21]: Bergische Gesellschaft
+          - generic [ref=f2e22]: Regionale Zusammenarbeit und wirtschaftliche Innovation
+          - generic [ref=f2e23]: ↗
+        - link "Bergische Universitaet Wuppertal Logo Bergische Universitaet Wuppertal Forschung, Gruendung und Transfer" [ref=f2e24] [cursor=pointer]:
+          - /url: https://www.uni-wuppertal.de/de/
+          - img "Bergische Universitaet Wuppertal Logo" [ref=f2e26]
+          - strong [ref=f2e27]: Bergische Universitaet Wuppertal
+          - generic [ref=f2e28]: Forschung, Gruendung und Transfer
+          - generic [ref=f2e29]: ↗
+        - link "CSCP Logo CSCP Nachhaltiger Konsum und Produktion" [ref=f2e30] [cursor=pointer]:
+          - /url: https://www.cscp.org/
+          - img "CSCP Logo" [ref=f2e32]
+          - strong [ref=f2e33]: CSCP
+          - generic [ref=f2e34]: Nachhaltiger Konsum und Produktion
+          - generic [ref=f2e35]: ↗
+        - link "Gut Einern e.V. Logo Gut Einern e.V. Reallabor fuer Bildung und nachhaltige Lebensweisen" [ref=f2e36] [cursor=pointer]:
+          - /url: https://www.gut-einern.org/
+          - img "Gut Einern e.V. Logo" [ref=f2e38]
+          - strong [ref=f2e39]: Gut Einern e.V.
+          - generic [ref=f2e40]: Reallabor fuer Bildung und nachhaltige Lebensweisen
+          - generic [ref=f2e41]: ↗
+        - link "Gruenderschmiede Remscheid Logo Gruenderschmiede Remscheid Gruendung, Textilwerkstatt und Innovation" [ref=f2e42] [cursor=pointer]:
+          - /url: https://gruenderschmiede.org/
+          - img "Gruenderschmiede Remscheid Logo" [ref=f2e44]
+          - strong [ref=f2e45]: Gruenderschmiede Remscheid
+          - generic [ref=f2e46]: Gruendung, Textilwerkstatt und Innovation
+          - generic [ref=f2e47]: ↗
+        - link "Glaeserne Werkstatt Solingen Logo Glaeserne Werkstatt Solingen Offene Werkstatt und Kreislaufpraxis" [ref=f2e48] [cursor=pointer]:
+          - /url: https://www.glaeserne-werkstatt-solingen.de/
+          - img "Glaeserne Werkstatt Solingen Logo" [ref=f2e50]
+          - strong [ref=f2e51]: Glaeserne Werkstatt Solingen
+          - generic [ref=f2e52]: Offene Werkstatt und Kreislaufpraxis
+          - generic [ref=f2e53]: ↗
+        - link "Institut Arbeit und Technik Logo Institut Arbeit und Technik Angewandte Forschung und Regionalentwicklung" [ref=f2e54] [cursor=pointer]:
+          - /url: https://www.iat.eu/
+          - img "Institut Arbeit und Technik Logo" [ref=f2e56]
+          - strong [ref=f2e57]: Institut Arbeit und Technik
+          - generic [ref=f2e58]: Angewandte Forschung und Regionalentwicklung
+          - generic [ref=f2e59]: ↗
+        - link "Wuppertal Institut Logo Wuppertal Institut Transformationsforschung fuer Nachhaltigkeit" [ref=f2e60] [cursor=pointer]:
+          - /url: https://wupperinst.org/
+          - img "Wuppertal Institut Logo" [ref=f2e62]
+          - strong [ref=f2e63]: Wuppertal Institut
+          - generic [ref=f2e64]: Transformationsforschung fuer Nachhaltigkeit
+          - generic [ref=f2e65]: ↗
+    - generic [ref=f2e66]:
+      - paragraph [ref=f2e67]: Foerderhinweis
+      - heading "Teil der FAB Region Bergisches Staedtedreieck." [level=2] [ref=f2e68]
+      - paragraph [ref=f2e69]: Die gezeigte Partnerstruktur orientiert sich an den offiziellen Projektinformationen der FAB Region. Foerderlogos, verbindliche Wortlaute und Platzierung muessen vor dem Launch durch die Foerdermittelgebenden freigegeben werden.
+      - link "Projektpartner ansehen" [ref=f2e70] [cursor=pointer]:
+        - /url: https://www.fab-bergisch.org/ueber-uns/projektpartner-unterstutzende
+        - text: Projektpartner ansehen ↗
+    - generic [ref=f2e71]:
+      - paragraph [ref=f2e72]:
+        - strong [ref=f2e73]: Reparaturrekord NRW
+        - text: Ein Projekt der FAB Region Bergisches Land.
+      - generic [ref=f2e74]:
+        - link "Datenschutz" [ref=f2e75] [cursor=pointer]:
+          - /url: /privacy
+        - link "Impressum" [ref=f2e76] [cursor=pointer]:
+          - /url: /imprint
+        - link "Barrierefreiheit" [ref=f2e77] [cursor=pointer]:
+          - /url: /accessibility
+      - paragraph [ref=f2e78]:
+        - text: Teil der
+        - link "FAB Region" [ref=f2e79] [cursor=pointer]:
+          - /url: https://www.fab-bergisch.org/
+  - button "Open Next.js Dev Tools" [ref=f2e85] [cursor=pointer]
+  - alert [ref=f2e89]

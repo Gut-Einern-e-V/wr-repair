@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
+import { repairCategoryValues as repairCategories } from "@/lib/repair-catalog";
 
 type Role = "moderator" | "admin" | "superadmin";
 type ManagedUser = { id: string; email: string; displayName: string | null; roles: Role[]; createdAt: string };
@@ -23,8 +24,6 @@ type ModerationRepair = {
 };
 
 const roleLabels: Record<Role, string> = { moderator: "Moderation", admin: "Admin", superadmin: "Superadmin" };
-const repairCategories = ["electrical_appliances", "household_appliances", "computers_and_communication", "bicycles", "furniture", "textiles_and_clothing", "tools", "toys_and_leisure", "other"];
-
 export default function ModeratorDashboard({ email, roles }: { email: string; roles: Role[] }) {
   const isSuperadmin = roles.includes("superadmin");
   const isAdmin = roles.some((role) => ["admin", "superadmin"].includes(role));

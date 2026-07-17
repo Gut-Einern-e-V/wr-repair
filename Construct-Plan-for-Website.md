@@ -13,7 +13,7 @@ Erstellung einer mobilen‑first Webseite, über die Nutzer*innen Reparaturen vo
 - **Backend‑Steuerung**
   - Zeitgesteuerter Selector → Einreichungen nur im definierten Zeitraum
   - Geo‑Filter (nur NRW via DNS‑ bzw. IP‑Lookup) kostenfrei, GDPR‑konform
-  - Captcha (z. B. hCaptcha / reCAPTCHA) (kostenfrei, GDPR‑konform)
+  - Captcha (Friendly Captcha, GDPR-konform)
   - Moderations‑Dashboard: Bilder prüfen, ablehnen, freigeben
   - Bot-Schutz durch cloudflare oder ähnliche Dienste (kostenfrei, GDPR‑konform)
 - **API‑Schnittstelle**
@@ -30,7 +30,7 @@ Erstellung einer mobilen‑first Webseite, über die Nutzer*innen Reparaturen vo
 | Backend | **Supabase** (PostgreSQL + Auth) |
 | Hosting | **Vercel** (Server‑less Functions) – bevorzugt für Edge‑API & SSR |
 | Bild‑Speicher | Supabase Storage |
-| Captcha | hCaptcha (kostenlos, GDPR‑konform) |
+| Captcha | Friendly Captcha (GDPR-konform) |
 | Geo‑Filter | Drittanbieter‑API (z. B. ipapi) + DNS‑Whitelist‑Check (kostenfrei, GDPR‑konform) |
 | CI/CD | GitHub Actions → Vercel Deploy |
 | Blog‑Generator | `next-mdx-remote` oder `vite-plugin-markdown` |
