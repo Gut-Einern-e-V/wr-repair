@@ -1,17 +1,17 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useState } from "react";
 
 const categories = [
-  "Elektrogeraete",
-  "Haushaltsgeraete",
-  "Computer & Kommunikation",
-  "Fahrraeder",
-  "Moebel",
-  "Textilien & Kleidung",
-  "Werkzeuge",
-  "Spielzeug & Freizeit",
-  "Sonstiges",
+  { label: "Elektrogeraete", value: "electrical_appliances" },
+  { label: "Haushaltsgeraete", value: "household_appliances" },
+  { label: "Computer & Kommunikation", value: "computers_and_communication" },
+  { label: "Fahrraeder", value: "bicycles" },
+  { label: "Moebel", value: "furniture" },
+  { label: "Textilien & Kleidung", value: "textiles_and_clothing" },
+  { label: "Werkzeuge", value: "tools" },
+  { label: "Spielzeug & Freizeit", value: "toys_and_leisure" },
+  { label: "Sonstiges", value: "other" },
 ];
 
 const stories = [
@@ -20,14 +20,187 @@ const stories = [
   { category: "Textilien & Kleidung", title: "Ein Lieblingsmantel bleibt in der Familie.", tag: "Schule Solingen" },
 ];
 
+const categoryQuestions: Record<string, { id: string; label: string; options: string[] }[]> = {
+  electrical_appliances: [{ id: "device", label: "Was fuer ein Elektrogeraet?", options: ["Kleingeraet", "Audio oder Video", "Lampe", "Anderes"] }],
+  household_appliances: [{ id: "device", label: "Welches Haushaltsgeraet?", options: ["Kueche", "Waschen", "Reinigen", "Anderes"] }],
+  computers_and_communication: [{ id: "device", label: "Welches Geraet?", options: ["Computer", "Smartphone", "Netzwerk", "Anderes"] }],
+  bicycles: [{ id: "repair", label: "Was wurde repariert?", options: ["Bremse", "Antrieb", "Reifen", "Anderes"] }],
+  furniture: [{ id: "material", label: "Woraus besteht das Moebel?", options: ["Holz", "Metall", "Kunststoff", "Anderes"] }],
+  textiles_and_clothing: [{ id: "repair", label: "Welche Reparatur war es?", options: ["Naht", "Flicken", "Reissverschluss", "Anderes"] }],
+  tools: [{ id: "tool", label: "Welches Werkzeug?", options: ["Elektrowerkzeug", "Handwerkzeug", "Gartengeraet", "Anderes"] }],
+  toys_and_leisure: [{ id: "item", label: "Was wurde repariert?", options: ["Spielzeug", "Sport", "Musik", "Anderes"] }],
+  other: [{ id: "item", label: "Was wurde repariert?", options: ["Alltagsgegenstand", "Dekoration", "Anderes", "Sonstiges"] }],
+};
+
+const MAX_IMAGE_BYTES = 200 * 1024;
+const compressibleImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+function createCompressedImage(file: File): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    const sourceUrl = URL.createObjectURL(file);
+
+    image.onload = async () => {
+      URL.revokeObjectURL(sourceUrl);
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      if (!context) {
+        reject(new Error("Bildkomprimierung ist in diesem Browser nicht verfuegbar."));
+        return;
+      }
+
+      let longestSide = Math.max(image.naturalWidth, image.naturalHeight, 1);
+      let quality = 0.82;
+
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const scale = Math.min(1, longestSide / Math.max(image.naturalWidth, image.naturalHeight));
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+        const blob = await new Promise<Blob | null>((resolveBlob) => {
+          canvas.toBlob(resolveBlob, "image/jpeg", quality);
+        });
+
+        if (blob && blob.size <= MAX_IMAGE_BYTES) {
+          resolve(new File([blob], `${file.name.replace(/\.[^/.]+$/, "")}.jpg`, {
+            type: "image/jpeg",
+            lastModified: file.lastModified,
+          }));
+          return;
+        }
+
+        quality = Math.max(0.42, quality - 0.12);
+        longestSide = Math.round(longestSide * 0.78);
+      }
+
+      reject(new Error("Das Bild konnte nicht klein genug komprimiert werden. Bitte waehle ein anderes Bild."));
+    };
+
+    image.onerror = () => {
+      URL.revokeObjectURL(sourceUrl);
+      reject(new Error("Dieses Bildformat kann nicht komprimiert werden."));
+    };
+
+    image.src = sourceUrl;
+  });
+}
+
 export default function Home() {
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [category, setCategory] = useState(categories[0]);
+  const [category, setCategory] = useState(categories[0].value);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState("");
+  const [fileError, setFileError] = useState("");
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [compressionMessage, setCompressionMessage] = useState("");
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [repairCount, setRepairCount] = useState(1287);
+  const activeQuestions = categoryQuestions[category] ?? [];
+
+  useEffect(() => () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+  }, [previewUrl]);
+
+  useEffect(() => {
+    async function loadRepairCount() {
+      const response = await fetch("/api/stats");
+      if (!response.ok) {
+        return;
+      }
+
+      const stats = await response.json() as { total: number };
+      setRepairCount(stats.total);
+    }
+
+    void loadRepairCount();
+    const interval = window.setInterval(() => void loadRepairCount(), 300_000);
+    return () => window.clearInterval(interval);
+  }, []);
+
+  async function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    setFileError("");
+    setCompressionMessage("");
+    setUploadFile(null);
+
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
+
+    if (!file) {
+      setPreviewUrl("");
+      return;
+    }
+
+    if (!compressibleImageTypes.has(file.type)) {
+      setFileError("Bitte waehle ein JPG, PNG oder WebP. Dieses Format kann nicht datenschutzsicher verarbeitet werden.");
+      setPreviewUrl("");
+      event.target.value = "";
+      return;
+    }
+
+    setIsCompressing(true);
+    try {
+      const compressedFile = await createCompressedImage(file);
+      setUploadFile(compressedFile);
+      setPreviewUrl(URL.createObjectURL(compressedFile));
+      setCompressionMessage(
+        compressedFile.size < file.size
+          ? `Bild wurde von ${Math.ceil(file.size / 1024)} KB auf ${Math.ceil(compressedFile.size / 1024)} KB komprimiert. Metadaten wurden entfernt.`
+          : "Bilddaten wurden vor dem Upload bereinigt. EXIF- und Standortdaten wurden entfernt.",
+      );
+    } catch (error) {
+      setFileError(error instanceof Error ? error.message : "Das Bild konnte nicht verarbeitet werden.");
+      event.target.value = "";
+    } finally {
+      setIsCompressing(false);
+    }
+  }
 
   function submitRepair(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsSubmitted(true);
+    if (fileError || !uploadFile || isCompressing) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmissionError("");
+    setUploadProgress(0);
+
+    const request = new XMLHttpRequest();
+    request.open("POST", "/api/repairs");
+    request.responseType = "json";
+    request.upload.onprogress = (progressEvent) => {
+      if (progressEvent.lengthComputable) {
+        setUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 100));
+      }
+    };
+    request.onload = () => {
+      setIsSubmitting(false);
+      setUploadProgress(null);
+
+      if (request.status >= 200 && request.status < 300) {
+        setIsSubmitted(true);
+        return;
+      }
+
+      setSubmissionError(request.response?.error ?? "Die Einreichung konnte nicht gesendet werden.");
+    };
+    request.onerror = () => {
+      setIsSubmitting(false);
+      setUploadProgress(null);
+      setSubmissionError("Netzwerkfehler. Bitte pruefe deine Verbindung und versuche es erneut.");
+    };
+    const formData = new FormData(event.currentTarget);
+    formData.set("image", uploadFile);
+    request.send(formData);
   }
 
   return (
@@ -59,12 +232,12 @@ export default function Home() {
 
         <div className="counter-panel" id="counter">
           <p className="counter-label">Freigegebene Reparaturen</p>
-          <p className="counter-number" aria-label="1287 freigegebene Reparaturen">1.287</p>
+          <p className="counter-number" aria-label={`${repairCount} freigegebene Reparaturen`}>{repairCount.toLocaleString("de-DE")}</p>
           <div className="counter-meta">
             <span>Unser Ziel: 10.000</span>
-            <span>12,9 %</span>
+            <span>{(repairCount / 10_000 * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
           </div>
-          <div className="progress-track" aria-hidden="true"><span /></div>
+          <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min(repairCount / 100, 100)}%` }} /></div>
           <p className="counter-note">Jede Reparatur zaehlt. Auch wenn sie nicht gelungen ist.</p>
         </div>
 
@@ -96,9 +269,9 @@ export default function Home() {
         </div>
         <div className="category-grid">
           {categories.map((item, index) => (
-            <button className={`category-card category-${index + 1}`} type="button" key={item} onClick={() => { setCategory(item); setIsFormOpen(true); }}>
+            <button className={`category-card category-${index + 1}`} type="button" key={item.value} onClick={() => { setCategory(item.value); setIsFormOpen(true); }}>
               <span>0{index + 1}</span>
-              <strong>{item}</strong>
+              <strong>{item.label}</strong>
               <i aria-hidden="true">&#8599;</i>
             </button>
           ))}
@@ -152,16 +325,38 @@ export default function Home() {
                 <p className="section-index">Deine Reparatur / Schritt 1 von 3</p>
                 <h2 id="submission-title">Was wurde repariert?</h2>
                 <label>Geraetekategorie
-                  <select value={category} onChange={(event) => setCategory(event.target.value)}>
-                    {categories.map((item) => <option key={item}>{item}</option>)}
+                  <select name="category" value={category} onChange={(event) => setCategory(event.target.value)}>
+                    {categories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
                   </select>
                 </label>
                 <label>Was war kaputt und was hast du getan?
-                  <textarea required rows={4} placeholder="Zum Beispiel: Kabel getauscht, Schalter gereinigt ..." />
+                  <textarea name="description" required rows={4} maxLength={2000} placeholder="Zum Beispiel: Kabel getauscht, Schalter gereinigt ..." />
                 </label>
-                <label className="upload-field">Foto hinzufuegen <input type="file" accept="image/*" required /><small>JPG, PNG oder HEIC · maximal 5 MB</small></label>
-                <label className="consent"><input type="checkbox" required /> <span>Ich bin einverstanden, dass mein Bild nach der Pruefung veroeffentlicht wird.</span></label>
-                <button className="button button-primary" type="submit">Zur Pruefung einreichen <span aria-hidden="true">&#8594;</span></button>
+                {activeQuestions.map((question) => (
+                  <label key={question.id}>{question.label}
+                    <select name={`answer_${question.id}`} required>
+                      <option value="">Bitte waehlen</option>
+                      {question.options.map((option) => <option key={option} value={option}>{option}</option>)}
+                    </select>
+                  </label>
+                ))}
+                <label className="upload-field">Foto hinzufuegen
+                  <input name="image" type="file" accept="image/jpeg,image/png,image/webp" required onChange={handleImageChange} />
+                  <small>JPG, PNG oder WebP · maximal 200 KB · Bild- und Standortdaten werden vor dem Upload entfernt</small>
+                </label>
+                {isCompressing && <p className="form-notice" aria-live="polite">Bild wird komprimiert ...</p>}
+                {previewUrl && (
+                  // A blob URL is local to the browser and cannot use Next.js image optimization.
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img className="image-preview" src={previewUrl} alt="Vorschau des ausgewaehlten Reparaturbildes" />
+                )}
+                {compressionMessage && <p className="form-notice" role="status">{compressionMessage}</p>}
+                {fileError && <p className="form-error" role="alert">{fileError}</p>}
+                <label className="repair-outcome"><input name="repair_succeeded" type="checkbox" value="false" /> <span>Die Reparatur ist leider nicht gelungen. Auch dieser Versuch zaehlt und darf eingereicht werden.</span></label>
+                <label className="consent"><input name="consent" type="checkbox" value="true" required /> <span>Ich bin einverstanden, dass mein Bild nach der Pruefung veroeffentlicht wird.</span></label>
+                {uploadProgress !== null && <div className="upload-progress" aria-live="polite"><span>Bild wird hochgeladen: {uploadProgress} %</span><progress value={uploadProgress} max="100" /></div>}
+                {submissionError && <p className="form-error" role="alert">{submissionError}</p>}
+                <button className="button button-primary" type="submit" disabled={isSubmitting || isCompressing || Boolean(fileError)}>{isSubmitting ? "Wird gesendet ..." : "Zur Pruefung einreichen"} <span aria-hidden="true">&#8594;</span></button>
               </form>
             )}
           </section>
