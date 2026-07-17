@@ -3,3 +3,13 @@
 [     140ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
 [     158ms] [ERROR] Failed to load resource: the server responded with a status of 503 (Service Unavailable) @ http://localhost:3002/api/gallery:0
 [  300118ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[  600110ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[  900093ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[ 1200094ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[ 1500077ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[ 1800067ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0
+[ 2009761ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2009850ms] [LOG] [Fast Refresh] done in 74ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2027088ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2027108ms] [LOG] [Fast Refresh] done in 26ms @ http://localhost:3002/_next/static/chunks/node_modules_next_dist_1ybzpk2._.js:2477
+[ 2100119ms] [ERROR] Failed to load resource: the server responded with a status of 403 (Forbidden) @ http://localhost:3002/api/stats:0

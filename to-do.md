@@ -95,3 +95,13 @@ Stand: 17. Juli 2026
 - [x] Prominente öffentliche Texte, Kategorien, Navigation und Projektseite auf echte deutsche Umlaute umgestellt; technische IDs und Pfade bleiben ASCII.
 - [x] Projektseite vollständig auf Deutsch übersetzt.
 - [x] Retro-Idle-Animation mit pixelartigen Punkten im Hero-Zähler ergänzt; die Animation respektiert `prefers-reduced-motion`.
+
+## next ideas
+- [x] Anpassungsanleitung für eigene Kampagnen erstellt: `docs/campaign-adaptation-guide.md` beschreibt getrennte Supabase-, Vercel- und Friendly-Captcha-Konfiguration, die Migrationen sowie Launchprüfungen.
+- [x] Öffentliche Hardware-API dokumentiert: `docs/hardware-display-api.md` beschreibt `GET /api/stats`, Caching, Fehlerfälle sowie sichere ESP32-/Arduino- und Raspberry-Pi-Beispiele ohne Geheimnisse auf dem Gerät.
+- [x] Seitenhintergrund um eine zurückhaltend bewegte Werkstatt-Rasterstruktur erweitert. Sie respektiert `prefers-reduced-motion` und bleibt hinter dem Inhalt.
+- [x] Mitmachbereich als Überblick mit visuellen Symbolen, Einreichungs-CTA, externer Repair-Café-Suche und Kontaktweg für Einrichtungen erweitert.
+- [x] Friendly Captcha v2 gegen die offizielle SDK-Anleitung geprüft und den öffentlichen Sitekey `FCMNM3R7JRA5C82C` in `.env.example` eingetragen. Für echte Einreichungen fehlen weiterhin der geheime `FRIENDLY_CAPTCHA_API_KEY` in Vercel und die freigegebenen lokalen/Preview-/Produktionsdomains im Friendly-Captcha-Dashboard.
+- [x] Projektseite mit klickbarem Unterstützer-Logoraster, Kontakt-CTA für weitere Unterstützer und Projektbeschreibung ausgebaut.
+- [x] Projektseite um eine responsive Werkstatt-Hero-Illustration, Ziele, Mitwirkungsmöglichkeiten und einen transparenten Rekordnachweis-Hinweis erweitert. Eine konkrete England-Rekordzahl wird nicht genannt, weil die frühere Guinness-Record-Seite aktuell 404 liefert; vor dem Start ist der gültige Wert über Guinness World Records verbindlich zu prüfen.
+- [x] Externen Repair-Café-Finder von Repair Café International im Mitmachbereich verlinkt. Der Finder ist international, nicht spezifisch auf NRW beschränkt.

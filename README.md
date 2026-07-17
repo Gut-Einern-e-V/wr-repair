@@ -46,6 +46,8 @@ Do not copy the production secrets, Supabase project, Friendly Captcha keys or a
 
 The technical privacy data flow and outstanding legal decisions are recorded in `docs/data-protection-concept.md`. Deployment setup is described in `docs/vercel-deployment.md`.
 
+For a complete independent campaign setup, including Supabase, Vercel, Friendly Captcha and launch checks, see `docs/campaign-adaptation-guide.md`. Public counter displays for ESP32, Arduino and Raspberry Pi can use the documented aggregate API in `docs/hardware-display-api.md`.
+
 ## Quality checks
 
 ```bash
