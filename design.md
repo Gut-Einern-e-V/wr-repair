@@ -27,60 +27,54 @@ Scope: Landing, Upload, Moderation, Blog, statische Seiten
 9. Keine Vollfarben als Hintergrund fuer grosse Flaechen. Nur subtile Gradients oder Texturen.
 10. Farben sollen nicht vollfarben sein, sondern leicht entsaettigt, um die Augen zu schonen und den Fokus auf Inhalte zu lenken.
 
-## 4. Farb-Tokens (OKLCH)
-Basis aus brand-spec, erweitert fuer States und Flows.
+## 4. Farb-Tokens
+Quelle: `Weltrekord_Styleguide/WR_Styleguide_v1` (Seite "Farbepalette"). Die kanonischen
+HEX-Werte stehen im Styleguide, die entsaettigten Varianten stammen von der Swatch-Seite
+und sind fuer grosse Flaechen gedacht (siehe Prinzip 10).
 
 ```css
 :root {
-  /* Core */
-  --color-bg: oklch(96% 0.01 0.3);
-  --color-surface: oklch(95% 0.0100 0.2);
-  --color-fg: oklch(10% 0.01 0.1);
+  /* Hauptfarben */
+  --ink: #101626;        /* Textfarbe, Rahmen, dunkle Flaechen */
+  --bg: #efece5;         /* Papier, Grundflaeche der Seite */
+  --paper: #f7f5f0;      /* angehobene Flaeche auf --bg */
+  --yellow: #ffc432;     /* Primaerfarbe: CTA, Aufkleber, Infobereiche */
+  --mint: #95d4bb;       /* Sekundaerfarbe: Aufkleber, Diagramme */
+  --green: #00b072;      /* Akzent */
 
-  /* Brand accents */
-  --color-accent-red: oklch(60% 0.25 30);
-  --color-accent-green: oklch(70% 0.18 140);
-  --color-accent-blue: oklch(55% 0.15 260);
+  /* Entsaettigte Varianten fuer grosse Flaechen */
+  --yellow-soft: #f4bd4c;
+  --mint-soft: #b4e0cc;
+  --green-soft: #24b475;
+  --red: #ec424c;        /* nur Fehler und Ablehnen */
+  --red-deep: #c2202b;
+  --blue: #465eab;       /* Links und Fokusring */
 
-  /* Utility */
-  --color-border-strong: oklch(20% 0 0);
-  --color-border-soft: oklch(78% 0 0);
-  --color-muted: oklch(55% 0 0);
-
-  /* Semantic */
-  --color-success: oklch(72% 0.19 145);
-  --color-warning: oklch(78% 0.18 92);
-  --color-error: oklch(62% 0.24 28);
-  --color-info: oklch(62% 0.16 252);
-
-  /* Interaction */
-  --color-focus-ring: oklch(67% 0.22 260);
-  --color-link: oklch(50% 0.19 257);
-  --color-link-hover: oklch(43% 0.19 257);
-}
-
-[data-theme="dark"] {
-  --color-bg: oklch(15% 0.01 260);
-  --color-surface: oklch(21% 0.01 260);
-  --color-fg: oklch(94% 0.01 260);
-
-  --color-border-strong: oklch(85% 0.01 260);
-  --color-border-soft: oklch(36% 0.01 260);
-  --color-muted: oklch(73% 0.01 260);
-
-  --color-link: oklch(74% 0.15 257);
-  --color-link-hover: oklch(81% 0.15 257);
+  /* Funktion */
+  --muted: #5b6072;
+  --line: 2px solid var(--ink);
+  --hairline: 1px solid rgba(16, 22, 38, 0.22);
 }
 ```
 
+Regeln:
+- Gelb ist die Primaerfarbe. Primaerbuttons und der Live-Zaehler-Block sind gelb mit Ink-Text.
+- Rot ist reserviert fuer Fehlerzustaende und die Ablehnen-Aktion in der Moderation.
+- Auf hellem Grund traegt Gelb keinen Text. Kicker und Labels stehen dort in `--ink`
+  oder `--muted`, Gelb nur als Flaeche oder auf dunklem Grund.
+- Kontrast geprueft: Ink auf Gelb 10.6:1, Ink auf Mint 10:1, Blau auf Papier 5.4:1.
+  Rot auf Papier erreicht nur 3.3:1 und ist deshalb kein Fliesstext.
+
 ## 5. Typografie-Tokens
-Vorgabe: Hack Mono und Inter.
+Vorgabe aus dem Styleguide: **Nunito** ist die offizielle Projektschrift und frei
+verwendbar. **FreightDisp Pro** ist die Display-Serif und liegt bei Adobe Fonts.
+Solange kein Adobe-Kit eingebunden ist, greift Playfair Display als Ersatz; der
+Font-Stack ist so gebaut, dass ein spaeter ergaenztes Kit ohne Codeaenderung wirkt.
 
 ```css
 :root {
-  --font-display: "Hack Mono", monospace;
-  --font-body: "Inter", sans-serif;
-  --font-code: "Hack Mono", monospace;
+  --sans: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --display: "FreightDisp Pro", "Playfair Display", Georgia, serif;
 
   --text-xs: clamp(0.75rem, 0.72rem + 0.12vw, 0.82rem);
   --text-sm: clamp(0.88rem, 0.84rem + 0.14vw, 0.95rem);
@@ -100,11 +94,15 @@ Vorgabe: Hack Mono und Inter.
 ```
 
 Typo-Regeln:
-- Headlines: Display-Font, all caps nur in Labels und Counter-Kicker.
-- Fliesstext: Body-Font mit --lh-body.
-- Zahlen (Counter, Stats): tabellarische Ziffern aktivieren.
-- arbeite mit h1 bis h6, aber nutze nur h1 bis h3 fuer sichtbare Headlines. h4 bis h6 nur fuer semantische Struktur.
-- Nutze CSS-Variablen fuer Schriftgroessen, Zeilenhoehen und Buchstabenabstand, um responsive Anpassungen zu erleichtern.
+- h1 und h2 sind Nunito 900 in Versalien. Das ist die Plakatstimme der Marke.
+- h3 bis h6 bleiben gemischt gesetzt, damit laengere Titel lesbar bleiben.
+- Fliesstext ist Nunito 400 mit `--lh-body`.
+- Die Display-Serif ist Statements vorbehalten (Bannerzeilen, Artikel-Lead).
+  Sie ersetzt nie UI-Text und nie eine Headline im Aufkleber.
+- Labels, Buttons und Navigation: Nunito 800, Versalien, `letter-spacing` .07em bis .09em.
+- Zahlen (Counter, Stats, Countdown): Nunito 900 mit `font-variant-numeric: tabular-nums`
+  und `letter-spacing: -.04em`.
+- Nutze h1 bis h6 semantisch, aber nur h1 bis h3 fuer sichtbare Headlines.
 
 ## 6. Layout- und Spacing-Tokens
 ```css
@@ -135,32 +133,52 @@ Regeln:
 - Inputs/Buttons: max radius-sm oder radius-md.
 - Keine Shadows.
 
-## 7. Oberflaechen und Hintergruende
-- Grundlayout: heller Hintergrund mit subtilen, koernigen Gradients.
-- Hero-Bereich: harte Farb-Bloecke statt weicher Glow-Effekte. 
-- Grain optional ueber pseudo-element mit sehr niedriger Opacity (0.04 bis 0.07).
+## 7. Oberflaechen, Hintergruende und Aufkleber-Stil
+- Grundflaeche: `--bg` (#efece5) mit sehr feinem Papierraster, Opacity um 0.05.
+  Kein technisches Gitter, keine animierten Diagonalen.
+- Hero und Statement-Baender: Foto aus der Bildwelt mit hartem Ink-Scrim,
+  darauf Aufkleber-Headlines. Keine Glows, keine Blur-Flaechen.
+- Der gelbe Infobereich ist ein eigenes Bauteil: harte Kante, `--line`, `--yellow`,
+  Ink-Text. Er traegt die wichtigsten Zahlen (Live-Zaehler, Foerderhinweis).
 
-Beispiel:
+### 7.1 Aufkleber-Headlines
+Kernbauteil der Marke. Der Styleguide beschreibt es als "Grafikbloecke im Aufkleber-Stil:
+fettgedruckter, versetzt angeordneter Blocktext".
+
 ```css
-.hero-bg {
-  background:
-    linear-gradient(135deg, oklch(96% 0.02 30) 0%, oklch(94% 0.02 260) 55%, oklch(96% 0.02 140) 100%),
-    repeating-linear-gradient(
-      0deg,
-      transparent 0,
-      transparent 2px,
-      color-mix(in oklch, var(--color-fg) 5%, transparent) 2px,
-      color-mix(in oklch, var(--color-fg) 5%, transparent) 3px
-    );
+.sticker-head { display: flex; flex-direction: column; align-items: flex-start; gap: .12em; }
+.sticker-head .sticker {
+  display: inline-block; padding: .05em .28em .1em;
+  background: var(--yellow); color: var(--ink);
+  box-decoration-break: clone;
 }
+.sticker-head .sticker:nth-child(1) { transform: rotate(-1.5deg); }
+.sticker-head .sticker:nth-child(2) { margin-left: .5em; transform: rotate(1deg); }
+.sticker-head .sticker:nth-child(3) { transform: rotate(-.6deg); }
+.sticker-head.is-mint .sticker { background: var(--mint); }
 ```
+
+Regeln:
+- Eine Zeile pro `span.sticker`. Die Rotation bleibt unter 2 Grad.
+- Gelb auf dunklem Grund, Mint auf hellem Grund oder umgekehrt, nie beides gemischt.
+- Maximal vier Zeilen. Laengere Titel bekommen eine kleinere `font-size`, keinen Umbruch
+  im Aufkleber: `max-width: 100%` verhindert den Ueberlauf aus der Rasterspalte.
+- Ein einzelnes Highlight-Wort in laufenden Headlines nutzt dieselbe Flaeche ohne Rotation.
+
+### 7.2 Bildwelt
+Quelle: `Weltrekord_Styleguide/WR_Photos`, zentral gefuehrt in `lib/brand-photos.ts`.
+- Haltung: gemeinschaftsorientiert, praxisnah, bodenstaendig, generationsuebergreifend.
+- Jedes Bild traegt Alt-Text und Credit im Modul. Der Urheberhinweis steht laut Styleguide
+  im Dateinamen und bleibt dort erhalten.
+- Fotos liegen unter Aufklebern und Text immer mit Ink-Scrim, damit der Kontrast haelt.
+- Kleine Bildflaechen bekommen ein gelbes Aufkleber-Label in der unteren linken Ecke.
 
 ## 8. Komponentenstil
 
 ### 8.1 Buttons
 - Form: kantig, border-strong, kein Schatten.
-- Primary: Hintergrund accent-red, Text hell, aktiver Press-Offset ueber transform.
-- Secondary: surface + border-strong.
+- Primary: Hintergrund `--yellow`, Ink-Text, aktiver Press-Offset ueber transform.
+- Secondary: `--paper` + `--line`.
 - Ghost: transparent mit Unterstreichung bei Hover.
 
 ```css
@@ -249,17 +267,22 @@ Layout-Logik:
 - Tastaturpfad fuer Upload, Filter, Moderationsaktionen vollstaendig testbar.
 
 ## 12. Kategorien als visuelle Codes
-- Elektrogeraete: accent-blue
-- Haushaltsgeraete: accent-green
-- Computer und Kommunikation: info
-- Fahrraeder: accent-red
-- Moebel: warning
-- Textilien und Kleidung: link
-- Werkzeuge: fg auf surface
-- Spielzeug und Freizeit: success
-- Sonstiges: muted
+Alle Werte sind Tints der Markenpalette, damit die Kategoriekarten als eine Flaeche lesen.
+
+| Kategorie | Klasse | Farbe |
+| --- | --- | --- |
+| Elektrogeraete | `.category-1` | `--mint` |
+| Haushaltsgeraete | `.category-2` | `--mint-soft` |
+| Computer und Kommunikation | `.category-3` | `#c6cde4` (Blau-Tint) |
+| Fahrraeder | `.category-4` | `--yellow` |
+| Moebel | `.category-5` | `--yellow-soft` |
+| Textilien und Kleidung | `.category-6` | `#d3d6de` |
+| Werkzeuge | `.category-7` | `#dfdacd` |
+| Spielzeug und Freizeit | `.category-8` | `#7fd0a8` |
+| Sonstiges | `.category-9` | `--paper` |
 
 Hinweis: Kategorien-Farben nur als Zusatzsignal nutzen, nie als einziges Signal.
+Der Kategoriename steht immer als Text in der Karte.
 
 ## 13. Seiten-spezifische Hinweise
 

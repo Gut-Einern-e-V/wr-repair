@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_2" data-name="Layer 2" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 344.71 136.01">
+  <defs>
+    <style>
+      .cls-1 {
+        fill: none;
+      }
+
+      .cls-2 {
+        font-size: 28.67px;
+      }
+
+      .cls-2, .cls-3, .cls-4 {
+        fill: #101626;
+        font-family: Nunito-Black, Nunito;
+        font-weight: 800;
+      }
+
+      .cls-3 {
+        font-size: 28.67px;
+      }
+
+      .cls-4 {
+        font-size: 28.67px;
+      }
+
+      .cls-5 {
+        fill: #f3bc4d;
+      }
+
+      .cls-6 {
+        letter-spacing: -.04em;
+      }
+
+      .cls-7 {
+        letter-spacing: -.05em;
+      }
+
+      .cls-8 {
+        letter-spacing: .02em;
+      }
+
+      .cls-9 {
+        letter-spacing: .02em;
+      }
+
+      .cls-10 {
+        letter-spacing: .02em;
+      }
+
+      .cls-11 {
+        letter-spacing: .02em;
+      }
+
+      .cls-12 {
+        letter-spacing: .02em;
+      }
+
+      .cls-13 {
+        clip-path: url(#clippath);
+      }
+
+      .cls-14 {
+        letter-spacing: .02em;
+      }
+
+      .cls-15 {
+        letter-spacing: .01em;
+      }
+
+      .cls-16 {
+        letter-spacing: .01em;
+      }
+
+      .cls-17 {
+        letter-spacing: .01em;
+      }
+
+      .cls-18 {
+        letter-spacing: 0em;
+      }
+
+      .cls-19 {
+        letter-spacing: 0em;
+      }
+
+      .cls-20 {
+        letter-spacing: 0em;
+      }
+
+      .cls-21 {
+        letter-spacing: 0em;
+      }
+
+      .cls-22 {
+        letter-spacing: 0em;
+      }
+    </style>
+    <clipPath id="clippath">
+      <rect class="cls-1" width="344.71" height="136.01"/>
+    </clipPath>
+  </defs>
+  <g id="Layer_1-2" data-name="Layer 1">
+    <rect class="cls-5" x="10.13" y="103.07" width="148.15" height="28.57"/>
+    <g class="cls-13">
+      <text class="cls-2" transform="translate(14.37 126.7)"><tspan class="cls-20" x="0" y="0">F</tspan><tspan class="cls-21" x="16.89" y="0">E</tspan><tspan class="cls-8" x="34.69" y="0">S</tspan><tspan class="cls-14" x="53.99" y="0">T</tspan><tspan class="cls-20" x="73" y="0">I</tspan><tspan class="cls-7" x="82.23" y="0">V</tspan><tspan class="cls-15" x="101.96" y="0">A</tspan><tspan x="124.15" y="0">L</tspan></text>
+    </g>
+    <rect class="cls-5" x="58.37" y="65.61" width="138.55" height="28.99" transform="translate(-2.72 4.51) rotate(-2)"/>
+    <rect class="cls-5" x="52.64" y="-7.05" width="28.99" height="113.46" transform="translate(14.02 114.12) rotate(-87)"/>
+    <text class="cls-3" transform="translate(11.55 56.93) rotate(3)"><tspan class="cls-16" x="0" y="0">R</tspan><tspan class="cls-12" x="20.59" y="0">E</tspan><tspan class="cls-6" x="38.62" y="0">P</tspan><tspan class="cls-22" x="56.71" y="0">A</tspan><tspan class="cls-10" x="78.82" y="0">I</tspan><tspan x="88.34" y="0">R </tspan></text>
+    <text class="cls-4" transform="translate(61.49 93.24) rotate(-2)"><tspan class="cls-19" x="0" y="0">&amp; </tspan><tspan class="cls-9" x="30.74" y="0">S</tspan><tspan class="cls-18" x="50" y="0">H</tspan><tspan class="cls-17" x="72.8" y="0">A</tspan><tspan class="cls-11" x="94.96" y="0">R</tspan><tspan x="115.64" y="0">E</tspan></text>
+  </g>
+</svg>
