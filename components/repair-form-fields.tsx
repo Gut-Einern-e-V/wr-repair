@@ -1,6 +1,6 @@
 "use client";
 
-import { repairCategories, repairCategoryQuestions, type RepairCategory } from "@/lib/repair-catalog";
+import { repairCategories, type RepairCategory } from "@/lib/repair-catalog";
 
 type RepairCategorySelectProps = {
   category: string;
@@ -8,28 +8,11 @@ type RepairCategorySelectProps = {
   label?: string;
 };
 
-export function RepairCategorySelect({ category, onChange, label = "Geraetekategorie" }: RepairCategorySelectProps) {
+export function RepairCategorySelect({ category, onChange, label = "Kategorie" }: RepairCategorySelectProps) {
   return <label>{label}
-    <select value={category} onChange={(event) => onChange(event.target.value as RepairCategory)}>
+    <select name="category" value={category} onChange={(event) => onChange(event.target.value as RepairCategory)}>
       {repairCategories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
     </select>
   </label>;
 }
 
-type RepairFormFieldsProps = RepairCategorySelectProps & {
-  includeQuestions?: boolean;
-};
-
-export function RepairFormFields({ category, onChange, includeQuestions = true, label }: RepairFormFieldsProps) {
-  const questions = repairCategoryQuestions[category as RepairCategory] ?? [];
-
-  return <>
-    <RepairCategorySelect category={category} onChange={onChange} label={label} />
-    {includeQuestions && questions.map((question) => <label key={question.id}>{question.label} <small>(optional)</small>
-      <select name={`answer_${question.id}`}>
-        <option value="">Bitte waehlen</option>
-        {question.options.map((option) => <option key={option} value={option}>{option}</option>)}
-      </select>
-    </label>)}
-  </>;
-}

@@ -35,10 +35,11 @@ export async function GET() {
   const repairs: Array<{
     id: string;
     category: string;
-    product_name: string | null;
-    context: string | null;
-    description: string | null;
-    answers: Record<string, string> | null;
+    brand_model: string | null;
+    duration_minutes: number | null;
+    item_value_euros: number | null;
+    performed_by: string | null;
+    story: string | null;
     repair_succeeded: boolean;
     consent_publication: boolean;
     status: string;
@@ -51,7 +52,7 @@ export async function GET() {
   for (let start = 0; start < MAX_EXPORT_ROWS; start += PAGE_SIZE) {
     const { data, error } = await supabase
       .from("repairs")
-      .select("id, category, product_name, context, description, answers, repair_succeeded, consent_publication, status, location_region, moderator_comment, created_at, moderated_at")
+      .select("id, category, brand_model, duration_minutes, item_value_euros, performed_by, story, repair_succeeded, consent_publication, status, location_region, moderator_comment, created_at, moderated_at")
       .order("created_at", { ascending: false })
       .range(start, start + PAGE_SIZE - 1);
 
@@ -65,14 +66,15 @@ export async function GET() {
     }
   }
 
-  const columns = ["id", "category", "product_name", "context", "description", "answers", "repair_succeeded", "consent_publication", "status", "location_region", "moderator_comment", "created_at", "moderated_at"];
+  const columns = ["id", "category", "brand_model", "duration_minutes", "item_value_euros", "performed_by", "story", "repair_succeeded", "consent_publication", "status", "location_region", "moderator_comment", "created_at", "moderated_at"];
   const rows = repairs.map((repair) => [
     repair.id,
     repair.category,
-    repair.product_name,
-    repair.context,
-    repair.description,
-    repair.answers ? JSON.stringify(repair.answers) : "",
+    repair.brand_model,
+    repair.duration_minutes,
+    repair.item_value_euros,
+    repair.performed_by,
+    repair.story,
     repair.repair_succeeded,
     repair.consent_publication,
     repair.status,

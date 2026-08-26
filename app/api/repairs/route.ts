@@ -2,28 +2,19 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { verifyNorthrhineWestphalia } from "@/lib/geo";
 import { rateLimit } from "@/lib/rate-limit";
 import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
+import { repairCategoryValues } from "@/lib/repair-catalog";
 
 export const runtime = "nodejs";
 
 const MAX_IMAGE_BYTES = 200 * 1024;
-
-const categoryValues = new Set([
-  "electrical_appliances",
-  "household_appliances",
-  "computers_and_communication",
-  "bicycles",
-  "furniture",
-  "textiles_and_clothing",
-  "tools",
-  "toys_and_leisure",
-  "other",
-]);
 
 const imageExtensions: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
 };
+
+const validPerformedBy = new Set(["alone", "with_support", "by_someone"]);
 
 function errorResponse(message: string, status: number) {
   return Response.json({ error: message }, { status });
@@ -78,42 +69,47 @@ export async function POST(request: Request) {
 
   const formData = await request.formData();
   const category = formData.get("category");
-  const description = formData.get("description");
+  const brandModel = formData.get("brand_model");
+  const durationMinutes = formData.get("duration_minutes");
+  const itemValueEuros = formData.get("item_value_euros");
+  const performedBy = formData.get("performed_by");
+  const story = formData.get("story");
   const consent = formData.get("consent");
   const image = formData.get("image");
   const captchaToken = formData.get("frc-captcha-response");
   const repairSucceeded = formData.get("repair_succeeded") !== "false";
-  const answers = Object.fromEntries(
-    [...formData.entries()]
-      .flatMap(([key, value]) => (
-        key.startsWith("answer_") && typeof value === "string" && value.trim()
-          ? [[key.slice("answer_".length), value.trim()]]
-          : []
-      )),
-  );
 
-  if (typeof category !== "string" || !categoryValues.has(category)) {
+  const lotteryName = formData.get("lottery_name");
+  const lotteryEmail = formData.get("lottery_email");
+  const lotteryPrivacy = formData.get("lottery_privacy");
+  const wantsLottery = typeof lotteryName === "string" && lotteryName.trim().length > 0
+    && typeof lotteryEmail === "string" && lotteryEmail.trim().length > 0;
+
+  if (typeof category !== "string" || !(repairCategoryValues as string[]).includes(category)) {
     return errorResponse("Bitte waehle eine gueltige Kategorie.", 400);
   }
 
-  if (typeof description !== "string" || !description.trim() || description.length > 2_000) {
-    return errorResponse("Bitte beschreibe deine Reparatur in maximal 2.000 Zeichen.", 400);
+  if (typeof performedBy !== "string" || !validPerformedBy.has(performedBy)) {
+    return errorResponse("Bitte gib an, wer die Reparatur durchgefuehrt hat.", 400);
   }
 
   if (consent !== "true") {
     return errorResponse("Die Zustimmung zur Veroeffentlichung ist erforderlich.", 400);
   }
 
-  if (!(image instanceof File) || image.size === 0) {
-    return errorResponse("Bitte waehle ein Bild aus.", 400);
+  if (wantsLottery && lotteryPrivacy !== "true") {
+    return errorResponse("Bitte stimme der Datenschutzerklaerung fuer die Verlosung zu.", 400);
   }
 
-  if (!(image.type in imageExtensions)) {
-    return errorResponse("Erlaubt sind JPG, PNG und WebP.", 400);
-  }
+  let imagePath: string | null = null;
+  if (image instanceof File && image.size > 0) {
+    if (!(image.type in imageExtensions)) {
+      return errorResponse("Erlaubt sind JPG, PNG und WebP.", 400);
+    }
 
-  if (image.size > MAX_IMAGE_BYTES) {
-    return errorResponse("Das Bild darf maximal 200 KB gross sein.", 400);
+    if (image.size > MAX_IMAGE_BYTES) {
+      return errorResponse("Das Bild darf maximal 200 KB gross sein.", 400);
+    }
   }
 
   if (process.env.NEXT_PUBLIC_CAPTCHA_ENABLED !== "false") {
@@ -139,20 +135,29 @@ export async function POST(request: Request) {
   }
 
   const repairId = crypto.randomUUID();
-  const imagePath = `pending/${repairId}.${imageExtensions[image.type]}`;
-  const { error: uploadError } = await supabase.storage
-    .from("repair-images")
-    .upload(imagePath, image, { contentType: image.type, upsert: false });
 
-  if (uploadError) {
-    return errorResponse("Das Bild konnte nicht gespeichert werden. Bitte versuche es erneut.", 502);
+  if (image instanceof File && image.size > 0) {
+    imagePath = `pending/${repairId}.${imageExtensions[image.type]}`;
+    const { error: uploadError } = await supabase.storage
+      .from("repair-images")
+      .upload(imagePath, image, { contentType: image.type, upsert: false });
+
+    if (uploadError) {
+      return errorResponse("Das Bild konnte nicht gespeichert werden. Bitte versuche es erneut.", 502);
+    }
   }
+
+  const parsedDuration = durationMinutes ? parseInt(String(durationMinutes), 10) : null;
+  const parsedValue = itemValueEuros ? parseFloat(String(itemValueEuros)) : null;
 
   const { error: insertError } = await supabase.from("repairs").insert({
     id: repairId,
     category,
-    description: description.trim(),
-    answers,
+    brand_model: typeof brandModel === "string" && brandModel.trim() ? brandModel.trim() : null,
+    duration_minutes: parsedDuration && parsedDuration > 0 ? parsedDuration : null,
+    item_value_euros: parsedValue !== null && !Number.isNaN(parsedValue) && parsedValue >= 0 ? parsedValue : null,
+    performed_by: performedBy,
+    story: typeof story === "string" && story.trim() ? story.trim() : null,
     repair_succeeded: repairSucceeded,
     image_path: imagePath,
     consent_publication: true,
@@ -161,8 +166,18 @@ export async function POST(request: Request) {
   });
 
   if (insertError) {
-    await supabase.storage.from("repair-images").remove([imagePath]);
+    if (imagePath) {
+      await supabase.storage.from("repair-images").remove([imagePath]);
+    }
     return errorResponse("Die Einreichung konnte nicht gespeichert werden. Bitte versuche es erneut.", 502);
+  }
+
+  if (wantsLottery) {
+    await supabase.from("lottery_entries").insert({
+      repair_id: repairId,
+      name: (lotteryName as string).trim(),
+      email: (lotteryEmail as string).trim().toLowerCase(),
+    });
   }
 
   return Response.json({ id: repairId, status: "pending" }, { status: 201 });

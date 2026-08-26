@@ -1,24 +1,13 @@
 import { requireModerator } from "@/lib/admin-auth";
 import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { repairCategoryValues } from "@/lib/repair-catalog";
 
 const statuses = new Set(["approved", "rejected"]);
-const categories = new Set([
-  "electrical_appliances",
-  "household_appliances",
-  "computers_and_communication",
-  "bicycles",
-  "furniture",
-  "textiles_and_clothing",
-  "tools",
-  "toys_and_leisure",
-  "other",
-]);
+const categoriesSet = new Set(repairCategoryValues as string[]);
 
 type Metadata = {
   category?: string;
-  productName?: string;
-  description?: string;
   imageAltText?: string;
   tags?: string[];
 };
@@ -55,9 +44,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
   }
 
   if (metadata && (
-    (metadata.category !== undefined && (typeof metadata.category !== "string" || !categories.has(metadata.category)))
-    || !isOptionalString(metadata.productName, 120)
-    || !isOptionalString(metadata.description, 2_000, false)
+    (metadata.category !== undefined && (typeof metadata.category !== "string" || !categoriesSet.has(metadata.category)))
     || !isOptionalString(metadata.imageAltText, 250)
     || (metadata.tags !== undefined && (!Array.isArray(metadata.tags) || metadata.tags.length > 12 || metadata.tags.some((tag) => typeof tag !== "string" || !tag.trim() || tag.trim().length > 40)))
   )) {
@@ -84,8 +71,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
       .from("repairs")
       .update({
         ...(metadata.category !== undefined ? { category: metadata.category } : {}),
-        ...(metadata.productName !== undefined ? { product_name: metadata.productName.trim() || null } : {}),
-        ...(metadata.description !== undefined ? { description: metadata.description.trim() } : {}),
         ...(metadata.imageAltText !== undefined ? { image_alt_text: metadata.imageAltText.trim() || null } : {}),
         ...(metadata.tags !== undefined ? { tags: metadata.tags.map((tag) => tag.trim()).filter(Boolean) } : {}),
       })
@@ -114,7 +99,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     return Response.json({ error: "Moderationsentscheidung konnte nicht gespeichert werden." }, { status: 502 });
   }
 
-  if (body.status === "rejected") {
+  if (body.status === "rejected" && repair.image_path) {
     const { error: storageError } = await supabase.storage.from("repair-images").remove([repair.image_path]);
     if (storageError) {
       return Response.json({ ok: true, imageDeleted: false });
