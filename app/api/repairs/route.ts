@@ -1,5 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { verifyNorthrhineWestphalia, isWithinNrw } from "@/lib/geo";
+import { verifyRegion, isWithinRegion } from "@/lib/geo";
+import { getRegionConfig } from "@/lib/region-config";
 import { extractExif } from "@/lib/exif";
 import { rateLimit } from "@/lib/rate-limit";
 import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     return errorResponse("Einreichungen sind derzeit nicht geoeffnet.", 403);
   }
 
-  const geoCheck = verifyNorthrhineWestphalia(request);
+  const geoCheck = verifyRegion(request);
 
   const limit = rateLimit(request, "repair-submission", { limit: 3, windowMs: 15 * 60 * 1_000 });
   if (!limit.allowed) {
@@ -135,12 +136,12 @@ export async function POST(request: Request) {
   if (image instanceof File && image.size > 0) {
     imagePath = `pending/${repairId}.${imageExtensions[image.type]}`;
 
-    // Extract EXIF GPS for NRW verification (not stored in DB).
+    // Extract EXIF GPS for region verification (not stored in DB).
     if (!geoCheck.allowed && image.type === "image/jpeg") {
       const buffer = await image.arrayBuffer();
       const exif = await extractExif(buffer);
-      if (exif.latitude !== null && exif.longitude !== null && isWithinNrw(exif.latitude, exif.longitude)) {
-        locationRegion = "Nordrhein-Westfalen";
+      if (exif.latitude !== null && exif.longitude !== null && isWithinRegion(exif.latitude, exif.longitude)) {
+        locationRegion = getRegionConfig().label;
       }
       // Re-create the file from the buffer so we can still upload the original bytes.
       image = new File([buffer], image.name, { type: image.type });
