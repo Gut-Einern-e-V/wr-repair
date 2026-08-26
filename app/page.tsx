@@ -455,7 +455,7 @@ export default function Home() {
             {isSubmitted ? (
               <div className="success-state">
                 <p className="section-index">Eingereicht</p>
-                <h2>Danke. Deine Reparatur wartet auf die Pruefung.</h2>
+                <h2>Danke. Deine Reparatur wird geprüft und zählt dann zum Rekord!</h2>
                 <p>Nach der Moderation zaehlt sie zum Rekord.</p>
                 <button className="button button-primary" type="button" onClick={() => { setIsSubmitted(false); closeSubmission(); }}>Fertig</button>
               </div>
