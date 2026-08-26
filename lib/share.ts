@@ -15,8 +15,12 @@ export function getSiteUrl(origin?: string) {
   return base.replace(/\/+$/, "");
 }
 
+export function buildRepairPath(repairId: string) {
+  return `/reparatur/${repairId}`;
+}
+
 export function buildRepairUrl(repairId: string, origin?: string) {
-  return `${getSiteUrl(origin)}/reparatur/${repairId}`;
+  return `${getSiteUrl(origin)}${buildRepairPath(repairId)}`;
 }
 
 export function buildShareText(categoryLabel?: string) {

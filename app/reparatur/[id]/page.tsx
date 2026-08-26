@@ -5,7 +5,7 @@ import { ShareButton } from "@/components/share-button";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { getPublicRepairStatus } from "@/lib/repair-status";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
-import { buildRepairUrl, buildShareText } from "@/lib/share";
+import { buildRepairPath, buildRepairUrl, buildShareText } from "@/lib/share";
 
 export const dynamic = "force-dynamic";
 
@@ -59,7 +59,7 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
           <ShareButton
             title="Reparaturrekord NRW"
             text={buildShareText(categoryLabel)}
-            url={buildRepairUrl(repair.id)}
+            path={buildRepairPath(repair.id)}
             label="Jetzt teilen"
           />
           <Link className="button button-secondary" href="/mitmachen">Noch eine Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
