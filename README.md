@@ -16,6 +16,14 @@ npm run dev
 
 Configure the Supabase and Friendly Captcha values described in `.env.example` before testing real submissions. The application intentionally blocks public submissions until Friendly Captcha is configured.
 
+## Quick submission and QR poster
+
+`/mitmachen` is a standalone, mobile-first page that shows the submission form directly — it is the landing page for QR codes so scanners do not have to scroll the home page. The home page modal renders the same `RepairSubmissionForm` component, so both stay identical.
+
+`/aufsteller` is a printable A4 stand. It generates a QR code for `NEXT_PUBLIC_SITE_URL + /mitmachen` at request time, so a domain change only requires updating that environment variable. Print it with the browser print dialog.
+
+After a submission the confirmation screen links to `/reparatur/<id>`. That page shows the moderation state and only offers the native share dialog (Web Share API, clipboard fallback) once the entry is approved, so nothing unmoderated can be shared. Approved entries also get a branded Open Graph image at `/reparatur/<id>/opengraph-image`.
+
 ## Content
 
 Repair stories are versioned Markdown files in `content/stories/`. Each story requires this frontmatter:
