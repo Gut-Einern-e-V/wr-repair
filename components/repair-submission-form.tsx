@@ -5,9 +5,38 @@ import Link from "next/link";
 import { FriendlyCaptcha } from "@/components/friendly-captcha";
 import { RepairCategorySelect } from "@/components/repair-form-fields";
 import { repairCategories, type RepairCategory } from "@/lib/repair-catalog";
+import { anonymizeCoordinates, type AnonymizedPoint } from "@/lib/geo-anonymize";
 
 const MAX_IMAGE_BYTES = 200 * 1024;
 const compressibleImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+/**
+ * Liest die Aufnahmeposition aus dem Originalbild und gibt sie sofort
+ * gerastert zurueck.
+ *
+ * Der Ablauf ist bewusst so geschnitten, dass die Rohkoordinate das Geraet nie
+ * verlaesst: Sie existiert nur innerhalb dieser Funktion, wird direkt in eine
+ * ~5-km-Zelle uebersetzt und danach verworfen. Anschliessend entfernt
+ * {@link createCompressedImage} beim Neu-Encodieren ohnehin saemtliche
+ * EXIF-Segmente aus der Datei, die hochgeladen wird.
+ */
+async function readAnonymizedOrigin(file: File): Promise<AnonymizedPoint | null> {
+  try {
+    // Dynamisch geladen, damit der EXIF-Parser nicht im Haupt-Bundle landet.
+    const exifr = await import("exifr");
+    const parse = (exifr as unknown as {
+      parse(input: Blob, options: object): Promise<Record<string, unknown> | undefined>;
+    }).parse;
+
+    const result = await parse(file, { gps: true, tiff: false, ifd1: false, exif: false });
+    if (!result) return null;
+
+    return anonymizeCoordinates(result["latitude"], result["longitude"]);
+  } catch {
+    // Fehlendes oder kaputtes EXIF ist der Normalfall, kein Fehlerzustand.
+    return null;
+  }
+}
 
 function createCompressedImage(file: File): Promise<File> {
   return new Promise((resolve, reject) => {
@@ -91,6 +120,7 @@ export function RepairSubmissionForm({
   const [fileError, setFileError] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [anonymizedOrigin, setAnonymizedOrigin] = useState<AnonymizedPoint | null>(null);
   const [compressionMessage, setCompressionMessage] = useState("");
   const [isCompressing, setIsCompressing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -110,6 +140,7 @@ export function RepairSubmissionForm({
     setFileError("");
     setCompressionMessage("");
     setUploadFile(null);
+    setAnonymizedOrigin(null);
 
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -129,13 +160,22 @@ export function RepairSubmissionForm({
 
     setIsCompressing(true);
     try {
+      // Reihenfolge ist wichtig: Erst die Herkunft aus dem Originalbild
+      // rastern, danach komprimieren. Das Komprimat enthaelt kein EXIF mehr.
+      const origin = await readAnonymizedOrigin(file);
       const compressedFile = await createCompressedImage(file);
+      setAnonymizedOrigin(origin);
       setUploadFile(compressedFile);
       setPreviewUrl(URL.createObjectURL(compressedFile));
       setCompressionMessage(
-        compressedFile.size < file.size
+        (compressedFile.size < file.size
           ? `Bild wurde von ${Math.ceil(file.size / 1024)} KB auf ${Math.ceil(compressedFile.size / 1024)} KB komprimiert. Metadaten wurden entfernt.`
-          : "Bilddaten wurden vor dem Upload bereinigt. EXIF- und Standortdaten wurden entfernt.",
+          : "Bilddaten wurden vor dem Upload bereinigt. EXIF- und Standortdaten wurden entfernt.")
+        + (origin
+          // Nur anzeigen, wenn wirklich eine Herkunft ermittelt wurde - sonst
+          // waere es ein Versprechen ueber Daten, die es gar nicht gibt.
+          ? " Fuer die Karte wird nur ein auf rund 5 km gerundeter Bereich uebertragen."
+          : ""),
       );
     } catch (error) {
       setFileError(error instanceof Error ? error.message : "Das Bild konnte nicht verarbeitet werden.");
@@ -188,6 +228,12 @@ export function RepairSubmissionForm({
     const formData = new FormData(event.currentTarget);
     if (uploadFile) {
       formData.set("image", uploadFile);
+    }
+    if (anonymizedOrigin) {
+      // Bereits gerastert. Der Server prueft das nach und verwirft alles,
+      // was nicht exakt auf einem Zellpunkt liegt.
+      formData.set("origin_lat", String(anonymizedOrigin.lat));
+      formData.set("origin_lon", String(anonymizedOrigin.lon));
     }
     if (captchaEnabled) {
       const captchaResponse = formData.get("frc-captcha-response");

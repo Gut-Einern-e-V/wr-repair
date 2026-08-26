@@ -1,0 +1,263 @@
+/* Buehnen-Dashboard: eigenstaendiges Dark-Theme fuer Beamer und Grossbildschirm.
+   Bewusst getrennt von globals.css, weil hier weder Header/Footer noch das
+   helle Papier-Layout der Website gelten. */
+
+/* Solange die Buehne im Dokument haengt, darf die Seite nicht scrollen. Im
+   gedrehten Portraet-Modus ragt der Kasten sonst seitlich aus dem Viewport
+   und erzeugt eine horizontale Scrollleiste. */
+html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
+
+.dashboard-root {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 40%, #131b30 0%, #080b14 62%, #05070d 100%);
+  color: #eef1f7;
+  font-family: var(--sans);
+  --stage-mint: #95d4bb;
+  --stage-yellow: #ffc432;
+  --stage-dim: rgba(238, 241, 247, 0.55);
+  --stage-line: 1px solid rgba(149, 212, 187, 0.18);
+}
+
+.cloud-canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.dashboard-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(300px, 22vw) minmax(0, 1fr) minmax(320px, 24vw);
+  grid-template-rows: 60px minmax(0, 1fr) 46px;
+  grid-template-areas: "bar bar bar" "left stage right" "ticker ticker ticker";
+  height: 100dvh;
+  gap: 0;
+}
+
+/* Kopfzeile ------------------------------------------------------------- */
+.dashboard-bar {
+  grid-area: bar;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 26px;
+  border-bottom: var(--stage-line);
+  background: rgba(8, 11, 20, 0.55);
+  backdrop-filter: blur(6px);
+}
+.dashboard-bar p { margin: 0; font: 500 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+.dashboard-brand { display: flex; align-items: center; gap: 12px; }
+.dashboard-brand span {
+  display: grid; place-items: center; width: 30px; height: 30px;
+  background: var(--red); color: #f7f5f0; font-size: 19px; letter-spacing: 0;
+}
+.dashboard-live { display: flex; align-items: center; gap: 10px; color: var(--stage-dim); }
+.dashboard-live i { width: 9px; height: 9px; border-radius: 50%; background: #ec424c; animation: stage-pulse 2s ease-in-out infinite; }
+.dashboard-clock { color: var(--stage-dim); font-variant-numeric: tabular-nums; }
+
+@keyframes stage-pulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(236, 66, 76, .55); }
+  50% { opacity: .5; box-shadow: 0 0 0 9px rgba(236, 66, 76, 0); }
+}
+
+/* Seitenpanels ---------------------------------------------------------- */
+.dashboard-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 0;
+  padding: 24px 26px;
+  background: linear-gradient(180deg, rgba(8, 11, 20, .72), rgba(8, 11, 20, .42));
+  backdrop-filter: blur(8px);
+}
+.panel-left { grid-area: left; border-right: var(--stage-line); }
+.panel-right { grid-area: right; border-left: var(--stage-line); overflow: hidden; }
+.panel-label { margin: 0; color: var(--stage-dim); font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; }
+
+/* Zaehler --------------------------------------------------------------- */
+.record-counter { display: flex; flex-direction: column; gap: 14px; }
+.counter-digits { display: flex; margin: 0; font-variant-numeric: tabular-nums; line-height: .84; }
+.counter-digit {
+  display: inline-block;
+  font: 800 clamp(3rem, 5.6vw, 6.2rem)/.84 var(--sans);
+  letter-spacing: -.04em;
+  color: #fff;
+  text-shadow: 0 0 26px rgba(149, 212, 187, .45);
+}
+.counter-digit.is-separator { width: .32em; color: var(--stage-mint); }
+.counter-digit.is-exploding { animation: digit-explode 620ms cubic-bezier(.2, .8, .3, 1); }
+
+@keyframes digit-explode {
+  0% { transform: scale(1); filter: blur(0); color: #fff; }
+  28% { transform: scale(1.55) rotate(-6deg); filter: blur(5px); color: var(--stage-yellow); opacity: .25; }
+  55% { transform: scale(.7) rotate(4deg); filter: blur(2px); opacity: .8; color: var(--stage-yellow); }
+  100% { transform: scale(1); filter: blur(0); opacity: 1; color: #fff; }
+}
+
+.counter-goal { display: flex; justify-content: space-between; color: var(--stage-dim); font: 500 12px var(--mono); letter-spacing: .08em; text-transform: uppercase; }
+.counter-track { height: 8px; background: rgba(238, 241, 247, .1); overflow: hidden; }
+.counter-track i { display: block; height: 100%; background: linear-gradient(90deg, var(--stage-mint), var(--stage-yellow)); transition: width 1.4s cubic-bezier(.2, .8, .3, 1); }
+.counter-reached { margin: 0; color: var(--stage-yellow); font: 800 20px var(--sans); letter-spacing: .04em; animation: reached-flash 1.1s ease-in-out infinite; }
+@keyframes reached-flash { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+.record-counter.is-reached .counter-digit { color: var(--stage-yellow); text-shadow: 0 0 34px rgba(255, 196, 50, .6); }
+
+/* Kennzahlen ------------------------------------------------------------ */
+.metric-tiles { display: grid; gap: 10px; padding: 0; margin: 0; list-style: none; }
+.metric-tiles li {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  padding: 10px 0; border-top: var(--stage-line);
+  animation: fade-up 700ms both;
+}
+.metric-tiles strong { font: 700 clamp(1.1rem, 1.7vw, 1.7rem)/1 var(--sans); color: var(--stage-mint); font-variant-numeric: tabular-nums; }
+.metric-tiles span { color: var(--stage-dim); font: 500 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; text-align: right; }
+
+@keyframes fade-up { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+
+/* Kategorien ------------------------------------------------------------ */
+.category-bars { display: grid; gap: 7px; padding: 0; margin: 0; list-style: none; min-height: 0; }
+.category-bars li { display: grid; grid-template-columns: minmax(0, 1fr) 34% auto; align-items: center; gap: 10px; animation: fade-up 700ms both; }
+.category-name { overflow: hidden; color: #eef1f7; font-size: clamp(11px, 1vw, 14px); white-space: nowrap; text-overflow: ellipsis; }
+.category-track { height: 10px; background: rgba(238, 241, 247, .09); }
+.category-track i { display: block; height: 100%; transition: width 1.2s cubic-bezier(.2, .8, .3, 1); }
+.category-count { min-width: 3.5ch; color: var(--stage-dim); font: 500 12px var(--mono); text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Zeitachse ------------------------------------------------------------- */
+.timeline-strip { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); align-items: end; gap: 3px; height: clamp(70px, 12vh, 130px); }
+.timeline-strip span { display: flex; align-items: flex-end; height: 100%; animation: fade-up 600ms both; }
+.timeline-strip i { display: block; width: 100%; background: linear-gradient(180deg, var(--stage-mint), rgba(70, 94, 171, .8)); transition: height 1s ease; }
+
+/* Buehne ---------------------------------------------------------------- */
+.dashboard-stage { grid-area: stage; position: relative; display: grid; place-items: center; min-height: 0; padding: 20px; }
+.stage-note { position: absolute; bottom: 12px; left: 0; right: 0; margin: 0; color: rgba(238, 241, 247, .35); font: 500 10px var(--mono); letter-spacing: .1em; text-align: center; text-transform: uppercase; }
+
+.spotlight {
+  display: flex; flex-direction: column; gap: 0; margin: 0;
+  max-width: min(38vw, 460px);
+  border: 2px solid rgba(255, 196, 50, .8);
+  background: rgba(8, 11, 20, .88);
+  box-shadow: 0 0 70px rgba(255, 196, 50, .28);
+  animation: spotlight-in 700ms cubic-bezier(.2, .8, .3, 1);
+}
+.spotlight img { display: block; width: 100%; max-height: 46vh; object-fit: cover; }
+.spotlight-placeholder { display: grid; place-items: center; height: 26vh; background: rgba(149, 212, 187, .12); font: 800 5rem var(--sans); color: var(--stage-mint); }
+.spotlight figcaption { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; }
+.spotlight figcaption span { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+.spotlight figcaption strong { font: 700 clamp(1.1rem, 1.6vw, 1.6rem)/1.15 var(--sans); }
+
+@keyframes spotlight-in { from { opacity: 0; transform: scale(.86) translateY(24px); } to { opacity: 1; transform: none; } }
+
+/* Laufband -------------------------------------------------------------- */
+.dashboard-ticker { grid-area: ticker; overflow: hidden; border-top: var(--stage-line); background: rgba(8, 11, 20, .7); }
+.dashboard-ticker > div { display: flex; gap: 34px; width: max-content; padding: 0 20px; animation: ticker-scroll 70s linear infinite; }
+.dashboard-ticker span { display: flex; align-items: center; gap: 9px; height: 46px; color: var(--stage-dim); font: 500 12px var(--mono); letter-spacing: .06em; white-space: nowrap; }
+.dashboard-ticker i { width: 8px; height: 8px; border-radius: 50%; }
+
+@keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* Zielerreichung -------------------------------------------------------- */
+.dashboard-root.is-celebrating .dashboard-grid { animation: celebrate-glow 2.4s ease-in-out infinite; }
+@keyframes celebrate-glow {
+  0%, 100% { box-shadow: inset 0 0 0 0 rgba(255, 196, 50, 0); }
+  50% { box-shadow: inset 0 0 140px 0 rgba(255, 196, 50, .22); }
+}
+
+/* Standby --------------------------------------------------------------- */
+.dashboard-root.is-standby { display: grid; place-content: center; gap: 18px; text-align: center; }
+.standby-mark { margin: 0; font: 800 clamp(2rem, 5vw, 4rem) var(--sans); letter-spacing: -.02em; }
+.standby-message { margin: 0; color: var(--stage-dim); font: 500 13px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+
+/* Kleinere Buehnen ------------------------------------------------------
+   Gilt bewusst nicht fuer Telefone (ab 901px): die laufen weiter unten immer
+   im Widescreen-Layout, auch hochkant. */
+@media (max-width: 1100px) and (min-width: 901px) {
+  .dashboard-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 56px minmax(0, 1.2fr) minmax(0, 1fr) 46px; grid-template-areas: "bar bar" "stage stage" "left right" "ticker ticker"; }
+  .panel-left { border-right: none; border-top: var(--stage-line); }
+  .panel-right { border-left: var(--stage-line); border-top: var(--stage-line); }
+  .spotlight { max-width: min(70vw, 340px); }
+}
+
+/* Grossbildwaende (4K und darueber) --------------------------------------
+   Ohne diesen Block wachsen nur die vw-Anteile; die clamp()-Deckel waren fuer
+   1080p gesetzt und liessen alles auf 3840px verloren wirken. */
+@media (min-width: 2200px) {
+  .dashboard-grid { grid-template-columns: minmax(420px, 24vw) minmax(0, 1fr) minmax(440px, 22vw); grid-template-rows: 5.2vh minmax(0, 1fr) 4vh; }
+  .dashboard-bar { padding: 0 2.2vw; }
+  .dashboard-bar p { font-size: clamp(12px, .82vw, 22px); }
+  .dashboard-brand span { width: 2vw; height: 2vw; font-size: 1.25vw; }
+  .dashboard-panel { gap: 1.6vh; padding: 2.2vh 1.7vw; }
+  .panel-label { font-size: clamp(11px, .68vw, 19px); }
+  /* Der Deckel muss zur Spaltenbreite passen: "10.000" belegt gemessen rund
+     4,4em, die Spalte 24vw abzueglich Polsterung. Ein zu hoher Deckel schiebt
+     die Ziffern sonst unbemerkt aus dem Panel. */
+  .counter-digit { font-size: clamp(4rem, 4.4vw, 10rem); }
+  .counter-goal, .category-count, .metric-tiles span { font-size: clamp(12px, .72vw, 20px); }
+  .metric-tiles strong { font-size: clamp(1.7rem, 2vw, 3.4rem); }
+  .category-name { font-size: clamp(14px, .85vw, 24px); }
+  .category-track, .counter-track { height: 1.5vh; }
+  .spotlight { max-width: min(30vw, 900px); }
+  .spotlight figcaption strong { font-size: clamp(1.6rem, 1.8vw, 3rem); }
+  .stage-note { bottom: 1.6vh; font-size: clamp(10px, .62vw, 18px); }
+  .dashboard-ticker span { height: 4vh; font-size: clamp(12px, .72vw, 20px); }
+}
+
+/* Telefone: immer Widescreen --------------------------------------------
+   Das Dashboard ist eine Buehnenansicht und hat hochkant kein sinnvolles
+   Layout. Statt eines eigenen Portraet-Entwurfs wird die gesamte Buehne
+   gedreht: Der Kasten bekommt die Viewport-Masse ueber Kreuz und dreht sich
+   um 90 Grad in den Bildschirm. Quer liegt er ohnehin schon richtig, dort
+   entfaellt die Drehung - die Ansicht bleibt in beiden Haltungen dieselbe. */
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: minmax(150px, 27%) minmax(0, 1fr) minmax(160px, 29%);
+    grid-template-rows: 34px minmax(0, 1fr) 30px;
+    height: 100%;
+  }
+  .dashboard-bar { padding: 0 10px; }
+  .dashboard-bar p { font-size: 8px; letter-spacing: .08em; }
+  .dashboard-brand { gap: 7px; }
+  .dashboard-brand span { width: 18px; height: 18px; font-size: 12px; }
+  .dashboard-panel { gap: 8px; padding: 9px 11px; }
+  .panel-label { font-size: 8px; }
+  .record-counter { gap: 7px; }
+  .counter-digit { font-size: 1.9rem; }
+  .counter-goal { font-size: 8px; }
+  .counter-track { height: 5px; }
+  .counter-reached { font-size: 13px; }
+  .metric-tiles { gap: 4px; }
+  .metric-tiles li { padding: 5px 0; }
+  .metric-tiles strong { font-size: .95rem; }
+  .metric-tiles span { font-size: 8px; }
+  .category-bars { gap: 4px; }
+  .category-name { font-size: 9px; }
+  .category-track { height: 6px; }
+  .category-count { font-size: 8px; }
+  .timeline-strip { height: 42px; gap: 2px; }
+  .dashboard-stage { padding: 9px; }
+  .spotlight { max-width: 42%; border-width: 1px; }
+  .spotlight img { max-height: 40vmin; }
+  .spotlight figcaption { gap: 3px; padding: 6px 8px; }
+  .spotlight figcaption span { font-size: 8px; }
+  .spotlight figcaption strong { font-size: .85rem; }
+  .stage-note { bottom: 4px; font-size: 7px; }
+  .dashboard-ticker span { height: 30px; font-size: 9px; }
+  .dashboard-ticker > div { gap: 20px; }
+}
+
+@media (max-width: 900px) and (orientation: portrait) {
+  .dashboard-root {
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    /* Ueber Kreuz: Die Breite der gedrehten Buehne ist die Hoehe des
+       Bildschirms. 100dvh statt 100vh, damit die Adressleiste des Browsers
+       nicht ueber den Rand hinausschiebt. */
+    width: 100dvh;
+    height: 100dvw;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-ticker > div, .dashboard-live i, .counter-reached, .dashboard-root.is-celebrating .dashboard-grid { animation: none; }
+  .counter-digit.is-exploding { animation: none; }
+  .metric-tiles li, .category-bars li, .timeline-strip span, .spotlight { animation: none; }
+}
