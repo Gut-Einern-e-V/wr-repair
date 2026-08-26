@@ -1,13 +1,17 @@
 /**
  * Stilisierte NRW-Karte fuer das Buehnen-Dashboard.
  *
- * Die Plattform speichert bewusst keine Koordinaten zu einer Einreichung
- * (EXIF-GPS wird nur zur Regionspruefung ausgewertet und nie persistiert,
- * siehe lib/exif.ts). Die Karte zeigt deshalb eine *symbolische* Verteilung:
- * Jede Reparatur bekommt aus ihrer ID eine deterministische Position im
- * Umfeld eines NRW-Ballungsraums. Gleiche ID ergibt immer denselben Punkt,
- * damit die Wolke zwischen zwei Renderings nicht springt.
+ * Fuer Einreichungen mit anonymisierter Herkunft (5-km-Zelle, siehe
+ * lib/geo-anonymize.ts) zeichnet das Dashboard die echte Zelle. Fehlt sie -
+ * etwa bei Altbestaenden oder wenn die k-Anonymitaetsschwelle nicht erreicht
+ * ist - faellt es auf eine *symbolische* Position zurueck: Jede Reparatur
+ * bekommt aus ihrer ID eine deterministische Position im Umfeld eines
+ * Ballungsraums. Gleiche ID ergibt immer denselben Punkt, damit die Wolke
+ * zwischen zwei Renderings nicht springt.
  */
+
+import { hashString, seededRandom } from "./hash";
+
 
 export type LatLon = { lat: number; lon: number };
 
@@ -107,27 +111,7 @@ export function projectToUnitSquare(point: LatLon): { x: number; y: number } {
   return { x, y };
 }
 
-/** Deterministischer 32-Bit-Hash (FNV-1a) einer Zeichenkette. */
-export function hashString(value: string): number {
-  let hash = 0x811c9dc5;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 0x01000193);
-  }
-  return hash >>> 0;
-}
-
-/** Erzeugt aus einem Seed eine Folge von Zufallswerten in [0, 1). */
-export function seededRandom(seed: number): () => number {
-  let state = seed || 1;
-  return () => {
-    state ^= state << 13;
-    state ^= state >>> 17;
-    state ^= state << 5;
-    state >>>= 0;
-    return state / 0x1_0000_0000;
-  };
-}
+export { hashString, seededRandom } from "./hash";
 
 /**
  * Symbolische Position einer Einreichung auf der Karte, abgeleitet aus der ID.

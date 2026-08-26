@@ -2,6 +2,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { verifyRegion, isWithinRegion } from "@/lib/geo";
 import { getRegionConfig } from "@/lib/region-config";
 import { extractExif } from "@/lib/exif";
+import { anonymizeRequestOrigin, isAnonymizedPoint } from "@/lib/geo-anonymize";
 import { rateLimit } from "@/lib/rate-limit";
 import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
 import { repairCategoryValues } from "@/lib/repair-catalog";
@@ -44,6 +45,40 @@ async function verifyCaptcha(token: string) {
   } catch {
     return { valid: false, configured: true };
   }
+}
+
+/**
+ * Ermittelt die anonymisierte Herkunft einer Einreichung.
+ *
+ * Bevorzugt wird der Wert, den der Browser aus dem Original-EXIF gerastert
+ * hat; er ist naeher am tatsaechlichen Reparaturort als die IP. Weil er aber
+ * aus dem Client kommt, wird er nicht uebernommen, sondern verifiziert: Das
+ * Raster ist idempotent, ein exakter Zellpunkt bleibt beim erneuten Schnappen
+ * unveraendert. Genauere oder frei erfundene Koordinaten fallen damit durch.
+ *
+ * Ohne brauchbaren Client-Wert dient der Vercel-Geo-Header als Rueckfall. Er
+ * ist ohnehin nur stadtgenau und wird durch dasselbe Raster geschickt.
+ */
+function resolveAnonymizedOrigin(request: Request, formData: FormData) {
+  // Ohne konfigurierte Bounds gibt es keine Regionspruefung; dann darf die
+  // Herkunft nicht still wegfallen, weil isWithinRegion() in dem Fall immer
+  // false liefert.
+  const hasBounds = getRegionConfig().bounds !== null;
+  const inRegion = (lat: number, lon: number) => !hasBounds || isWithinRegion(lat, lon);
+
+  const rawLat = Number.parseFloat(String(formData.get("origin_lat") ?? ""));
+  const rawLon = Number.parseFloat(String(formData.get("origin_lon") ?? ""));
+
+  if (isAnonymizedPoint(rawLat, rawLon) && inRegion(rawLat, rawLon)) {
+    return { lat: rawLat, lon: rawLon };
+  }
+
+  const fromIp = anonymizeRequestOrigin(request);
+  if (fromIp && inRegion(fromIp.lat, fromIp.lon)) {
+    return fromIp;
+  }
+
+  return null;
 }
 
 export async function POST(request: Request) {
@@ -158,6 +193,7 @@ export async function POST(request: Request) {
 
   const parsedDuration = durationMinutes ? parseInt(String(durationMinutes), 10) : null;
   const parsedValue = itemValueEuros ? parseFloat(String(itemValueEuros)) : null;
+  const origin = resolveAnonymizedOrigin(request, formData);
 
   const { error: insertError } = await supabase.from("repairs").insert({
     id: repairId,
@@ -171,6 +207,8 @@ export async function POST(request: Request) {
     image_path: imagePath,
     consent_publication: true,
     location_region: locationRegion,
+    location_lat: origin?.lat ?? null,
+    location_lon: origin?.lon ?? null,
     status: "pending",
   });
 
