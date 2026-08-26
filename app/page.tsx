@@ -8,6 +8,7 @@ import { MobileNavigation } from "@/components/mobile-navigation";
 import { RepairSubmissionForm } from "@/components/repair-submission-form";
 import { brandPhotos } from "@/lib/brand-photos";
 import { repairCategories, repairCategoryLabel, type RepairCategory } from "@/lib/repair-catalog";
+import { faqEntries, repairRecords } from "@/lib/repair-records";
 
 type GalleryRepair = {
   id: string;
@@ -209,6 +210,29 @@ export default function Home() {
         </ol>
       </section>
 
+      <section className="record-facts" id="zahlen-und-fakten" aria-labelledby="record-facts-title">
+        <div className="record-facts-heading">
+          <p className="section-index">Zahlen und Fakten</p>
+          <h2 id="record-facts-title">Das sind die Bestleistungen, die wir übertreffen wollen.</h2>
+          <p>Reparaturrekorde werden bisher vor allem in Großbritannien gezählt. Diese Marken sind unser Maßstab für NRW.</p>
+        </div>
+        <ol className="record-list">
+          {repairRecords.map((record) => (
+            <li key={record.label}>
+              <strong>{record.value}</strong>
+              <span>{record.label}</span>
+              <p>{record.detail}</p>
+              <a href={record.source.href} target="_blank" rel="noreferrer">
+                Quelle: {record.source.label} <span aria-hidden="true">&#8599;</span>
+              </a>
+            </li>
+          ))}
+        </ol>
+        <p className="record-note">
+          <strong>Wichtig:</strong> Es geht uns nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als echte Alternative zum Neukauf zu stärken.
+        </p>
+      </section>
+
       <section className="participation-section" aria-labelledby="participation-title">
         <div className="participation-heading"><p className="section-index">Dein Weg zur Reparatur</p><h2 id="participation-title">Mach aus einer Reparatur einen sichtbaren Beitrag.</h2><p>Du musst kein Profi sein. Wichtig ist nur: Die Reparatur ist echt, du beschreibst sie kurz und reichst sie während des Teilnahmezeitraums ein.</p></div>
         <div className="participation-options">
@@ -255,6 +279,24 @@ export default function Home() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={repair.imageUrl} alt={repair.imageAltText || `Reparatur aus der Kategorie ${repairCategoryLabel(repair.category)}`} />
         </> : <div className={`gallery-placeholder category-${categoryIndex}`} aria-label={`Kein Bild: ${repairCategoryLabel(repair.category)}`} /> }<div><span>{repairCategoryLabel(repair.category)}</span><strong>{repair.productName || "Reparatur aus NRW"}</strong></div></article>; })}</div>}
+      </section>
+
+      <section className="faq-section" id="faq" aria-labelledby="faq-title">
+        <div className="section-heading">
+          <div>
+            <p className="section-index">Häufige Fragen</p>
+            <h2 id="faq-title">Was du vor dem Einreichen wissen solltest.</h2>
+          </div>
+          <Link className="text-button" href="/about">Mehr über das Projekt <span aria-hidden="true">&#8594;</span></Link>
+        </div>
+        <div className="faq-list">
+          {faqEntries.map((entry) => (
+            <details key={entry.question}>
+              <summary>{entry.question}<i aria-hidden="true">+</i></summary>
+              <p>{entry.answer}</p>
+            </details>
+          ))}
+        </div>
       </section>
 
       <section className="project-banner" id="ueber-uns">

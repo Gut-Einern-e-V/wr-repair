@@ -625,3 +625,100 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
   .poster-page { padding: 12px; }
   .poster-sheet { min-height: auto; padding: 24px 16px; }
 }
+
+/* ============================================================
+   Randlos: volle Breite, keine Divider, weiche Scroll-Effekte
+   ============================================================ */
+
+/* Sektionen spannen sich ueber die volle Breite; der Innenabstand waechst mit
+   dem Viewport, damit Text trotzdem nicht an der Fensterkante klebt. */
+.page-shell, .content-page, .moderator-shell, .quick-submit-page { --gutter: clamp(16px, 5vw, 88px); }
+.site-header, .hero-grid, .hero-poster, .how-it-works, .record-facts, .participation-section,
+.home-stats-preview, .category-section, .faq-section, .stories-section, .project-banner,
+.funding-strip, .site-footer, .content-hero, .content-section, .content-callout, .funding-note,
+.moderator-header, .moderator-intro, .moderator-grid, .user-management, .repair-queue, .access-denied {
+  max-width: none;
+  padding-left: var(--gutter, 24px);
+  padding-right: var(--gutter, 24px);
+}
+.hero-poster { padding-left: 0; padding-right: 0; }
+.hero-poster-inner { padding-left: var(--gutter, 24px); padding-right: var(--gutter, 24px); }
+.page-shell { overflow: clip; }
+
+/* Trennlinien und Kartenrahmen entfallen. Flaechen werden ueber Hintergrund
+   und Abstand unterschieden, nicht ueber Striche. */
+.site-header, .how-it-works, .home-stats-preview, .category-section, .stories-section,
+.record-facts, .faq-section, .content-hero, .content-section, .content-callout, .funding-note,
+.repair-queue, .moderator-intro, .moderator-grid, .hero-poster, .participation-photo,
+.story-art, .steps, .steps li, .contribution-grid ol, .contribution-grid li, .category-grid,
+.category-card, .supporter-grid, .supporter-card, .story-card, .story-list, .story-list-item,
+.gallery-empty, .queue-empty, .article-date, .legal-page section, .repair-list, .repair-review,
+.home-stats-preview ol, .home-stats-preview li, .text-button, .moderator-header, .moderator-panel,
+.user-table, .user-row, .poster-hint, .participation-section, .participation-options,
+.participation-options article, .gallery-mini-grid, .gallery-mini-card, .funding-strip,
+.gallery-image, .missing-gallery-image {
+  border: 0;
+}
+/* Randregeln mit hoeherer Spezifitaet muessen einzeln zurueckgenommen werden. */
+.contribution-grid li:last-child, .supporter-card:hover, .quick-submit-panel { border: 0; }
+.category-grid { gap: 4px; }
+.participation-options, .gallery-mini-grid { gap: 4px; }
+.supporter-grid { gap: 4px; }
+.steps, .contribution-grid ol { gap: 4px; }
+.steps li, .contribution-grid li { background: var(--paper); }
+.text-button { text-decoration: underline; text-decoration-thickness: 3px; text-decoration-color: var(--yellow); text-underline-offset: 6px; }
+.text-button:hover { text-decoration-color: var(--ink); }
+.home-stats-preview li + li { box-shadow: 0 -1px 0 rgba(16, 22, 38, .12); }
+.gallery-empty, .queue-empty { padding: 24px 0; }
+.legal-page section { padding-top: 34px; }
+.supporter-card:hover, .category-card:hover { box-shadow: none; transform: translateY(-4px); }
+.story-card { box-shadow: 0 18px 40px rgba(16, 22, 38, .08); }
+
+/* --- Kategorie-Codes: alle zwoelf Kategorien tragen eine eigene Farbe ---- */
+.category-10, .gallery-placeholder.category-10 { background: #f0b7bb; }
+.category-11, .gallery-placeholder.category-11 { background: #a9c6b5; }
+.category-12, .gallery-placeholder.category-12 { background: var(--yellow); }
+
+/* --- Zahlen und Fakten ---------------------------------------- */
+.record-facts { padding-top: 76px; padding-bottom: 76px; background: var(--ink); color: var(--bg); }
+.record-facts .section-index { color: var(--yellow); }
+.record-facts h2 { max-width: 18ch; margin-bottom: 18px; }
+.record-facts-heading > p:last-child { max-width: 60ch; margin: 0 0 42px; font-size: 18px; line-height: 1.5; }
+.record-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+.record-list li { display: flex; flex-direction: column; gap: 8px; padding: 26px 24px 24px; background: rgba(247, 245, 240, .07); }
+.record-list strong { font-size: clamp(3rem, 6vw, 4.6rem); font-weight: 900; line-height: .85; letter-spacing: -.04em; font-variant-numeric: tabular-nums; color: var(--yellow); }
+.record-list span { font-size: 13px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; }
+.record-list p { margin: 4px 0 12px; font-size: 15px; line-height: 1.5; }
+.record-list a { margin-top: auto; width: fit-content; font-size: 12px; font-weight: 800; letter-spacing: .05em; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 5px; text-decoration-color: var(--yellow); }
+.record-note { max-width: 72ch; margin: 32px 0 0; padding: 18px 20px; background: var(--yellow); color: var(--ink); font-size: 16px; line-height: 1.5; }
+
+/* --- Haeufige Fragen ------------------------------------------ */
+.faq-section { padding-top: 76px; padding-bottom: 76px; background: var(--bg); }
+.faq-list { display: grid; gap: 4px; }
+.faq-list details { background: var(--paper); }
+.faq-list summary {
+  display: flex; justify-content: space-between; align-items: center; gap: 20px;
+  padding: 20px 22px; cursor: pointer; list-style: none;
+  font-size: clamp(1.05rem, 1.6vw, 1.3rem); font-weight: 800; letter-spacing: -.01em;
+}
+.faq-list summary::-webkit-details-marker { display: none; }
+.faq-list summary i { flex: 0 0 auto; display: grid; place-items: center; width: 32px; height: 32px; background: var(--yellow); font-size: 20px; font-style: normal; transition: transform 160ms ease; }
+.faq-list details[open] summary i { transform: rotate(45deg); }
+.faq-list summary:hover { background: var(--mint-soft); }
+.faq-list details p { max-width: 74ch; margin: 0; padding: 0 22px 24px; font-size: 16px; line-height: 1.6; }
+
+/* --- Scroll-Effekte ------------------------------------------- */
+[data-reveal-ready] .reveal-item { opacity: 0; transform: translateY(28px); }
+[data-reveal-ready] .reveal-item.is-revealed { opacity: 1; transform: none; transition: opacity 620ms ease, transform 620ms cubic-bezier(.22, .9, .3, 1); }
+.hero-poster-photo img, .project-banner .banner-photo img, .content-callout .banner-photo img { will-change: transform; }
+
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal-ready] .reveal-item { opacity: 1; transform: none; }
+}
+
+@media (max-width: 720px) {
+  .record-facts, .faq-section { padding-top: 52px; padding-bottom: 52px; }
+  .record-list li { padding: 22px 18px; }
+  .faq-list summary { padding: 16px 18px; }
+  .faq-list details p { padding: 0 18px 20px; }
+}
