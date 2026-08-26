@@ -21,9 +21,22 @@ export type DashboardHighlight = {
   /**
    * Zeitpunkt der Freigabe. Rein intern - daran haengt die Reihenfolge der
    * Deltas und der Cursor, damit kein Eintrag beim Nachladen uebersprungen wird.
+   * Ausserdem entscheidet er ueber die Marke "neu" im Laufband.
    */
   approvedAt: string | null;
+  /**
+   * Kreis oder kreisfreie Stadt der Reparatur - oder `null`.
+   *
+   * Wird nur gesetzt, wenn in diesem Kreis mindestens `KREIS_MIN_FOR_LABEL`
+   * freigegebene Reparaturen liegen. Damit gilt dieselbe Zusage wie fuer die
+   * Karte: Eine sichtbare Ortsangabe steht immer fuer eine Gruppe, nie fuer
+   * eine einzelne Person. Feiner als der Kreis wird es nirgends.
+   */
+  kreis: string | null;
 };
+
+/** Ab so vielen Reparaturen je Kreis darf sein Name am Eintrag stehen. */
+export const KREIS_MIN_FOR_LABEL = 5;
 
 /**
  * Anonymisierte Herkunftszelle mit der Zahl der Reparaturen darin.
@@ -46,6 +59,12 @@ export type DashboardSnapshot = {
   timeline: { date: string; total: number }[];
   cells: DashboardCell[];
   highlights: DashboardHighlight[];
+  /**
+   * Das Einreichungsfenster, aus derselben Quelle wie die Zugangspruefung der
+   * Route - der Countdown behauptet damit nie etwas anderes als das Formular.
+   * Der Start wird gebraucht, um zu zeigen, wie viel der Zeit schon vorbei ist.
+   */
+  campaign: { startAt: string | null; endAt: string | null };
   /** ISO-Zeitstempel der juengsten beruecksichtigten Freigabe. */
   cursor: string | null;
   generatedAt: string;
@@ -200,6 +219,121 @@ export function goalOverflow(total: number, goal: number): number {
 export function goalLaps(total: number, goal: number): number {
   if (goal <= 0) return 0;
   return Math.floor(total / goal);
+}
+
+/** Fenster, in dem ein frisch freigegebener Eintrag die Marke "neu" traegt. */
+export const FRESH_APPROVAL_MS = 15 * 60 * 1_000;
+
+/**
+ * Ist der Eintrag gerade erst freigegeben worden?
+ *
+ * Hier zaehlt bewusst die Freigabe und nicht die Einreichung: "neu" heisst auf
+ * der Buehne, dass gerade etwas dazugekommen *ist* - unabhaengig davon, wann
+ * repariert wurde.
+ */
+export function isFreshlyApproved(iso: string | null, nowMs: number, windowMs = FRESH_APPROVAL_MS): boolean {
+  if (!iso || nowMs <= 0) return false;
+
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return false;
+
+  const age = nowMs - then;
+  return age >= -60_000 && age <= windowMs;
+}
+
+/** Verbleibende Zeit bis zur Deadline, zerlegt fuer die Anzeige. */
+export type Countdown = { days: number; hours: number; minutes: number; totalMs: number; expired: boolean };
+
+/**
+ * Restzeit bis zum Ende des Einreichungsfensters.
+ *
+ * Ohne Deadline oder nach ihrem Ablauf ist `expired` gesetzt; die Anzeige
+ * schreibt dann keine negativen Zahlen, sondern sagt, dass Schluss ist.
+ */
+export function countdownTo(deadlineIso: string | null, nowMs: number): Countdown | null {
+  if (!deadlineIso || nowMs <= 0) return null;
+
+  const deadline = Date.parse(deadlineIso);
+  if (Number.isNaN(deadline)) return null;
+
+  const totalMs = Math.max(0, deadline - nowMs);
+  return {
+    days: Math.floor(totalMs / 86_400_000),
+    hours: Math.floor((totalMs % 86_400_000) / 3_600_000),
+    minutes: Math.floor((totalMs % 3_600_000) / 60_000),
+    totalMs,
+    expired: deadline <= nowMs,
+  };
+}
+
+/**
+ * Verbleibende Zeit als ein lesbarer Ausdruck.
+ *
+ * Drei Zahlenkaesten nebeneinander lesen sich wie eine Bahnhofsuhr. Auf einer
+ * Buehne zaehlt die groebste Einheit, die noch etwas aussagt - und erst wenn es
+ * knapp wird, ruecken Stunden und Minuten in den Vordergrund.
+ */
+export function formatRemaining(countdown: Countdown): string {
+  if (countdown.expired) return "vorbei";
+  if (countdown.totalMs < 60_000) return "weniger als 1 Min.";
+
+  if (countdown.days >= 1) {
+    const days = countdown.days === 1 ? "1 Tag" : `${countdown.days} Tage`;
+    return countdown.hours > 0 ? `${days}, ${countdown.hours} Std.` : days;
+  }
+
+  if (countdown.hours >= 1) {
+    return countdown.minutes > 0 ? `${countdown.hours} Std., ${countdown.minutes} Min.` : `${countdown.hours} Std.`;
+  }
+
+  return `${countdown.minutes} Min.`;
+}
+
+/**
+ * Anteil des Einreichungsfensters, der schon vergangen ist, in Prozent.
+ *
+ * Erst im Vergleich mit dem Fortschritt zum Ziel wird aus der Restzeit eine
+ * Aussage: Sind wir schneller als die Uhr oder langsamer?
+ */
+export function campaignElapsed(startIso: string | null, endIso: string | null, nowMs: number): number | null {
+  if (!startIso || !endIso || nowMs <= 0) return null;
+
+  const start = Date.parse(startIso);
+  const end = Date.parse(endIso);
+  if (Number.isNaN(start) || Number.isNaN(end) || end <= start) return null;
+
+  return Math.min(100, Math.max(0, ((nowMs - start) / (end - start)) * 100));
+}
+
+/** Steht der Rekord im Verhaeltnis zur verbrauchten Zeit gut oder schlecht da? */
+export type PaceVerdict = { state: "ahead" | "onTrack" | "behind"; gap: number };
+
+/**
+ * Vergleicht Zielfortschritt und Zeitverbrauch.
+ *
+ * `gap` ist der Abstand in Prozentpunkten. Die Schwelle von zwei Punkten haelt
+ * die Anzeige ruhig: Ohne sie kippte die Aussage bei jedem einzelnen Eintrag
+ * zwischen "vor" und "hinter dem Plan" hin und her.
+ */
+export function paceVerdict(goalPercentValue: number, elapsedPercent: number): PaceVerdict {
+  const gap = goalPercentValue - elapsedPercent;
+  if (gap > 2) return { state: "ahead", gap };
+  if (gap < -2) return { state: "behind", gap };
+  return { state: "onTrack", gap };
+}
+
+/**
+ * Noetiges Tempo in Reparaturen je Stunde, um das Ziel rechtzeitig zu erreichen.
+ *
+ * `null` heisst: Die Frage stellt sich nicht - entweder ist das Ziel schon
+ * erreicht, oder es ist keine Restzeit mehr uebrig, in der man es schaffen
+ * koennte. In beiden Faellen waere eine Zahl irrefuehrend.
+ */
+export function requiredPerHour(total: number, goal: number, remainingMs: number): number | null {
+  const missing = goal - total;
+  if (missing <= 0 || remainingMs <= 0) return null;
+
+  return missing / (remainingMs / 3_600_000);
 }
 
 /** Menschenlesbare Dauer aus Minuten, z. B. "1.204 h". */

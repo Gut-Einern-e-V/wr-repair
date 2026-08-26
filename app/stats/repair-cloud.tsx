@@ -60,6 +60,9 @@ const palette = ["#ffc432", "#95d4bb", "#00b072", "#ec424c", "#465eab", "#f7f5f0
 /** Mehr Punkte bringen optisch nichts, kosten aber Rechenzeit. */
 const MAX_PARTICLES = 9_000;
 
+/** Schritt je Frame des Anflugs; ergibt bei 60 Hz gut anderthalb Sekunden. */
+const FLIGHT_STEP = 0.011;
+
 const outlineUnit = nrwOutline.map(projectToUnitSquare);
 const rhineUnit = rhineCourse.map(projectToUnitSquare);
 const kreiseUnit = nrwKreise.map((kreis) => ({ name: kreis.name, ring: kreis.outline.map(projectToUnitSquare) }));
@@ -215,6 +218,16 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
     const tone = new Uint8Array(MAX_PARTICLES);
     /** Landeanimation: 1 = gerade eingetroffen, 0 = eingereiht. */
     const landing = new Float32Array(MAX_PARTICLES);
+    /**
+     * Anflug einer neuen Reparatur: 1 = gerade gestartet, 0 = angekommen.
+     *
+     * Bisher tauchte ein neuer Punkt einfach an seiner Stelle auf. Jetzt kommt
+     * er von ausserhalb der Karte hereingeflogen und schlaegt dort ein - auf
+     * einer Buehne ist der Weg die halbe Nachricht.
+     */
+    const flight = new Float32Array(MAX_PARTICLES);
+    const fromX = new Float32Array(MAX_PARTICLES);
+    const fromY = new Float32Array(MAX_PARTICLES);
     const indexById = new Map<string, number>();
 
     function addParticle(id: string, isNew: boolean) {
@@ -228,7 +241,20 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
       drift[index] = 0.15 + random() * 0.85;
       size[index] = 0.9 + random() * 1.5;
       tone[index] = Math.floor(random() * palette.length);
-      landing[index] = isNew ? 1 : 0;
+
+      // Der Ring kommt erst beim Aufschlag; waehrend des Flugs waere er nur ein
+      // Kreis, der ueber die Karte wandert.
+      landing[index] = 0;
+      flight[index] = isNew && !reduceMotion ? 1 : 0;
+      if (flight[index] > 0) {
+        // Start weit ausserhalb des Kartenquadrats, Richtung zufaellig.
+        const angle = random() * Math.PI * 2;
+        fromX[index] = 0.5 + Math.cos(angle) * 1.25;
+        fromY[index] = 0.5 + Math.sin(angle) * 1.25;
+      } else if (isNew) {
+        landing[index] = 1;
+      }
+
       indexById.set(id, index);
       count += 1;
     }
@@ -427,13 +453,32 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
           if (tone[index] !== group) continue;
 
           const swing = wobble * 0.0032 * drift[index];
-          const unitX = baseX[index] + Math.sin(time * 0.35 * drift[index] + phase[index]) * swing;
-          const unitY = baseY[index] + Math.cos(time * 0.29 * drift[index] + phase[index] * 1.7) * swing;
+          let unitX = baseX[index] + Math.sin(time * 0.35 * drift[index] + phase[index]) * swing;
+          let unitY = baseY[index] + Math.cos(time * 0.29 * drift[index] + phase[index] * 1.7) * swing;
+
+          // Anflug: von aussen auf die eigene Position, mit Schwung am Anfang
+          // und weichem Auslaufen. Am Ende uebernimmt der Landering.
+          const incoming = flight[index];
+          if (incoming > 0) {
+            const next = Math.max(0, incoming - FLIGHT_STEP);
+            flight[index] = next;
+            if (next === 0) landing[index] = 1;
+
+            const eased = next * next * next;
+            unitX += (fromX[index] - baseX[index]) * eased;
+            unitY += (fromY[index] - baseY[index]) * eased;
+          }
+
           const screen = project(unitX, unitY);
           if (screen.x < -20 || screen.y < -20 || screen.x > width + 20 || screen.y > height + 20) continue;
 
           let radius = size[index] * pointScale * Math.min(camera.zoom, 2.2);
-          if (landing[index] > 0) {
+          if (incoming > 0) {
+            // Sichtbar groesser und heller als die ruhende Wolke - ein Punkt in
+            // Bewegung muss aus zehn Metern auffallen.
+            radius += incoming * 7 * pointScale;
+            context.globalAlpha = 1;
+          } else if (landing[index] > 0) {
             landing[index] = Math.max(0, landing[index] - 0.006);
             radius += landing[index] * 9 * pointScale;
             context.globalAlpha = 0.55 + landing[index] * 0.45;
@@ -445,6 +490,32 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
         }
       }
       context.globalAlpha = 1;
+
+      // Schweif der anfliegenden Punkte: eine kurze Linie entgegen der
+      // Flugrichtung. Billiger als echte Zwischenbilder und deutlicher.
+      context.lineCap = "round";
+      for (let index = 0; index < count; index += 1) {
+        const incoming = flight[index];
+        if (incoming <= 0) continue;
+
+        const eased = incoming * incoming * incoming;
+        const tail = 0.06;
+        const head = project(
+          baseX[index] + (fromX[index] - baseX[index]) * eased,
+          baseY[index] + (fromY[index] - baseY[index]) * eased,
+        );
+        const back = project(
+          baseX[index] + (fromX[index] - baseX[index]) * Math.min(1, eased + tail),
+          baseY[index] + (fromY[index] - baseY[index]) * Math.min(1, eased + tail),
+        );
+
+        context.beginPath();
+        context.moveTo(head.x, head.y);
+        context.lineTo(back.x, back.y);
+        context.lineWidth = Math.max(1.5, 3 * pointScale);
+        context.strokeStyle = `rgba(255, 196, 50, ${(0.15 + incoming * 0.5).toFixed(3)})`;
+        context.stroke();
+      }
 
       // Landeringe der Neuzugaenge.
       context.lineWidth = 2;

@@ -56,6 +56,11 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
 /* Kopfzeile ------------------------------------------------------------- */
 .dashboard-bar {
   grid-area: bar;
+  /* Ueber den Panels: Beide erzeugen durch `backdrop-filter` einen eigenen
+     Stapelkontext, und das spaeter im Baum stehende rechte Panel legte sich
+     sonst ueber das aufgeklappte Einstellungsmenue. */
+  position: relative;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -277,10 +282,16 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   overflow: hidden;
   container-type: size;
 }
+/* Die Ausblendzone ist in Pixeln angegeben und die Liste bekommt genau so viel
+   Polsterung. Ohne sie stehen Platz 1 und Platz 20 an den Umkehrpunkten mitten
+   im Verlauf und sind halb durchsichtig - ausgerechnet die beiden, die man
+   sehen will. Mit der Polsterung faehrt die Liste so weit, dass beide den
+   klaren Bereich erreichen. */
 .kreis-top-viewport.is-sweeping {
-  mask-image: linear-gradient(180deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 22px, #000 calc(100% - 22px), transparent 100%);
 }
 .kreis-top { padding: 0; margin: 0; list-style: none; }
+.kreis-top-viewport.is-sweeping .kreis-top { padding: 22px 0; }
 /* `alternate` fuehrt hinunter und wieder hinauf, `ease-in-out` haelt an beiden
    Enden kurz inne - dort steht die Liste lange genug, um gelesen zu werden. */
 .kreis-top-viewport.is-sweeping .kreis-top { animation: kreis-sweep ease-in-out infinite alternate; }
@@ -369,10 +380,42 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   white-space: nowrap;
 }
 
-/* Zeitachse ------------------------------------------------------------- */
-.timeline-strip { display: grid; grid-template-columns: repeat(30, minmax(0, 1fr)); align-items: end; gap: 3px; height: clamp(70px, 12vh, 130px); }
-.timeline-strip span { display: flex; align-items: flex-end; height: 100%; animation: fade-up 600ms both; }
-.timeline-strip i { display: block; width: 100%; background: linear-gradient(180deg, var(--stage-mint), rgba(70, 94, 171, .8)); transition: height 1s ease; }
+/* Countdown --------------------------------------------------------------
+   Statt der Zeitachse der letzten 30 Tage, die auf einer Buehne vor allem leere
+   Tage zeigte. Was fuer einen Rekordversuch zaehlt, ist die Restzeit.
+
+   Praefix `stage-`, weil globals.css bereits ein `.countdown` fuehrt: das
+   vierspaltige Raster der Kampagnen-Sektion. Beide Stylesheets liegen auf
+   dieser Seite uebereinander, und ohne eigenen Namen erbte der Block dort seine
+   vier Spalten - die vier Zeilen standen dann nebeneinander statt untereinander. */
+.stage-countdown { display: grid; gap: 9px; }
+.stage-countdown-remaining {
+  margin: 0;
+  color: var(--stage-yellow);
+  font: 800 clamp(1.5rem, 2.2vw, 2.8rem)/1 var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Zwei Balken untereinander: erreichter Anteil gegen verbrauchte Zeit. Genau
+   uebereinander ausgerichtet, sonst ist der Vergleich keiner. */
+.stage-countdown-race { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 5px 9px; }
+.stage-countdown-race > span:first-of-type, .stage-countdown-race > span:nth-of-type(3) { color: rgba(238, 241, 247, .38); font: 500 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.stage-countdown-race b { color: #eef1f7; font: 600 11px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.stage-countdown-bar { height: 8px; background: rgba(238, 241, 247, .08); }
+.stage-countdown-bar i { display: block; height: 100%; background: var(--stage-mint); transition: width 1.2s cubic-bezier(.2, .8, .3, 1); }
+/* Der Zeitbalken ist bewusst nur eine Markierung, keine Leistung. */
+.stage-countdown-bar.is-time i { background: rgba(238, 241, 247, .3); }
+.stage-countdown-race.is-behind .stage-countdown-bar:not(.is-time) i { background: #ec424c; }
+.stage-countdown-race.is-ahead .stage-countdown-bar:not(.is-time) i { background: #00b072; }
+
+.stage-countdown-verdict { margin: 0; font: 700 clamp(12px, .9vw, 17px) var(--sans); letter-spacing: .02em; }
+.stage-countdown-verdict.is-behind { color: #ec424c; }
+.stage-countdown-verdict.is-ahead { color: #00b072; }
+.stage-countdown-verdict.is-onTrack { color: var(--stage-mint); }
+
+.stage-countdown-line { margin: 0; color: rgba(238, 241, 247, .38); font: 500 clamp(10px, .72vw, 14px)/1.45 var(--mono); }
+.stage-countdown-line b { color: rgba(238, 241, 247, .72); font-weight: 700; font-variant-numeric: tabular-nums; }
+.stage-countdown-note { margin: 0; color: rgba(238, 241, 247, .34); font: 500 10px/1.5 var(--mono); letter-spacing: .06em; }
 
 /* Buehne ----------------------------------------------------------------
    Die Buehne selbst nimmt die Zeigerereignisse fuer die Kreiskarte an, deshalb
@@ -421,17 +464,20 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
 @keyframes spotlight-in { from { opacity: 0; transform: scale(.86) translateY(24px); } to { opacity: 1; transform: none; } }
 
 /* Laufband --------------------------------------------------------------
-   Die Liste steht zweimal hintereinander im Band; die Animation schiebt um
-   genau die halbe Breite und laeuft dadurch ohne Sprung. */
+   Bewegt wird nur, wenn der Inhalt breiter ist als das Band - und dann hin und
+   zurueck. Ein Endlosband braeuchte eine zweite Kopie der Eintraege; bei drei
+   Reparaturen sieht dieselbe fuenfmal hintereinander nach Betrieb aus, wo
+   keiner ist. Den Weg misst die Komponente und reicht ihn als Variable herein. */
 .dashboard-ticker { grid-area: ticker; overflow: hidden; background: linear-gradient(0deg, rgba(var(--ground), .8), rgba(var(--ground), 0)); }
-.dashboard-ticker > div { display: flex; gap: 30px; width: max-content; padding: 0 20px; animation: ticker-scroll 70s linear infinite; }
+.dashboard-ticker > div { display: flex; gap: 30px; width: max-content; padding: 0 20px; }
+.dashboard-ticker.is-scrolling .ticker-track { animation: ticker-sweep ease-in-out infinite alternate; }
 .dashboard-ticker > div > span { display: flex; align-items: center; gap: 9px; height: 46px; color: var(--stage-dim); font: 500 12px var(--mono); letter-spacing: .06em; white-space: nowrap; }
 .dashboard-ticker i { flex: none; width: 8px; height: 8px; border-radius: 50%; }
+/* Marke und Modell stehen vorn - das ist die Reparatur. Ort und Zeit sind
+   Beiwerk und deshalb deutlich zurueckgenommen. */
 .dashboard-ticker b { color: #eef1f7; font-weight: 600; }
-.dashboard-ticker .ticker-model { color: var(--stage-dim); }
-.dashboard-ticker .ticker-model::before { content: "·"; margin-right: 9px; }
-.dashboard-ticker time { color: rgba(238, 241, 247, .38); }
-.dashboard-ticker time::before { content: "·"; margin-right: 9px; }
+.dashboard-ticker .ticker-meta { color: rgba(238, 241, 247, .34); }
+.dashboard-ticker .ticker-meta::before { content: "·"; margin-right: 9px; }
 /* Marke am jeweils neuesten Eintrag. */
 .dashboard-ticker em {
   padding: 2px 7px; border-radius: 2px;
@@ -441,7 +487,10 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
 .dashboard-ticker .ticker-empty { animation: none; }
 .dashboard-ticker .ticker-empty span { display: flex; align-items: center; height: 46px; color: var(--stage-dim); font: 500 12px var(--mono); letter-spacing: .06em; }
 
-@keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes ticker-sweep {
+  from { transform: translateX(0); }
+  to { transform: translateX(var(--ticker-shift, 0)); }
+}
 
 /* Zielerreichung -------------------------------------------------------- */
 .dashboard-root.is-celebrating .dashboard-grid { animation: celebrate-glow 2.4s ease-in-out infinite; }
@@ -532,7 +581,12 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   /* Auf dem Telefon fehlt fuer den QR-Code der Platz - dort ist die Seite
      ohnehin schon in der Hand, aus der man ihn scannen wuerde. */
   .submit-qr { display: none; }
-  .timeline-strip { height: 42px; gap: 2px; }
+  .stage-countdown-remaining { font-size: 1rem; }
+  .stage-countdown-race > span:first-of-type, .stage-countdown-race > span:nth-of-type(3) { font-size: 7px; }
+  .stage-countdown-race b { font-size: 7px; }
+  .stage-countdown-bar { height: 5px; }
+  .stage-countdown-verdict { font-size: 9px; }
+  .stage-countdown-line { font-size: 8px; }
   .dashboard-stage { padding: 9px; }
   .spotlight { max-width: 42%; border-width: 1px; }
   .spotlight img { max-height: 40vmin; }
@@ -560,10 +614,11 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-ticker > div, .dashboard-live i, .counter-reached, .dashboard-root.is-celebrating .dashboard-grid { animation: none; }
-  .metric-tiles li, .timeline-strip span, .spotlight { animation: none; }
+  .dashboard-ticker .ticker-track, .dashboard-live i, .counter-reached, .dashboard-root.is-celebrating .dashboard-grid { animation: none; }
+  .metric-tiles li, .spotlight { animation: none; }
   .category-tile { transition: none; }
   /* Rangliste steht still und zeigt den Anfang der Liste. */
   .kreis-top-viewport.is-sweeping .kreis-top { animation: none; }
   .kreis-top-viewport.is-sweeping { mask-image: none; }
+  .kreis-top-viewport.is-sweeping .kreis-top { padding: 0; }
 }
