@@ -7,6 +7,7 @@ import { CampaignWindowNotice } from "@/components/campaign-window-notice";
 import { FriendlyCaptcha } from "@/components/friendly-captcha";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { RepairFormFields } from "@/components/repair-form-fields";
+import { brandPhotos } from "@/lib/brand-photos";
 import { repairCategories, repairCategoryLabel, type RepairCategory } from "@/lib/repair-catalog";
 
 const MAX_IMAGE_BYTES = 200 * 1024;
@@ -317,34 +318,48 @@ export default function Home() {
         <MobileNavigation />
       </header>
 
-      <section id="top" className="hero-grid" aria-labelledby="hero-title">
-        <div className="hero-copy">
-          <p className="eyebrow">FAB Region Bergisches Land · Oktober 2026</p>
-          <h1 id="hero-title">Reparieren.<br /><span>Zählen.</span><br />Rekord machen.</h1>
-          <p className="hero-intro">
-            Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.
-          </p>
-          <button className="button button-primary" type="button" onClick={() => startSubmission()}>
-            {campaign.status === "open" ? "Reparatur einreichen" : campaign.status === "before" ? "Countdown ansehen" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span>
-          </button>
+      <section id="top" className="hero-poster" aria-labelledby="hero-title">
+        <div className="hero-poster-photo" aria-hidden="true">
+          <NextImage src={brandPhotos.workshop.src} alt="" fill priority sizes="(max-width: 1240px) 100vw, 1240px" />
         </div>
-
-        <div className="counter-panel" id="counter">
-          <p className="counter-label">Freigegebene Reparaturen</p>
-          <div className="counter-sparks" aria-hidden="true">{Array.from({ length: 12 }, (_, index) => <i key={index} />)}</div>
-          <p className={`counter-number ${animatedRepairCount === null ? "is-loading" : ""}`} aria-live="polite" aria-label={animatedRepairCount === null ? "Freigegebene Reparaturen werden geladen" : `${animatedRepairCount} freigegebene Reparaturen`}>{animatedRepairCount === null ? "..." : animatedRepairCount.toLocaleString("de-DE")}</p>
-          <div className="counter-meta">
-            <span>Unser Ziel: 10.000</span>
-            <span>{((repairCount ?? 0) / 10_000 * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
+        <div className="hero-poster-inner">
+          <div className="hero-copy">
+            <p className="brand-kicker">Den ganzen Oktober lang reparieren &hellip;</p>
+            <h1 className="sticker-head is-mint" id="hero-title">
+              <span className="sticker">Gemeinsam zum</span>
+              <span className="sticker">Reparatur-</span>
+              <span className="sticker">Weltrekord</span>
+            </h1>
+            <p className="hero-intro">
+              Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.
+            </p>
+            <div className="hero-actions">
+              <button className="button button-primary" type="button" onClick={() => startSubmission()}>
+                {campaign.status === "open" ? "Reparatur einreichen" : campaign.status === "before" ? "Countdown ansehen" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span>
+              </button>
+              <Link className="button button-secondary" href="/stats">Live-Stand <span aria-hidden="true">&#8594;</span></Link>
+            </div>
           </div>
-          <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / 100, 100)}%` }} /></div>
-          <p className="counter-note">{statsState === "unavailable" ? "Der Live-Stand ist gerade nicht verfügbar." : statsUpdatedAt ? `Aktualisiert um ${statsUpdatedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.` : "Live-Stand wird geladen."}</p>
-        </div>
 
-        <aside className="hero-stamp" aria-label="Weltrekordversuch NRW">
-          <span>Weltrekord<br />versuch</span>
-          <strong>NRW<br />2026</strong>
-        </aside>
+          <div className="hero-side">
+            <aside className="hero-facts" id="counter">
+              <div>
+                <p className="counter-label">Freigegebene Reparaturen</p>
+                <p className={`counter-number ${animatedRepairCount === null ? "is-loading" : ""}`} aria-live="polite" aria-label={animatedRepairCount === null ? "Freigegebene Reparaturen werden geladen" : `${animatedRepairCount} freigegebene Reparaturen`}>{animatedRepairCount === null ? "..." : animatedRepairCount.toLocaleString("de-DE")}</p>
+                <div className="counter-meta">
+                  <span>Unser Ziel: 10.000</span>
+                  <span>{((repairCount ?? 0) / 10_000 * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
+                </div>
+                <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / 100, 100)}%` }} /></div>
+                <p className="counter-note">{statsState === "unavailable" ? "Der Live-Stand ist gerade nicht verfügbar." : statsUpdatedAt ? `Aktualisiert um ${statsUpdatedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.` : "Live-Stand wird geladen."}</p>
+              </div>
+              <div className="hero-qr">
+                <NextImage src="/brand/qr-reparatur.svg" alt="" width={82} height={82} aria-hidden="true" />
+                <span>QR-Code scannen<small>reparatur.fab-bergisch.org</small></span>
+              </div>
+            </aside>
+          </div>
+        </div>
       </section>
 
       {campaign.status !== "open" && <CampaignWindowNotice status={campaign.status} startAt={campaign.startAt} />}
@@ -364,9 +379,9 @@ export default function Home() {
       <section className="participation-section" aria-labelledby="participation-title">
         <div className="participation-heading"><p className="section-index">Dein Weg zur Reparatur</p><h2 id="participation-title">Mach aus einer Reparatur einen sichtbaren Beitrag.</h2><p>Du musst kein Profi sein. Wichtig ist nur: Die Reparatur ist echt, du beschreibst sie kurz und reichst sie während des Teilnahmezeitraums ein.</p></div>
         <div className="participation-options">
-          <article><span className="participation-icon participation-icon-camera" aria-hidden="true" /><h3>Selbst repariert?</h3><p>Mach ein Foto, wähle die Kategorie und erzähle in wenigen Sätzen, was wieder funktioniert.</p><button className="text-button" type="button" onClick={() => startSubmission()}>Reparatur einreichen <span aria-hidden="true">&#8594;</span></button></article>
-          <article><span className="participation-icon participation-icon-wrench" aria-hidden="true" /><h3>Du brauchst Hilfe?</h3><p>In Repair Cafés und offenen Werkstätten findest du Menschen, Werkzeuge und Zeit für die nächste Reparatur.</p><a className="text-button" href="https://www.repaircafe.org/en/visit/" target="_blank" rel="noreferrer">Repair Café finden <span aria-hidden="true">&#8599;</span></a></article>
-          <article><span className="participation-icon participation-icon-network" aria-hidden="true" /><h3>Ihr seid eine Einrichtung?</h3><p>Werkstätten, Schulen, Vereine und Initiativen können ihre Reparaturen sichtbar machen und das Projekt unterstützen.</p><a className="text-button" href="mailto:mail@gut-einern.org?subject=Reparaturrekord%20NRW%20unterstuetzen">Kontakt aufnehmen <span aria-hidden="true">&#8594;</span></a></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.secondLife.src} alt={brandPhotos.secondLife.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Einreichen</span></div><h3>Selbst repariert?</h3><p>Mach ein Foto, wähle die Kategorie und erzähle in wenigen Sätzen, was wieder funktioniert.</p><button className="text-button" type="button" onClick={() => startSubmission()}>Reparatur einreichen <span aria-hidden="true">&#8594;</span></button></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.bicycle.src} alt={brandPhotos.bicycle.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Mitmachen</span></div><h3>Du brauchst Hilfe?</h3><p>In Repair Cafés und offenen Werkstätten findest du Menschen, Werkzeuge und Zeit für die nächste Reparatur.</p><a className="text-button" href="https://www.repaircafe.org/en/visit/" target="_blank" rel="noreferrer">Repair Café finden <span aria-hidden="true">&#8599;</span></a></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.celebrate.src} alt={brandPhotos.celebrate.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Unterstützen</span></div><h3>Ihr seid eine Einrichtung?</h3><p>Werkstätten, Schulen, Vereine und Initiativen können ihre Reparaturen sichtbar machen und das Projekt unterstützen.</p><a className="text-button" href="mailto:mail@gut-einern.org?subject=Reparaturrekord%20NRW%20unterstuetzen">Kontakt aufnehmen <span aria-hidden="true">&#8594;</span></a></article>
         </div>
       </section>
 
@@ -410,6 +425,7 @@ export default function Home() {
       </section>
 
       <section className="project-banner" id="ueber-uns">
+        <div className="banner-photo" aria-hidden="true"><NextImage src={brandPhotos.reuse.src} alt="" fill sizes="(max-width: 1240px) 100vw, 1240px" /></div>
         <p>Reparatur ist keine Ausnahme.<br />Sie ist Infrastruktur.</p>
         <Link className="button button-secondary" href="/about">Über das Projekt <span aria-hidden="true">&#8594;</span></Link>
       </section>

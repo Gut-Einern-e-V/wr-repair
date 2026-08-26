@@ -38,8 +38,8 @@ export default function LoginPage() {
     <main className="auth-page">
       <form className="auth-form" onSubmit={handleSubmit}>
         <Link className="brand" href="/" aria-label="Zur Startseite"><span className="brand-mark">R</span><span>Reparaturrekord<br />NRW</span></Link>
-        <p className="section-index">Moderation</p>
-        <h1>Einloggen</h1>
+        <p className="brand-kicker">Moderation</p>
+        <h1 className="sticker-head"><span className="sticker">Einloggen</span></h1>
         <label>E-Mail<input name="email" type="email" autoComplete="email" required /></label>
         <label>Passwort<input name="password" type="password" autoComplete="current-password" required /></label>
         {error && <p className="form-error" role="alert">{error}</p>}
