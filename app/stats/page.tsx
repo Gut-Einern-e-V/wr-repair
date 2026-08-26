@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { repairCategoryLabel } from "@/lib/repair-catalog";
 
 type Stats = {
   total: number;
@@ -14,17 +15,6 @@ type StatsError = {
   code?: string;
 };
 
-const categoryLabels: Record<string, string> = {
-  electrical_appliances: "Elektrogeraete",
-  household_appliances: "Haushaltsgeraete",
-  computers_and_communication: "Computer & Kommunikation",
-  bicycles: "Fahrraeder",
-  furniture: "Moebel",
-  textiles_and_clothing: "Textilien & Kleidung",
-  tools: "Werkzeuge",
-  toys_and_leisure: "Spielzeug & Freizeit",
-  other: "Sonstiges",
-};
 
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit" }).format(new Date(`${date}T12:00:00`));
@@ -65,7 +55,7 @@ export default function StatisticsPage() {
       {error ? <p className="stats-message" role="alert">{error}</p> : !stats ? <p className="stats-message" role="status">Statistik wird geladen.</p> : <>
         <section className="stats-total" aria-label={`${stats.total} freigegebene Reparaturen`}><p>Freigegebene Reparaturen</p><strong>{stats.total.toLocaleString("de-DE")}</strong></section>
         <section className="stats-section" aria-labelledby="timeline-title"><div className="stats-section-heading"><p className="section-index">Letzte 30 Tage</p><h2 id="timeline-title">Freigaben im Verlauf</h2></div><div className="timeline-chart" role="img" aria-label="Tagesverlauf der in den letzten 30 Tagen freigegebenen Reparaturen">{stats.timeline.map((day, index) => <div className="timeline-day" key={day.date} title={`${formatDate(day.date)}: ${day.total}`}><span className="timeline-value">{day.total || ""}</span><i style={{ height: `${Math.max(day.total ? (day.total / maxTimeline) * 100 : 2, 2)}%` }} /><small>{index % 5 === 0 || index === stats.timeline.length - 1 ? formatDate(day.date) : ""}</small></div>)}</div></section>
-        <section className="stats-section" aria-labelledby="categories-title"><div className="stats-section-heading"><p className="section-index">Kategorien</p><h2 id="categories-title">Was wurde repariert?</h2></div>{categoryEntries.length === 0 ? <p className="stats-message">Noch keine freigegebenen Reparaturen.</p> : <ol className="category-stats">{categoryEntries.map(([category, total]) => <li key={category}><div><strong>{categoryLabels[category] ?? category}</strong><span>{total}</span></div><i><b style={{ width: `${(total / maxCategory) * 100}%` }} /></i></li>)}</ol>}</section>
+        <section className="stats-section" aria-labelledby="categories-title"><div className="stats-section-heading"><p className="section-index">Kategorien</p><h2 id="categories-title">Was wurde repariert?</h2></div>{categoryEntries.length === 0 ? <p className="stats-message">Noch keine freigegebenen Reparaturen.</p> : <ol className="category-stats">{categoryEntries.map(([category, total]) => <li key={category}><div><strong>{repairCategoryLabel(category)}</strong><span>{total}</span></div><i><b style={{ width: `${(total / maxCategory) * 100}%` }} /></i></li>)}</ol>}</section>
       </>}
     </main>
   );

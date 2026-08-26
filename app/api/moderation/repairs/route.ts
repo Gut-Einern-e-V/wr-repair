@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const supabase = createSupabaseAdminClient();
   const { data: repairs, error } = await supabase
     .from("repairs")
-    .select("id, category, product_name, context, description, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time")
+    .select("id, category, brand_model, performed_by, story, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time")
     .eq("status", status)
     .order("entry_time", { ascending: true })
     .limit(100);
@@ -31,7 +31,7 @@ export async function GET(request: Request) {
     return Response.json({ error: "Einreichungen konnten nicht geladen werden." }, { status: 502 });
   }
 
-  const imagePaths = (repairs ?? []).map((repair) => repair.image_path);
+  const imagePaths = (repairs ?? []).filter((r) => r.image_path).map((repair) => repair.image_path as string);
   const { data: signedUrls, error: urlError } = imagePaths.length
     ? await supabase.storage.from("repair-images").createSignedUrls(imagePaths, 300)
     : { data: [], error: null };
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   return Response.json({
     repairs: (repairs ?? []).map((repair) => ({
       ...repair,
-      imageUrl: urls.get(repair.image_path) ?? null,
+      imageUrl: repair.image_path ? (urls.get(repair.image_path) ?? null) : null,
     })),
   });
 }

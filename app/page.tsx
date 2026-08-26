@@ -6,7 +6,7 @@ import Link from "next/link";
 import { CampaignWindowNotice } from "@/components/campaign-window-notice";
 import { FriendlyCaptcha } from "@/components/friendly-captcha";
 import { MobileNavigation } from "@/components/mobile-navigation";
-import { RepairFormFields } from "@/components/repair-form-fields";
+import { RepairCategorySelect } from "@/components/repair-form-fields";
 import { brandPhotos } from "@/lib/brand-photos";
 import { repairCategories, repairCategoryLabel, type RepairCategory } from "@/lib/repair-catalog";
 
@@ -128,6 +128,7 @@ export default function Home() {
   const [galleryError, setGalleryError] = useState("");
   const [captchaError, setCaptchaError] = useState("");
   const [campaign, setCampaign] = useState<CampaignStatus>({ status: "invalid", startAt: null });
+  const [enterLottery, setEnterLottery] = useState(false);
   const friendlyCaptchaSiteKey = process.env.NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY;
   const captchaEnabled = process.env.NEXT_PUBLIC_CAPTCHA_ENABLED !== "false";
   const animatedRepairCount = useAnimatedCounter(repairCount);
@@ -233,6 +234,7 @@ export default function Home() {
 
   function closeSubmission() {
     setCaptchaError("");
+    setEnterLottery(false);
     setIsFormOpen(false);
   }
 
@@ -247,7 +249,7 @@ export default function Home() {
 
   function submitRepair(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (fileError || !uploadFile || isCompressing) {
+    if (fileError || isCompressing) {
       return;
     }
 
@@ -285,7 +287,9 @@ export default function Home() {
       setSubmissionError("Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.");
     };
     const formData = new FormData(event.currentTarget);
-    formData.set("image", uploadFile);
+    if (uploadFile) {
+      formData.set("image", uploadFile);
+    }
     if (captchaEnabled) {
       const captchaResponse = formData.get("frc-captcha-response");
       if (typeof captchaResponse !== "string" || !captchaResponse) {
@@ -457,16 +461,32 @@ export default function Home() {
               </div>
             ) : (
               <form onSubmit={submitRepair}>
-                <p className="section-index">Deine Reparatur / Schritt 1 von 3</p>
-                <h2 id="submission-title">Was wurde repariert?</h2>
-                <input name="category" type="hidden" value={category} />
-                <RepairFormFields category={category} onChange={setCategory} />
-                <label>Was war kaputt und was hast du getan?
-                  <textarea name="description" required rows={4} maxLength={2000} placeholder="Zum Beispiel: Kabel getauscht, Schalter gereinigt ..." />
+                <h2 id="submission-title">Reparatur einreichen</h2>
+
+                <RepairCategorySelect category={category} onChange={setCategory} label="Kategorie" />
+
+                <label>Marke und Modell <small>(optional, soweit bekannt)</small>
+                  <input name="brand_model" type="text" maxLength={200} placeholder="z.B. Bosch Akkuschrauber GSR 18V" />
                 </label>
-                <label className="upload-field">Foto hinzufuegen
-                  <input name="image" type="file" accept="image/jpeg,image/png,image/webp" required onChange={handleImageChange} />
-                  <small>JPG, PNG oder WebP · maximal 200 KB · Bild- und Standortdaten werden vor dem Upload entfernt</small>
+
+                <label>Geschätzte Dauer der Reparatur in Minuten
+                  <input name="duration_minutes" type="number" min={1} max={9999} placeholder="z.B. 45" />
+                </label>
+
+                <label>Geschätzter Wert des Gegenstands in Euro
+                  <input name="item_value_euros" type="number" min={0} max={999999} step="0.01" placeholder="z.B. 120" />
+                </label>
+
+                <fieldset>
+                  <legend>Reparatur durchgeführt</legend>
+                  <label><input name="performed_by" type="radio" value="alone" required /> Allein</label>
+                  <label><input name="performed_by" type="radio" value="with_support" /> Gemeinsam mit Unterstützung</label>
+                  <label><input name="performed_by" type="radio" value="by_someone" /> Hat jemand für mich repariert</label>
+                </fieldset>
+
+                <label className="upload-field">Foto hinzufügen <small>(optional)</small>
+                  <input name="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
+                  <small>Lade gerne ein Bild von deinem Erfolgserlebnis und gerne auch von dir hoch. JPG, PNG oder WebP · maximal 200 KB · Bild- und Standortdaten werden vor dem Upload entfernt.</small>
                 </label>
                 {isCompressing && <p className="form-notice" aria-live="polite">Bild wird komprimiert ...</p>}
                 {previewUrl && (
@@ -476,14 +496,35 @@ export default function Home() {
                 )}
                 {compressionMessage && <p className="form-notice" role="status">{compressionMessage}</p>}
                 {fileError && <p className="form-error" role="alert">{fileError}</p>}
-                <label className="repair-outcome"><input name="repair_succeeded" type="checkbox" value="false" /> <span>Die Reparatur ist leider nicht gelungen. Auch dieser Versuch zaehlt und darf eingereicht werden.</span></label>
-                <label className="consent"><input name="consent" type="checkbox" value="true" required /> <span>Ich bin einverstanden, dass mein Bild nach der Pruefung veroeffentlicht wird.</span></label>
-                <p className="geo-notice">Teilnahme ist nur aus Nordrhein-Westfalen moeglich. Der Standort wird beim Absenden ueber die Vercel-Regionserkennung geprueft; die IP-Adresse wird nicht gespeichert.</p>
+
+                <label className="repair-outcome"><input name="repair_succeeded" type="checkbox" value="false" /> <span><strong>Die Reparatur ist leider nicht gelungen.</strong> Super, dass du es versucht hast! Du kannst trotzdem am Gewinnspiel teilnehmen!</span></label>
+
+                <label>Meine Reparaturgeschichte <small>(optional)</small>
+                  <textarea name="story" rows={4} maxLength={2000} placeholder="Deine Reparatur war besonders anstrengend, lustig, herzerwärmend, frustrierend etc.? Erzähl uns gerne davon!" />
+                </label>
+
+                <label className="consent"><input name="consent" type="checkbox" value="true" required /> <span>Ich bin einverstanden, dass meine Angaben nach der Prüfung anonym veröffentlicht werden.</span></label>
+
+                <label className="lottery-opt-in"><input type="checkbox" checked={enterLottery} onChange={(e) => setEnterLottery(e.target.checked)} /> <span>Ich möchte am Gewinnspiel teilnehmen <small>(Daten nur für die Verlosung / wird nicht veröffentlicht)</small></span></label>
+                {enterLottery && (
+                  <fieldset className="lottery-fields">
+                    <legend>Angaben für die Verlosung</legend>
+                    <label>Name
+                      <input name="lottery_name" type="text" required maxLength={200} placeholder="Dein Name" />
+                    </label>
+                    <label>E-Mail
+                      <input name="lottery_email" type="email" required maxLength={254} placeholder="deine@email.de" />
+                    </label>
+                    <label className="consent"><input name="lottery_privacy" type="checkbox" required /> <span>Ich habe die <Link href="/privacy" target="_blank">Datenschutzerklärung</Link> gelesen und stimme der Verarbeitung meiner Daten für die Verlosung zu.</span></label>
+                  </fieldset>
+                )}
+
+                <p className="geo-notice">Teilnahme ist nur aus Nordrhein-Westfalen möglich. Der Standort wird beim Absenden über die Vercel-Regionserkennung geprüft; die IP-Adresse wird nicht gespeichert.</p>
                 {captchaEnabled ? friendlyCaptchaSiteKey ? <div className="captcha-field"><FriendlyCaptcha sitekey={friendlyCaptchaSiteKey} onError={setCaptchaError} /><small>Der Spam-Schutz von Friendly Captcha wird vor dem Absenden automatisch vorbereitet.</small></div> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p> : <p className="form-notice" role="status">Der Spam-Schutz ist vorübergehend deaktiviert.</p>}
                 {captchaError && <p className="form-error" role="alert">{captchaError}</p>}
                 {uploadProgress !== null && <div className="upload-progress" aria-live="polite"><span>Bild wird hochgeladen: {uploadProgress} %</span><progress value={uploadProgress} max="100" /></div>}
                 {submissionError && <p className="form-error" role="alert">{submissionError}</p>}
-                <button className="button button-primary" type="submit" disabled={isSubmitting || isCompressing || Boolean(fileError)}>{isSubmitting ? "Wird gesendet ..." : "Zur Pruefung einreichen"} <span aria-hidden="true">&#8594;</span></button>
+                <button className="button button-primary" type="submit" disabled={isSubmitting || isCompressing || Boolean(fileError)}>{isSubmitting ? "Wird gesendet ..." : "Zur Prüfung einreichen"} <span aria-hidden="true">&#8594;</span></button>
               </form>
             )}
           </section>

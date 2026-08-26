@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { repairCategoryValues as repairCategories } from "@/lib/repair-catalog";
+import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
 
 type Role = "moderator" | "admin" | "superadmin";
 type ManagedUser = { id: string; email: string; displayName: string | null; roles: Role[]; createdAt: string };
@@ -11,11 +11,13 @@ type RepairStatus = "pending" | "approved" | "rejected";
 const repairStatusLabels: Record<RepairStatus, string> = { pending: "Offen", approved: "Freigegeben", rejected: "Abgelehnt" };
 type CampaignSettings = { startAt: string | null; endAt: string | null };
 type ManagedPartner = { id: string; name: string; website_url: string; logo_path: string | null; sort_order: number };
+type LotteryEntry = { id: string; repair_id: string; name: string; email: string; winner: boolean; drawn_at: string | null; created_at: string };
 type ModerationRepair = {
   id: string;
   category: string;
-  product_name: string | null;
-  description: string | null;
+  brand_model: string | null;
+  performed_by: string | null;
+  story: string | null;
   image_alt_text: string | null;
   tags: string[];
   repair_succeeded: boolean;
@@ -43,9 +45,11 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
   const [repairStatus, setRepairStatus] = useState<RepairStatus>("pending");
   const [isLoadingRepairs, setIsLoadingRepairs] = useState(true);
   const [comments, setComments] = useState<Record<string, string>>({});
-  const [metadataDrafts, setMetadataDrafts] = useState<Record<string, { category: string; productName: string; description: string; imageAltText: string; tags: string }>>({});
+  const [metadataDrafts, setMetadataDrafts] = useState<Record<string, { category: string; imageAltText: string; tags: string }>>({});
   const [campaignSettings, setCampaignSettings] = useState<CampaignSettings>({ startAt: null, endAt: null });
   const [partners, setPartners] = useState<ManagedPartner[]>([]);
+  const [lotteryEntries, setLotteryEntries] = useState<LotteryEntry[]>([]);
+  const [lotteryWinner, setLotteryWinner] = useState<LotteryEntry | null>(null);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
 
@@ -148,6 +152,11 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
     void loadPartners();
   }, [isAdmin]);
 
+  useEffect(() => {
+    if (!isSuperadmin) return;
+    void loadLotteryEntries();
+  }, [isSuperadmin]);
+
   async function loadPartners() {
     const response = await fetch("/api/admin/partners");
     const data = await response.json() as { partners?: ManagedPartner[]; error?: string };
@@ -156,6 +165,34 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
       return;
     }
     setPartners(data.partners ?? []);
+  }
+
+  async function loadLotteryEntries() {
+    const response = await fetch("/api/admin/lottery");
+    const data = await response.json() as { entries?: LotteryEntry[]; error?: string };
+    if (!response.ok) {
+      setError(data.error ?? "Verlosungseintraege konnten nicht geladen werden.");
+      return;
+    }
+    setLotteryEntries(data.entries ?? []);
+  }
+
+  async function drawLotteryWinner() {
+    setStatus("");
+    setError("");
+    const response = await fetch("/api/admin/lottery", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "draw" }),
+    });
+    const data = await response.json() as { winner?: LotteryEntry; error?: string };
+    if (!response.ok) {
+      setError(data.error ?? "Verlosung konnte nicht gestartet werden.");
+      return;
+    }
+    setLotteryWinner(data.winner ?? null);
+    setStatus("Gewinner wurde ausgelost.");
+    await loadLotteryEntries();
   }
 
   async function updateRepair(repairId: string, nextStatus: "approved" | "rejected") {
@@ -189,8 +226,6 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
   function getMetadataDraft(repair: ModerationRepair) {
     return metadataDrafts[repair.id] ?? {
       category: repair.category,
-      productName: repair.product_name ?? "",
-      description: repair.description ?? "",
       imageAltText: repair.image_alt_text ?? "",
       tags: repair.tags.join(", "),
     };
@@ -320,7 +355,7 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
       </section>
       <section className="repair-queue" aria-labelledby="repair-queue-heading">
         <div className="section-heading"><div><p className="section-index">Moderation</p><h2 id="repair-queue-heading">Einreichungen pruefen</h2></div><div className="queue-tools">{isAdmin && <a className="button button-secondary" href="/api/admin/repairs/export">CSV exportieren</a>}<label className="filter-label">Status<select value={repairStatus} onChange={(event) => void changeRepairStatus(event.target.value as RepairStatus)}><option value="pending">Offen</option><option value="approved">Freigegeben</option><option value="rejected">Abgelehnt</option></select></label></div></div>
-        {isLoadingRepairs ? <p className="queue-empty">Einreichungen werden geladen.</p> : repairs.length === 0 ? <p className="queue-empty">Keine Einreichungen in diesem Status.</p> : <div className="repair-list">{repairs.map((repair) => { const draft = getMetadataDraft(repair); return <article className="repair-review" key={repair.id}>{repair.imageUrl ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" /> : <div className="missing-image">Bild nicht verfuegbar</div>}<div><p className="section-index">{repair.category.replaceAll("_", " ")} <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span></p><h3>{repair.product_name || "Reparatur ohne Produktname"}</h3><p>{repair.description || "Keine Beschreibung angegeben."}</p><dl><div><dt>Erfolg</dt><dd>{repair.repair_succeeded ? "Ja" : "Nein"}</dd></div><div><dt>Veroeffentlichung</dt><dd>{repair.consent_publication ? "Zugestimmt" : "Keine Zustimmung"}</dd></div>{repair.location_region && <div><dt>Region</dt><dd>{repair.location_region}</dd></div>}</dl><details className="metadata-editor"><summary>Metadaten bearbeiten</summary><div className="metadata-fields"><label>Kategorie<select value={draft.category} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, category: event.target.value } })}>{repairCategories.map((category) => <option key={category} value={category}>{category.replaceAll("_", " ")}</option>)}</select></label><label>Produktname<input value={draft.productName} maxLength={120} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, productName: event.target.value } })} /></label><label>Beschreibung<textarea value={draft.description} maxLength={2000} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, description: event.target.value } })} /></label><label>Bildbeschreibung<input value={draft.imageAltText} maxLength={250} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, imageAltText: event.target.value } })} /></label><label>Tags, mit Komma getrennt<input value={draft.tags} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, tags: event.target.value } })} /></label></div><button className="button button-secondary" type="button" onClick={() => void saveMetadata(repair)}>Metadaten speichern</button></details>{repairStatus === "pending" && <><label className="comment-label">Moderationskommentar<textarea value={comments[repair.id] ?? ""} maxLength={1000} onChange={(event) => setComments({ ...comments, [repair.id]: event.target.value })} /></label><div className="review-actions"><button className="button button-primary" type="button" onClick={() => void updateRepair(repair.id, "approved")} disabled={!repair.consent_publication}>Freigeben</button><button className="button button-secondary" type="button" onClick={() => void updateRepair(repair.id, "rejected")}>Ablehnen</button></div></>}{repair.moderator_comment && <p className="moderator-comment">Kommentar: {repair.moderator_comment}</p>}</div></article>; })}</div>}
+        {isLoadingRepairs ? <p className="queue-empty">Einreichungen werden geladen.</p> : repairs.length === 0 ? <p className="queue-empty">Keine Einreichungen in diesem Status.</p> : <div className="repair-list">{repairs.map((repair) => { const draft = getMetadataDraft(repair); return <article className="repair-review" key={repair.id}>{repair.imageUrl ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" /> : <div className="missing-image">Kein Bild eingereicht</div>}<div><p className="section-index">{repairCategoryLabel(repair.category)} <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span></p><h3>{repair.brand_model || "Marke/Modell unbekannt"}</h3>{repair.story && <p>{repair.story}</p>}<dl><div><dt>Durchgeführt</dt><dd>{repair.performed_by === "alone" ? "Allein" : repair.performed_by === "with_support" ? "Gemeinsam mit Unterstützung" : repair.performed_by === "by_someone" ? "Hat jemand für mich repariert" : "–"}</dd></div><div><dt>Erfolg</dt><dd>{repair.repair_succeeded ? "Ja" : "Nein"}</dd></div><div><dt>Veroeffentlichung</dt><dd>{repair.consent_publication ? "Zugestimmt" : "Keine Zustimmung"}</dd></div>{repair.location_region && <div><dt>Region</dt><dd>{repair.location_region}</dd></div>}</dl><details className="metadata-editor"><summary>Metadaten bearbeiten</summary><div className="metadata-fields"><label>Kategorie<select value={draft.category} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, category: event.target.value } })}>{repairCategories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label>Bildbeschreibung<input value={draft.imageAltText} maxLength={250} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, imageAltText: event.target.value } })} /></label><label>Tags, mit Komma getrennt<input value={draft.tags} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, tags: event.target.value } })} /></label></div><button className="button button-secondary" type="button" onClick={() => void saveMetadata(repair)}>Metadaten speichern</button></details>{repairStatus === "pending" && <><label className="comment-label">Moderationskommentar<textarea value={comments[repair.id] ?? ""} maxLength={1000} onChange={(event) => setComments({ ...comments, [repair.id]: event.target.value })} /></label><div className="review-actions"><button className="button button-primary" type="button" onClick={() => void updateRepair(repair.id, "approved")} disabled={!repair.consent_publication}>Freigeben</button><button className="button button-secondary" type="button" onClick={() => void updateRepair(repair.id, "rejected")}>Ablehnen</button></div></>}{repair.moderator_comment && <p className="moderator-comment">Kommentar: {repair.moderator_comment}</p>}</div></article>; })}</div>}
       </section>
       {isSuperadmin && <section className="user-management">
         <div className="section-heading"><div><p className="section-index">Benutzerverwaltung</p><h2>Team einladen</h2></div></div>
@@ -345,6 +380,13 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
           <button className="button button-primary" type="submit">Zeitraum speichern</button>
         </form>
         <p className="form-notice">Außerhalb dieses Zeitraums können Moderator*innen keine Einreichungen bearbeiten. Superadmins behalten den Zugriff für die Administration.</p>
+      </section>}
+      {isSuperadmin && <section className="user-management" aria-labelledby="lottery-heading">
+        <div className="section-heading"><div><p className="section-index">Gewinnspiel</p><h2 id="lottery-heading">Verlosung</h2></div></div>
+        <p className="form-notice">{lotteryEntries.length} Teilnehmer*innen haben sich fuer die Verlosung angemeldet.</p>
+        <button className="button button-primary" type="button" onClick={() => void drawLotteryWinner()}>Gewinner*in auslosen</button>
+        {lotteryWinner && <div className="lottery-winner"><p className="section-index">Gewinner*in</p><p><strong>{lotteryWinner.name}</strong> &mdash; {lotteryWinner.email}</p><p>Ausgelost am {lotteryWinner.drawn_at ? new Date(lotteryWinner.drawn_at).toLocaleString("de-DE") : "–"}</p></div>}
+        {lotteryEntries.some((entry) => entry.winner) && <div className="lottery-winners-list"><p className="section-index">Bisherige Gewinner*innen</p>{lotteryEntries.filter((entry) => entry.winner).map((entry) => <div key={entry.id} className="user-row"><div><strong>{entry.name}</strong><span>{entry.email}</span></div><span>{entry.drawn_at ? new Date(entry.drawn_at).toLocaleString("de-DE") : ""}</span></div>)}</div>}
       </section>}
       {isAdmin && <section className="user-management" aria-labelledby="partners-heading">
         <div className="section-heading"><div><p className="section-index">Partner</p><h2 id="partners-heading">Weitere Einrichtungen</h2></div></div>
