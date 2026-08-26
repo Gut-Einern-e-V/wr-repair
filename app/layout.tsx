@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getSiteUrl } from "@/lib/share";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   // Ohne metadataBase wuerden geteilte Links und Bilder relativ bleiben.
@@ -16,7 +17,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="de">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Analytics />
+      </body>
     </html>
   );
 }
