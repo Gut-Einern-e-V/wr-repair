@@ -16,6 +16,41 @@ function isOptionalString(value: unknown, maxLength: number, allowEmpty = true) 
   return value === undefined || (typeof value === "string" && value.trim().length <= maxLength && (allowEmpty || Boolean(value.trim())));
 }
 
+export async function DELETE(request: Request, context: { params: Promise<{ repairId: string }> }) {
+  const authorization = await requireModerator();
+  if (!authorization.authorized) {
+    return Response.json({ error: authorization.error }, { status: authorization.status });
+  }
+
+  if (!authorization.currentAdmin.roles.includes("superadmin") && (await getConfiguredSubmissionWindow()).status !== "open") {
+    return Response.json({ error: "Moderation ist nur waehrend des Einreichungszeitraums moeglich." }, { status: 403 });
+  }
+
+  const { repairId } = await context.params;
+  const supabase = createSupabaseAdminClient();
+
+  const { data: repair, error: repairError } = await supabase
+    .from("repairs")
+    .select("id, image_path")
+    .eq("id", repairId)
+    .single();
+
+  if (repairError || !repair) {
+    return Response.json({ error: "Einreichung nicht gefunden." }, { status: 404 });
+  }
+
+  if (repair.image_path) {
+    await supabase.storage.from("repair-images").remove([repair.image_path]);
+  }
+
+  const { error: deleteError } = await supabase.from("repairs").delete().eq("id", repairId);
+  if (deleteError) {
+    return Response.json({ error: "Einreichung konnte nicht geloescht werden." }, { status: 502 });
+  }
+
+  return Response.json({ ok: true });
+}
+
 export async function PATCH(request: Request, context: { params: Promise<{ repairId: string }> }) {
   const authorization = await requireModerator();
   if (!authorization.authorized) {

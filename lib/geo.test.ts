@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { verifyNorthrhineWestphalia } from "./geo";
+import { verifyNorthrhineWestphalia, isWithinNrw } from "./geo";
 
 function request(headers: HeadersInit = {}) {
   return new Request("https://example.test/api/repairs", { headers });
@@ -24,5 +24,23 @@ describe("NRW geo check", () => {
 
     vi.stubEnv("NODE_ENV", "production");
     expect(verifyNorthrhineWestphalia(request())).toEqual({ allowed: false, reason: "unknown" });
+  });
+});
+
+describe("isWithinNrw bounding box", () => {
+  it("accepts Wuppertal-Beyenburg coordinates", () => {
+    expect(isWithinNrw(51.25, 7.31)).toBe(true);
+  });
+
+  it("accepts Cologne coordinates", () => {
+    expect(isWithinNrw(50.94, 6.96)).toBe(true);
+  });
+
+  it("rejects Munich (Bavaria)", () => {
+    expect(isWithinNrw(48.14, 11.58)).toBe(false);
+  });
+
+  it("rejects coordinates outside Germany entirely", () => {
+    expect(isWithinNrw(48.85, 2.35)).toBe(false);
   });
 });

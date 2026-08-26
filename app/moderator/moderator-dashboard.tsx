@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
 
@@ -28,6 +28,47 @@ type ModerationRepair = {
   created_at: string;
   imageUrl: string | null;
 };
+
+type ImageExif = { latitude: number | null; longitude: number | null; capturedAt: string | null };
+
+function useImageExif(imageUrl: string | null): ImageExif | null {
+  const [exif, setExif] = useState<ImageExif | null>(null);
+  const urlRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!imageUrl || urlRef.current === imageUrl) return;
+    urlRef.current = imageUrl;
+
+    void (async () => {
+      try {
+        const { parse } = await import("exifr") as unknown as { parse(input: string, opts: object): Promise<Record<string, unknown> | undefined> };
+        const result = await parse(imageUrl, { gps: true, tiff: false, ifd1: false, exif: ["DateTimeOriginal", "CreateDate"] });
+        if (!result) { setExif({ latitude: null, longitude: null, capturedAt: null }); return; }
+        const latitude = typeof result["latitude"] === "number" ? result["latitude"] : null;
+        const longitude = typeof result["longitude"] === "number" ? result["longitude"] : null;
+        const rawDate = result["DateTimeOriginal"] ?? result["CreateDate"];
+        const capturedAt = rawDate instanceof Date ? rawDate.toISOString() : (typeof rawDate === "string" && rawDate ? rawDate : null);
+        setExif({ latitude, longitude, capturedAt });
+      } catch {
+        setExif({ latitude: null, longitude: null, capturedAt: null });
+      }
+    })();
+  }, [imageUrl]);
+
+  return exif;
+}
+
+function RepairExif({ imageUrl }: { imageUrl: string }) {
+  const exif = useImageExif(imageUrl);
+  if (!exif) return null;
+  const hasGps = exif.latitude !== null && exif.longitude !== null;
+  return (
+    <>
+      {exif.capturedAt && <div><dt>Aufnahmedatum</dt><dd>{new Date(exif.capturedAt).toLocaleString("de-DE")}</dd></div>}
+      {hasGps && <div><dt>GPS-Koordinaten</dt><dd><a href={`https://www.openstreetmap.org/?mlat=${exif.latitude}&mlon=${exif.longitude}&zoom=14`} target="_blank" rel="noopener noreferrer">{(exif.latitude as number).toFixed(5)}, {(exif.longitude as number).toFixed(5)}</a></dd></div>}
+    </>
+  );
+}
 
 const roleLabels: Record<Role, string> = { moderator: "Moderation", admin: "Admin", superadmin: "Superadmin" };
 function formatDateTimeLocal(value: string | null) {
@@ -340,6 +381,19 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
     await loadPartners();
   }
 
+  async function deleteRepair(repairId: string) {
+    setStatus("");
+    setError("");
+    const response = await fetch(`/api/moderation/repairs/${repairId}`, { method: "DELETE" });
+    const data = await response.json() as { error?: string };
+    if (!response.ok) {
+      setError(data.error ?? "Einreichung konnte nicht geloescht werden.");
+      return;
+    }
+    setStatus("Einreichung wurde endgueltig geloescht.");
+    await loadRepairs();
+  }
+
   async function signOut() {
     await fetch("/api/auth/signout", { method: "POST" });
     window.location.assign("/login");
@@ -355,7 +409,7 @@ export default function ModeratorDashboard({ email, roles }: { email: string; ro
       </section>
       <section className="repair-queue" aria-labelledby="repair-queue-heading">
         <div className="section-heading"><div><p className="section-index">Moderation</p><h2 id="repair-queue-heading">Einreichungen pruefen</h2></div><div className="queue-tools">{isAdmin && <a className="button button-secondary" href="/api/admin/repairs/export">CSV exportieren</a>}<label className="filter-label">Status<select value={repairStatus} onChange={(event) => void changeRepairStatus(event.target.value as RepairStatus)}><option value="pending">Offen</option><option value="approved">Freigegeben</option><option value="rejected">Abgelehnt</option></select></label></div></div>
-        {isLoadingRepairs ? <p className="queue-empty">Einreichungen werden geladen.</p> : repairs.length === 0 ? <p className="queue-empty">Keine Einreichungen in diesem Status.</p> : <div className="repair-list">{repairs.map((repair) => { const draft = getMetadataDraft(repair); return <article className="repair-review" key={repair.id}>{repair.imageUrl ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" /> : <div className="missing-image">Kein Bild eingereicht</div>}<div><p className="section-index">{repairCategoryLabel(repair.category)} <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span></p><h3>{repair.brand_model || "Marke/Modell unbekannt"}</h3>{repair.story && <p>{repair.story}</p>}<dl><div><dt>Durchgeführt</dt><dd>{repair.performed_by === "alone" ? "Allein" : repair.performed_by === "with_support" ? "Gemeinsam mit Unterstützung" : repair.performed_by === "by_someone" ? "Hat jemand für mich repariert" : "–"}</dd></div><div><dt>Erfolg</dt><dd>{repair.repair_succeeded ? "Ja" : "Nein"}</dd></div><div><dt>Veroeffentlichung</dt><dd>{repair.consent_publication ? "Zugestimmt" : "Keine Zustimmung"}</dd></div>{repair.location_region && <div><dt>Region</dt><dd>{repair.location_region}</dd></div>}</dl><details className="metadata-editor"><summary>Metadaten bearbeiten</summary><div className="metadata-fields"><label>Kategorie<select value={draft.category} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, category: event.target.value } })}>{repairCategories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label>Bildbeschreibung<input value={draft.imageAltText} maxLength={250} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, imageAltText: event.target.value } })} /></label><label>Tags, mit Komma getrennt<input value={draft.tags} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, tags: event.target.value } })} /></label></div><button className="button button-secondary" type="button" onClick={() => void saveMetadata(repair)}>Metadaten speichern</button></details>{repairStatus === "pending" && <><label className="comment-label">Moderationskommentar<textarea value={comments[repair.id] ?? ""} maxLength={1000} onChange={(event) => setComments({ ...comments, [repair.id]: event.target.value })} /></label><div className="review-actions"><button className="button button-primary" type="button" onClick={() => void updateRepair(repair.id, "approved")} disabled={!repair.consent_publication}>Freigeben</button><button className="button button-secondary" type="button" onClick={() => void updateRepair(repair.id, "rejected")}>Ablehnen</button></div></>}{repair.moderator_comment && <p className="moderator-comment">Kommentar: {repair.moderator_comment}</p>}</div></article>; })}</div>}
+        {isLoadingRepairs ? <p className="queue-empty">Einreichungen werden geladen.</p> : repairs.length === 0 ? <p className="queue-empty">Keine Einreichungen in diesem Status.</p> : <div className="repair-list">{repairs.map((repair) => { const draft = getMetadataDraft(repair); return <article className="repair-review" key={repair.id}>{repair.imageUrl ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" /> : <div className="missing-image">Kein Bild eingereicht</div>}<div><p className="section-index">{repairCategoryLabel(repair.category)} <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span></p><h3>{repair.brand_model || "Marke/Modell unbekannt"}</h3>{repair.story && <p>{repair.story}</p>}<dl><div><dt>Durchgeführt</dt><dd>{repair.performed_by === "alone" ? "Allein" : repair.performed_by === "with_support" ? "Gemeinsam mit Unterstützung" : repair.performed_by === "by_someone" ? "Hat jemand für mich repariert" : "–"}</dd></div><div><dt>Erfolg</dt><dd>{repair.repair_succeeded ? "Ja" : "Nein"}</dd></div><div><dt>Veroeffentlichung</dt><dd>{repair.consent_publication ? "Zugestimmt" : "Keine Zustimmung"}</dd></div>{repair.location_region && <div><dt>Region</dt><dd>{repair.location_region}</dd></div>}{repair.imageUrl && <RepairExif imageUrl={repair.imageUrl} />}</dl><details className="metadata-editor"><summary>Metadaten bearbeiten</summary><div className="metadata-fields"><label>Kategorie<select value={draft.category} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, category: event.target.value } })}>{repairCategories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></label><label>Bildbeschreibung<input value={draft.imageAltText} maxLength={250} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, imageAltText: event.target.value } })} /></label><label>Tags, mit Komma getrennt<input value={draft.tags} onChange={(event) => setMetadataDrafts({ ...metadataDrafts, [repair.id]: { ...draft, tags: event.target.value } })} /></label></div><button className="button button-secondary" type="button" onClick={() => void saveMetadata(repair)}>Metadaten speichern</button></details>{repairStatus === "pending" && <><label className="comment-label">Moderationskommentar<textarea value={comments[repair.id] ?? ""} maxLength={1000} onChange={(event) => setComments({ ...comments, [repair.id]: event.target.value })} /></label><div className="review-actions"><button className="button button-primary" type="button" onClick={() => void updateRepair(repair.id, "approved")} disabled={!repair.consent_publication}>Freigeben</button><button className="button button-secondary" type="button" onClick={() => void updateRepair(repair.id, "rejected")}>Ablehnen</button></div></>}{repair.moderator_comment && <p className="moderator-comment">Kommentar: {repair.moderator_comment}</p>}<div className="review-actions"><button className="button button-secondary" type="button" onClick={() => { if (window.confirm("Einreichung endgültig löschen?")) void deleteRepair(repair.id); }}>Löschen</button></div></div></article>; })}</div>}
       </section>
       {isSuperadmin && <section className="user-management">
         <div className="section-heading"><div><p className="section-index">Benutzerverwaltung</p><h2>Team einladen</h2></div></div>
