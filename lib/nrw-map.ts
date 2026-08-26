@@ -1053,6 +1053,29 @@ export function kreisTotals(cells: OriginCell[]): Record<string, number> {
   return totals;
 }
 
+/** Ein Kreis in der Rangliste, mit dem Zuwachs seit einem Bezugsstand. */
+export type KreisRank = { name: string; total: number; delta: number };
+
+/**
+ * Rangliste der Kreise mit dem groessten Anteil.
+ *
+ * `baseline` ist der Stand, gegen den der Zuwachs gerechnet wird - im Dashboard
+ * der erste Snapshot nach dem Start. Eine echte Zeitreihe je Kreis gibt es
+ * nicht: Das Aggregat liefert nur Summen ohne Zeitbezug. Der Trend ist also
+ * ausdruecklich "seit dem Start dieser Anzeige" und nichts darueber hinaus.
+ */
+export function rankKreise(
+  counts: Record<string, number>,
+  baseline: Record<string, number>,
+  limit: number,
+): KreisRank[] {
+  return Object.entries(counts)
+    .filter(([, total]) => total > 0)
+    .map(([name, total]) => ({ name, total, delta: Math.max(0, total - (baseline[name] ?? 0)) }))
+    .sort((left, right) => right.total - left.total || left.name.localeCompare(right.name, "de"))
+    .slice(0, Math.max(0, limit));
+}
+
 /**
  * Projiziert Lat/Lon in normalisierte Koordinaten (0..1), y zeigt nach unten.
  * Das Seitenverhaeltnis bleibt erhalten; die kuerzere Achse wird zentriert.

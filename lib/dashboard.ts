@@ -54,6 +54,36 @@ export type DashboardDelta = {
 /** Anzahl der Highlights, die fuer den Spotlight vorgehalten werden. */
 export const MAX_HIGHLIGHTS = 24;
 
+/** Fenster, in dem ein Eintrag im Laufband als aktuell gilt. */
+export const TICKER_MAX_AGE_MS = 24 * 60 * 60 * 1_000;
+
+/**
+ * Beschraenkt das Laufband auf die letzten 24 Stunden.
+ *
+ * Ein Band, in dem "vor 39 Tagen" laeuft, ist kein Live-Band. Ist nichts
+ * Aktuelles dabei, bleibt es lieber leer - dann sagt der Platzhalter das auch.
+ */
+export function recentHighlights(
+  highlights: DashboardHighlight[],
+  nowMs: number,
+  maxAgeMs: number = TICKER_MAX_AGE_MS,
+): DashboardHighlight[] {
+  // Vor dem ersten Uhrentakt ist kein Alter berechenbar. Dann die volle Liste
+  // zeigen statt fuer einen Frame ein leeres Band.
+  if (nowMs <= 0) return highlights;
+
+  return highlights.filter((item) => {
+    if (!item.approvedAt) return false;
+
+    const then = Date.parse(item.approvedAt);
+    if (Number.isNaN(then)) return false;
+
+    // Eine Minute Vorlauf: Die Uhr des Anzeigerechners kann leicht abweichen.
+    const age = nowMs - then;
+    return age >= -60_000 && age <= maxAgeMs;
+  });
+}
+
 /** Zielwert des Weltrekordversuchs, ueber `NEXT_PUBLIC_RECORD_GOAL` anpassbar. */
 export function getRecordGoal(): number {
   const parsed = Number.parseInt(process.env.NEXT_PUBLIC_RECORD_GOAL ?? "", 10);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hashString, isInsideNrw, kreisForPoint, kreisTotals, nrwBounds, nrwHubs, nrwKreise, nrwOutline, positionForId, projectToUnitSquare, rhineCourse, seededRandom, symbolicPosition, unprojectFromUnitSquare } from "./nrw-map";
+import { hashString, isInsideNrw, kreisForPoint, kreisTotals, nrwBounds, nrwHubs, nrwKreise, nrwOutline, positionForId, projectToUnitSquare, rankKreise, rhineCourse, seededRandom, symbolicPosition, unprojectFromUnitSquare } from "./nrw-map";
 
 describe("projectToUnitSquare", () => {
   it("bildet die gesamte Kontur in das Einheitsquadrat ab", () => {
@@ -97,6 +97,34 @@ describe("kreisTotals", () => {
 
   it("bleibt ohne Zellen leer, statt zu schaetzen", () => {
     expect(kreisTotals([])).toEqual({});
+  });
+});
+
+describe("rankKreise", () => {
+  const counts = { "Köln": 40, Wuppertal: 90, Dortmund: 60, Essen: 60, Bielefeld: 10, "Kreis Kleve": 0 };
+
+  it("sortiert nach Anzahl und begrenzt die Liste", () => {
+    const ranking = rankKreise(counts, {}, 3);
+    expect(ranking.map((entry) => entry.name)).toEqual(["Wuppertal", "Dortmund", "Essen"]);
+  });
+
+  it("laesst Kreise ohne Reparatur weg", () => {
+    expect(rankKreise(counts, {}, 10).map((entry) => entry.name)).not.toContain("Kreis Kleve");
+  });
+
+  it("rechnet den Zuwachs gegen den Bezugsstand", () => {
+    const ranking = rankKreise(counts, { Wuppertal: 80, Dortmund: 60 }, 3);
+    expect(ranking.map((entry) => entry.delta)).toEqual([10, 0, 60]);
+  });
+
+  it("meldet keinen negativen Zuwachs", () => {
+    // Ein Kreis kann durch die k-Anonymitaetsschwelle vorruebergehend sinken.
+    expect(rankKreise({ Wuppertal: 20 }, { Wuppertal: 50 }, 1)[0].delta).toBe(0);
+  });
+
+  it("entscheidet Gleichstand ueber den Namen", () => {
+    const ranking = rankKreise({ Essen: 60, Dortmund: 60 }, {}, 2);
+    expect(ranking.map((entry) => entry.name)).toEqual(["Dortmund", "Essen"]);
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changedDigitIndices, changedSlotIndices, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, mergeDashboardDelta, MAX_HIGHLIGHTS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
+import { changedDigitIndices, changedSlotIndices, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, mergeDashboardDelta, recentHighlights, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
 
 function highlight(id: string, category = "tools") {
   return { id, category, brandModel: null, imageUrl: null, imageAltText: null, approvedAt: "2026-10-01T10:00:00.000Z" };
@@ -121,6 +121,51 @@ describe("goalProgress", () => {
     expect(goalProgress(12_000, 10_000)).toBe(100);
     expect(goalProgress(-5, 10_000)).toBe(0);
     expect(goalProgress(5, 0)).toBe(0);
+  });
+});
+
+describe("recentHighlights", () => {
+  const now = Date.parse("2026-10-05T12:00:00.000Z");
+
+  function at(id: string, iso: string | null) {
+    return { ...highlight(id), approvedAt: iso };
+  }
+
+  it("behaelt nur die letzten 24 Stunden", () => {
+    const kept = recentHighlights([
+      at("frisch", "2026-10-05T11:30:00.000Z"),
+      at("knapp-drin", "2026-10-04T12:30:00.000Z"),
+      at("zu-alt", "2026-10-04T11:30:00.000Z"),
+      at("uralt", "2026-08-27T12:00:00.000Z"),
+    ], now);
+
+    expect(kept.map((item) => item.id)).toEqual(["frisch", "knapp-drin"]);
+  });
+
+  it("verwirft Eintraege ohne oder mit unlesbarer Zeitangabe", () => {
+    expect(recentHighlights([at("ohne", null), at("kaputt", "irgendwann")], now)).toEqual([]);
+  });
+
+  it("toleriert eine leicht vorlaufende Uhr, aber keine Zukunft", () => {
+    const kept = recentHighlights([
+      at("halbe-minute-vor", "2026-10-05T12:00:30.000Z"),
+      at("stunde-vor", "2026-10-05T13:00:00.000Z"),
+    ], now);
+
+    expect(kept.map((item) => item.id)).toEqual(["halbe-minute-vor"]);
+  });
+
+  it("filtert vor dem ersten Uhrentakt nicht", () => {
+    // nowMs ist 0, solange die Uhr nicht gelaufen ist. Dann ist die volle Liste
+    // richtiger als ein leeres Band.
+    const all = [at("a", "2026-01-01T00:00:00.000Z"), at("b", null)];
+    expect(recentHighlights(all, 0)).toEqual(all);
+  });
+
+  it("nimmt das Fenster als Parameter", () => {
+    const items = [at("vor-zwei-stunden", "2026-10-05T10:00:00.000Z")];
+    expect(recentHighlights(items, now, 60 * 60 * 1_000)).toEqual([]);
+    expect(recentHighlights(items, now, TICKER_MAX_AGE_MS)).toHaveLength(1);
   });
 });
 

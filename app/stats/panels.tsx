@@ -2,6 +2,7 @@
 
 import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
 import { formatMinutes, type DashboardSnapshot } from "@/lib/dashboard";
+import { type KreisRank } from "@/lib/nrw-map";
 
 /** Feste Farbzuordnung, damit eine Kategorie ihre Farbe nie wechselt. */
 const categoryColors: Record<string, string> = {
@@ -55,6 +56,35 @@ export function TimelineChart({ timeline }: { timeline: DashboardSnapshot["timel
         </span>
       ))}
     </div>
+  );
+}
+
+/**
+ * Rangliste der aktivsten Kreise.
+ *
+ * Der Zuwachs bezieht sich auf den Start dieser Anzeige - eine Zeitreihe je
+ * Kreis liefert das Aggregat nicht (siehe `rankKreise`). Ohne Zuwachs bleibt die
+ * Spalte leer, statt eine Null hinzuschreiben, die wie ein Stillstand aussieht.
+ */
+export function KreisTop({ ranking }: { ranking: KreisRank[] }) {
+  if (ranking.length === 0) {
+    return <p className="kreis-top-empty">Sobald genug Reparaturen je Ort zusammenkommen, erscheint hier die Rangliste.</p>;
+  }
+
+  const max = Math.max(...ranking.map((entry) => entry.total), 1);
+
+  return (
+    <ol className="kreis-top">
+      {ranking.map((entry, index) => (
+        <li key={entry.name} style={{ animationDelay: `${index * 60}ms` }}>
+          <span className="kreis-top-rank" aria-hidden="true">{index + 1}</span>
+          <span className="kreis-top-name">{entry.name}</span>
+          <span className="kreis-top-track"><i style={{ width: `${(entry.total / max) * 100}%` }} /></span>
+          <span className="kreis-top-total">{entry.total.toLocaleString("de-DE")}</span>
+          <span className="kreis-top-delta">{entry.delta > 0 ? `+${entry.delta.toLocaleString("de-DE")}` : ""}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 
