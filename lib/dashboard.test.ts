@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import { changedDigitIndices, changedSlotIndices, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, mergeDashboardDelta, recentHighlights, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
 
 function highlight(id: string, category = "tools") {
-  return { id, category, brandModel: null, imageUrl: null, imageAltText: null, approvedAt: "2026-10-01T10:00:00.000Z" };
+  return {
+    id,
+    category,
+    brandModel: null,
+    imageUrl: null,
+    imageAltText: null,
+    submittedAt: "2026-10-01T09:00:00.000Z",
+    approvedAt: "2026-10-01T10:00:00.000Z",
+  };
 }
 
 const snapshot: DashboardSnapshot = {
@@ -127,9 +135,28 @@ describe("goalProgress", () => {
 describe("recentHighlights", () => {
   const now = Date.parse("2026-10-05T12:00:00.000Z");
 
+  /** Setzt den *Einreichungs*zeitpunkt - daran haengt das Fenster. */
   function at(id: string, iso: string | null) {
-    return { ...highlight(id), approvedAt: iso };
+    return { ...highlight(id), submittedAt: iso };
   }
+
+  it("misst am Einreichungszeitpunkt, nicht an der Freigabe", () => {
+    // Alter Beitrag, heute freigegeben: gehoert nicht in ein Live-Band.
+    const spaetFreigegeben = {
+      ...highlight("alt-aber-frisch-freigegeben"),
+      submittedAt: "2026-08-01T10:00:00.000Z",
+      approvedAt: "2026-10-05T11:59:00.000Z",
+    };
+    expect(recentHighlights([spaetFreigegeben], now)).toEqual([]);
+
+    // Umgekehrt: heute eingereicht, Freigabe irrelevant.
+    const heuteEingereicht = {
+      ...highlight("frisch"),
+      submittedAt: "2026-10-05T08:00:00.000Z",
+      approvedAt: "2026-10-05T11:00:00.000Z",
+    };
+    expect(recentHighlights([heuteEingereicht], now)).toHaveLength(1);
+  });
 
   it("behaelt nur die letzten 24 Stunden", () => {
     const kept = recentHighlights([

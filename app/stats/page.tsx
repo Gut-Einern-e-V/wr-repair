@@ -9,7 +9,9 @@ import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { RepairCloud } from "./repair-cloud";
 import { RecordCounter } from "./record-counter";
 import { LiveTicker } from "./live-ticker";
-import { CategoryBars, KreisTop, MetricTiles, TimelineChart, categoryColor } from "./panels";
+import { CategoryTreemap, KreisTop, MetricTiles, TimelineChart, categoryColor } from "./panels";
+import { StageSettings } from "./stage-settings";
+import { SubmitQr } from "./submit-qr";
 
 /**
  * Buehnen-Dashboard: fuellt genau einen Bildschirm, scrollt nicht und kommt
@@ -26,7 +28,7 @@ const SNAPSHOT_INTERVAL_MS = 5 * 60_000;
 const SPOTLIGHT_CYCLE_MS = 20_000;
 const SPOTLIGHT_HOLD_MS = 5_000;
 const CELEBRATION_MS = 14_000;
-const TOP_KREISE = 5;
+const TOP_KREISE = 20;
 
 type Status = "loading" | "ready" | "closed" | "error";
 
@@ -46,6 +48,9 @@ export default function LiveDashboardPage() {
   // Einzelne Reparaturen als Bild zeigen. Abschaltbar, weil der Spotlight mitten
   // auf der Karte liegt und nicht auf jede Buehne gehoert.
   const [showSpotlight, setShowSpotlight] = useState(true);
+  // Beamer-Modus: reines Schwarz statt des dunklen Blaus. Ein DLP-Projektor
+  // schaltet dort das Licht ganz ab, was den Kontrast deutlich anhebt.
+  const [beamer, setBeamer] = useState(false);
 
   /**
    * Kreisstaende beim ersten Snapshot mit Herkunftsdaten - Bezugsgroesse fuer den
@@ -217,9 +222,10 @@ export default function LiveDashboardPage() {
   }
 
   return (
-    <main className={`dashboard-root ${celebrating ? "is-celebrating" : ""}`}>
+    <main className={`dashboard-root ${celebrating ? "is-celebrating" : ""} ${beamer ? "is-beamer" : ""}`}>
       <RepairCloud
         arrivals={arrivals}
+        beamer={beamer}
         celebrating={celebrating}
         cells={snapshot.cells}
         focusId={featured?.id ?? null}
@@ -236,16 +242,13 @@ export default function LiveDashboardPage() {
           </Link>
           <p className="dashboard-live"><i aria-hidden="true" />Live aus Nordrhein-Westfalen</p>
           <div className="dashboard-tools">
-            <button
-              className="stage-toggle"
-              type="button"
-              onClick={() => setShowSpotlight((current) => !current)}
-              aria-pressed={showSpotlight}
-              title="Einzelne Reparaturen als Bild zeigen (B)"
-            >
-              Einzelbilder {showSpotlight ? "an" : "aus"}
-            </button>
             <p className="dashboard-clock">{clock} Uhr</p>
+            <StageSettings
+              beamer={beamer}
+              onToggleBeamer={() => setBeamer((current) => !current)}
+              onToggleSpotlight={() => setShowSpotlight((current) => !current)}
+              showSpotlight={showSpotlight}
+            />
           </div>
         </header>
 
@@ -294,9 +297,10 @@ export default function LiveDashboardPage() {
 
         <section className="dashboard-panel panel-right">
           <p className="panel-label">Was repariert wird</p>
-          <CategoryBars categories={snapshot.categories} />
+          <CategoryTreemap categories={snapshot.categories} />
           <p className="panel-label">Reparaturen der letzten 30 Tage</p>
           <TimelineChart timeline={snapshot.timeline} />
+          <SubmitQr />
         </section>
 
         <LiveTicker highlights={snapshot.highlights} nowMs={nowMs} />

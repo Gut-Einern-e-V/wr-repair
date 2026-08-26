@@ -13,6 +13,15 @@ export type DashboardHighlight = {
   brandModel: string | null;
   imageUrl: string | null;
   imageAltText: string | null;
+  /**
+   * Zeitpunkt der Einreichung. Das ist die Angabe, die nach aussen zaehlt: Sie
+   * sagt, wann repariert wurde.
+   */
+  submittedAt: string | null;
+  /**
+   * Zeitpunkt der Freigabe. Rein intern - daran haengt die Reihenfolge der
+   * Deltas und der Cursor, damit kein Eintrag beim Nachladen uebersprungen wird.
+   */
   approvedAt: string | null;
 };
 
@@ -58,10 +67,14 @@ export const MAX_HIGHLIGHTS = 24;
 export const TICKER_MAX_AGE_MS = 24 * 60 * 60 * 1_000;
 
 /**
- * Beschraenkt das Laufband auf die letzten 24 Stunden.
+ * Beschraenkt das Laufband auf Reparaturen der letzten 24 Stunden.
  *
- * Ein Band, in dem "vor 39 Tagen" laeuft, ist kein Live-Band. Ist nichts
- * Aktuelles dabei, bleibt es lieber leer - dann sagt der Platzhalter das auch.
+ * Gemessen wird am *Einreichungszeitpunkt*, nicht an der Freigabe: Das Band soll
+ * sagen, was gerade repariert wurde, nicht was die Moderation gerade abgearbeitet
+ * hat. Die Folge ist beabsichtigt: Wird ein alter Beitrag heute freigegeben,
+ * laeuft er nicht mit - "vor 39 Tagen" ist kein Live-Band.
+ *
+ * Ist nichts Aktuelles dabei, bleibt die Liste leer und der Platzhalter sagt das.
  */
 export function recentHighlights(
   highlights: DashboardHighlight[],
@@ -73,9 +86,9 @@ export function recentHighlights(
   if (nowMs <= 0) return highlights;
 
   return highlights.filter((item) => {
-    if (!item.approvedAt) return false;
+    if (!item.submittedAt) return false;
 
-    const then = Date.parse(item.approvedAt);
+    const then = Date.parse(item.submittedAt);
     if (Number.isNaN(then)) return false;
 
     // Eine Minute Vorlauf: Die Uhr des Anzeigerechners kann leicht abweichen.

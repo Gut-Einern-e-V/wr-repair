@@ -41,14 +41,16 @@ export function LiveTicker({ highlights, nowMs }: { highlights: DashboardHighlig
     <footer className="dashboard-ticker" aria-hidden="true">
       <div>
         {[...half, ...half].map((item, index) => {
-          const relative = formatRelativeTime(item.approvedAt, nowMs);
+          // Einreichung, nicht Freigabe: Die Zeit soll sagen, wann repariert
+          // wurde, nicht wann die Moderation den Beitrag abgearbeitet hat.
+          const relative = formatRelativeTime(item.submittedAt, nowMs);
           return (
             <span key={`${item.id}-${index}`}>
               <i style={{ background: categoryColor(item.category) }} />
               {index % half.length === 0 && <em>neu</em>}
               <b>{repairCategoryLabel(item.category)}</b>
               {item.brandModel ? <span className="ticker-model">{item.brandModel}</span> : null}
-              {relative ? <time dateTime={item.approvedAt ?? undefined}>{relative}</time> : null}
+              {relative ? <time dateTime={item.submittedAt ?? undefined}>{relative}</time> : null}
             </span>
           );
         })}
