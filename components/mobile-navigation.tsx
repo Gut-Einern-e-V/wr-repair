@@ -8,6 +8,7 @@ const links = [
   ["/about", "Projekt"],
   ["/supporters", "Unterstützer"],
   ["/stats", "Live-Stand"],
+  ["/mitmachen", "Einreichen"],
 ] as const;
 
 export function MobileNavigation() {
