@@ -13,6 +13,15 @@ export type DashboardHighlight = {
   brandModel: string | null;
   imageUrl: string | null;
   imageAltText: string | null;
+  /**
+   * Zeitpunkt der Einreichung. Das ist die Angabe, die nach aussen zaehlt: Sie
+   * sagt, wann repariert wurde.
+   */
+  submittedAt: string | null;
+  /**
+   * Zeitpunkt der Freigabe. Rein intern - daran haengt die Reihenfolge der
+   * Deltas und der Cursor, damit kein Eintrag beim Nachladen uebersprungen wird.
+   */
   approvedAt: string | null;
 };
 
@@ -53,6 +62,40 @@ export type DashboardDelta = {
 
 /** Anzahl der Highlights, die fuer den Spotlight vorgehalten werden. */
 export const MAX_HIGHLIGHTS = 24;
+
+/** Fenster, in dem ein Eintrag im Laufband als aktuell gilt. */
+export const TICKER_MAX_AGE_MS = 24 * 60 * 60 * 1_000;
+
+/**
+ * Beschraenkt das Laufband auf Reparaturen der letzten 24 Stunden.
+ *
+ * Gemessen wird am *Einreichungszeitpunkt*, nicht an der Freigabe: Das Band soll
+ * sagen, was gerade repariert wurde, nicht was die Moderation gerade abgearbeitet
+ * hat. Die Folge ist beabsichtigt: Wird ein alter Beitrag heute freigegeben,
+ * laeuft er nicht mit - "vor 39 Tagen" ist kein Live-Band.
+ *
+ * Ist nichts Aktuelles dabei, bleibt die Liste leer und der Platzhalter sagt das.
+ */
+export function recentHighlights(
+  highlights: DashboardHighlight[],
+  nowMs: number,
+  maxAgeMs: number = TICKER_MAX_AGE_MS,
+): DashboardHighlight[] {
+  // Vor dem ersten Uhrentakt ist kein Alter berechenbar. Dann die volle Liste
+  // zeigen statt fuer einen Frame ein leeres Band.
+  if (nowMs <= 0) return highlights;
+
+  return highlights.filter((item) => {
+    if (!item.submittedAt) return false;
+
+    const then = Date.parse(item.submittedAt);
+    if (Number.isNaN(then)) return false;
+
+    // Eine Minute Vorlauf: Die Uhr des Anzeigerechners kann leicht abweichen.
+    const age = nowMs - then;
+    return age >= -60_000 && age <= maxAgeMs;
+  });
+}
 
 /** Zielwert des Weltrekordversuchs, ueber `NEXT_PUBLIC_RECORD_GOAL` anpassbar. */
 export function getRecordGoal(): number {

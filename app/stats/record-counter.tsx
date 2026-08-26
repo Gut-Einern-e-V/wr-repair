@@ -37,10 +37,13 @@ export function RecordCounter({ total, goal, celebrating, fullscreen, onToggleFu
     <div className={`record-counter ${reached ? "is-reached" : ""} ${fullscreen ? "is-fullscreen" : ""} ${celebrating ? "is-celebrating" : ""}`}>
       <p className="panel-label">Reparaturen in Nordrhein-Westfalen</p>
 
+      {/* Die Bedienung steht nicht auf der Buehne: Auf einer Projektion soll nur
+          die Zahl zu sehen sein. Der Hinweis lebt im title-Attribut. */}
       <button
         className="counter-cloud"
         type="button"
         onClick={onToggleFullscreen}
+        aria-label={fullscreen ? "Vollbild des Zaehlers verlassen" : "Zaehler im Vollbild zeigen"}
         aria-pressed={fullscreen}
         title={fullscreen ? "Vollbild verlassen (Esc)" : "Zaehler im Vollbild zeigen (F)"}
       >
@@ -64,7 +67,6 @@ export function RecordCounter({ total, goal, celebrating, fullscreen, onToggleFu
       )}
 
       {reached && <p className="counter-reached" role="status">Weltrekord-Ziel erreicht!</p>}
-      {fullscreen && <p className="counter-hint">Esc oder Klick beendet das Vollbild</p>}
     </div>
   );
 }

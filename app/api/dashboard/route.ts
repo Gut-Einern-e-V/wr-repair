@@ -35,6 +35,7 @@ type RepairRow = {
   brand_model: string | null;
   image_path: string | null;
   image_alt_text: string | null;
+  created_at: string | null;
   moderated_at: string | null;
 };
 
@@ -80,11 +81,15 @@ async function toHighlights(supabase: SupabaseAdmin, rows: RepairRow[]): Promise
     brandModel: row.brand_model,
     imageUrl: row.image_path ? (urls.get(row.image_path) ?? null) : null,
     imageAltText: row.image_alt_text,
+    submittedAt: row.created_at,
     approvedAt: row.moderated_at,
   }));
 }
 
-const highlightColumns = "id, category, brand_model, image_path, image_alt_text, moderated_at";
+// `created_at` ist der Einreichungszeitpunkt und damit die Angabe, die das
+// Laufband zeigt. `moderated_at` bleibt trotzdem dabei: Daran haengen die
+// Reihenfolge der Deltas und der Cursor.
+const highlightColumns = "id, category, brand_model, image_path, image_alt_text, created_at, moderated_at";
 
 /**
  * Liest die Herkunftszellen aus dem Aggregat.

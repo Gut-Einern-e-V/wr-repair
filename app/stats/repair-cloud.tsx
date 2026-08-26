@@ -47,6 +47,11 @@ type Props = {
   kreisCounts: Record<string, number>;
   /** Element, in dessen Flaeche die Karte gezeichnet wird. */
   frameRef: RefObject<HTMLElement | null>;
+  /**
+   * Beamer-Modus: reines Schwarz als Grund. Die Canvas malt ihren Hintergrund
+   * selbst, deshalb genuegt eine CSS-Klasse hier nicht.
+   */
+  beamer: boolean;
 };
 
 /** CI-Palette; die Punkte wandern langsam durch diese Farben. */
@@ -93,7 +98,7 @@ function ringContains(point: { x: number; y: number }, ring: { x: number; y: num
   return inside;
 }
 
-export function RepairCloud({ total, arrivals, focusId, celebrating, cells, kreisCounts, frameRef }: Props) {
+export function RepairCloud({ total, arrivals, focusId, celebrating, cells, kreisCounts, frameRef, beamer }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // Der Zeigezustand bleibt in dieser Komponente. Landete er in der Seite,
   // wuerde jede Mausbewegung das ganze Dashboard neu rendern - Kategorien,
@@ -101,12 +106,13 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
   const [hover, setHover] = useState<KreisHover>(null);
   // Die Animationsschleife laeuft ausserhalb von React und liest den aktuellen
   // Stand deshalb aus Refs, die nach jedem Render nachgezogen werden.
-  const stateRef = useRef({ total, focusId, celebrating });
+  const stateRef = useRef({ total, focusId, celebrating, beamer });
   useEffect(() => {
     stateRef.current.total = total;
     stateRef.current.focusId = focusId;
     stateRef.current.celebrating = celebrating;
-  }, [total, focusId, celebrating]);
+    stateRef.current.beamer = beamer;
+  }, [total, focusId, celebrating, beamer]);
 
   const countsRef = useRef(kreisCounts);
   useEffect(() => {
@@ -346,8 +352,10 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
 
       refreshKreisFills();
 
-      // Nachleuchtender Hintergrund: erzeugt weiche Spuren auf dem Beamer.
-      context.fillStyle = reduceMotion ? "#080b14" : "rgba(8, 11, 20, 0.34)";
+      // Nachleuchtender Hintergrund: erzeugt weiche Spuren auf dem Beamer. Im
+      // Beamer-Modus reines Schwarz, damit der Projektor dort gar nicht leuchtet.
+      const ground = stateRef.current.beamer ? "0, 0, 0" : "8, 11, 20";
+      context.fillStyle = reduceMotion ? `rgb(${ground})` : `rgba(${ground}, 0.34)`;
       context.fillRect(0, 0, width, height);
 
       // Kreise: Fuellung nach Zahl der Reparaturen, feine Trennlinien darueber.

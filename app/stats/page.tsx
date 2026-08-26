@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
 import { goalLaps, mergeDashboardDelta, type DashboardDelta, type DashboardSnapshot } from "@/lib/dashboard";
-import { kreisTotals } from "@/lib/nrw-map";
+import { kreisTotals, rankKreise } from "@/lib/nrw-map";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { RepairCloud } from "./repair-cloud";
 import { RecordCounter } from "./record-counter";
 import { LiveTicker } from "./live-ticker";
-import { CategoryBars, MetricTiles, TimelineChart, categoryColor } from "./panels";
+import { CategoryTreemap, KreisTop, MetricTiles, TimelineChart, categoryColor } from "./panels";
+import { StageSettings } from "./stage-settings";
+import { SubmitQr } from "./submit-qr";
 
 /**
  * Buehnen-Dashboard: fuellt genau einen Bildschirm, scrollt nicht und kommt
@@ -26,6 +28,7 @@ const SNAPSHOT_INTERVAL_MS = 5 * 60_000;
 const SPOTLIGHT_CYCLE_MS = 20_000;
 const SPOTLIGHT_HOLD_MS = 5_000;
 const CELEBRATION_MS = 14_000;
+const TOP_KREISE = 20;
 
 type Status = "loading" | "ready" | "closed" | "error";
 
@@ -42,6 +45,19 @@ export default function LiveDashboardPage() {
   const [nowMs, setNowMs] = useState(0);
   // Zaehler im Vollbild: fuer den Moment, in dem nur die Zahl zaehlt.
   const [counterFullscreen, setCounterFullscreen] = useState(false);
+  // Einzelne Reparaturen als Bild zeigen. Abschaltbar, weil der Spotlight mitten
+  // auf der Karte liegt und nicht auf jede Buehne gehoert.
+  const [showSpotlight, setShowSpotlight] = useState(true);
+  // Beamer-Modus: reines Schwarz statt des dunklen Blaus. Ein DLP-Projektor
+  // schaltet dort das Licht ganz ab, was den Kontrast deutlich anhebt.
+  const [beamer, setBeamer] = useState(false);
+
+  /**
+   * Kreisstaende beim ersten Snapshot mit Herkunftsdaten - Bezugsgroesse fuer den
+   * Zuwachs in der Rangliste. Bewusst Zustand und keine Ref: Der Wert geht in die
+   * Darstellung ein und muss ein Rendern ausloesen.
+   */
+  const [kreisBaseline, setKreisBaseline] = useState<Record<string, number> | null>(null);
 
   const cursorRef = useRef<string | null>(null);
   /** Letzte gefeierte Runde, damit dieselbe nicht zweimal gefeiert wird. */
@@ -70,6 +86,13 @@ export default function LiveDashboardPage() {
       // Beim ersten Laden nicht feiern: Ein Dashboard, das mitten im Betrieb neu
       // startet, soll nicht sofort Konfetti werfen.
       celebratedLapRef.current = Math.max(celebratedLapRef.current, goalLaps(data.total, data.goal));
+
+      // Bezugsstand fuer den Zuwachs: der erste Snapshot, der ueberhaupt
+      // Herkunftszellen enthaelt. Ein leerer Stand als Bezug wuerde spaeter jede
+      // Reparatur als neu ausweisen.
+      const totals = kreisTotals(data.cells);
+      if (Object.keys(totals).length > 0) setKreisBaseline((current) => current ?? totals);
+
       setSnapshot(data);
       setStatus("ready");
     } catch {
@@ -126,7 +149,9 @@ export default function LiveDashboardPage() {
   }, [laps]);
 
   // Spotlight: alle 20 Sekunden faehrt die Kamera fuenf Sekunden auf ein Bild.
-  const highlightCount = snapshot?.highlights.length ?? 0;
+  // Sind die Einzelbilder aus, laeuft der Zyklus nicht; ein zurueckgesetzter
+  // Zustand ist dann nicht noetig, weil `featured` weiter unten ohnehin sperrt.
+  const highlightCount = showSpotlight ? snapshot?.highlights.length ?? 0 : 0;
   useEffect(() => {
     if (highlightCount === 0) return;
 
@@ -147,11 +172,12 @@ export default function LiveDashboardPage() {
     };
   }, [highlightCount]);
 
-  // Vollbild des Zaehlers: F schaltet um, Escape zurueck. Beides ist auf einer
-  // Buehne bequemer als eine Schaltflaeche zu treffen.
+  // Tastatur: F schaltet das Vollbild des Zaehlers, B die Einzelbilder. Auf einer
+  // Buehne ist das bequemer als eine Schaltflaeche zu treffen.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "f" || event.key === "F") setCounterFullscreen((current) => !current);
+      else if (event.key === "b" || event.key === "B") setShowSpotlight((current) => !current);
       else if (event.key === "Escape") setCounterFullscreen(false);
     };
     window.addEventListener("keydown", onKey);
@@ -169,12 +195,16 @@ export default function LiveDashboardPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const featured = spotlight !== null ? snapshot?.highlights[spotlight] ?? null : null;
+  const featured = showSpotlight && spotlight !== null ? snapshot?.highlights[spotlight] ?? null : null;
 
   // Reparaturen je Kreis. Stabil gehalten, weil die Karte daraus ihre
   // Fuellfarben baut und das nicht in jedem Frame passieren soll.
   const cells = snapshot?.cells;
   const kreisCounts = useMemo(() => kreisTotals(cells ?? []), [cells]);
+  const kreisRanking = useMemo(
+    () => rankKreise(kreisCounts, kreisBaseline ?? {}, TOP_KREISE),
+    [kreisCounts, kreisBaseline],
+  );
 
   if (status !== "ready" || !snapshot) {
     return (
@@ -192,9 +222,10 @@ export default function LiveDashboardPage() {
   }
 
   return (
-    <main className={`dashboard-root ${celebrating ? "is-celebrating" : ""}`}>
+    <main className={`dashboard-root ${celebrating ? "is-celebrating" : ""} ${beamer ? "is-beamer" : ""}`}>
       <RepairCloud
         arrivals={arrivals}
+        beamer={beamer}
         celebrating={celebrating}
         cells={snapshot.cells}
         focusId={featured?.id ?? null}
@@ -210,7 +241,15 @@ export default function LiveDashboardPage() {
             <span>Reparaturrekord<br />NRW</span>
           </Link>
           <p className="dashboard-live"><i aria-hidden="true" />Live aus Nordrhein-Westfalen</p>
-          <p className="dashboard-clock">{clock} Uhr</p>
+          <div className="dashboard-tools">
+            <p className="dashboard-clock">{clock} Uhr</p>
+            <StageSettings
+              beamer={beamer}
+              onToggleBeamer={() => setBeamer((current) => !current)}
+              onToggleSpotlight={() => setShowSpotlight((current) => !current)}
+              showSpotlight={showSpotlight}
+            />
+          </div>
         </header>
 
         <section className="dashboard-panel panel-left">
@@ -227,6 +266,8 @@ export default function LiveDashboardPage() {
             />
           )}
           <MetricTiles snapshot={snapshot} />
+          <p className="panel-label">Aktivste Kreise</p>
+          <KreisTop ranking={kreisRanking} />
         </section>
 
         <section className="dashboard-stage" aria-label="Karte der Reparaturen" ref={stageRef}>
@@ -243,19 +284,23 @@ export default function LiveDashboardPage() {
               </figcaption>
             </figure>
           )}
-          <p className="stage-note">
-            {snapshot.cells.length > 0
-              ? "Jeder Punkt steht fuer eine Reparatur. Die Herkunft ist auf rund 5 km gerundet."
-              : "Jeder Punkt steht fuer eine Reparatur. Die Standorte sind aus Datenschutzgruenden stilisiert."}
-            <span className="stage-credit">Kartendaten © OpenStreetMap-Mitwirkende</span>
-          </p>
         </section>
+
+        {/* Steht ausserhalb der Buehne im Laufbandstreifen: Innerhalb lag der
+            Text ueber der Karte, und der Umriss von NRW reicht dort bis unten. */}
+        <p className="stage-note">
+          {snapshot.cells.length > 0
+            ? "Jeder Punkt steht fuer eine Reparatur. Die Herkunft ist auf rund 5 km gerundet."
+            : "Jeder Punkt steht fuer eine Reparatur. Die Standorte sind aus Datenschutzgruenden stilisiert."}
+          <span className="stage-credit">Kartendaten © OpenStreetMap-Mitwirkende</span>
+        </p>
 
         <section className="dashboard-panel panel-right">
           <p className="panel-label">Was repariert wird</p>
-          <CategoryBars categories={snapshot.categories} />
+          <CategoryTreemap categories={snapshot.categories} />
           <p className="panel-label">Reparaturen der letzten 30 Tage</p>
           <TimelineChart timeline={snapshot.timeline} />
+          <SubmitQr />
         </section>
 
         <LiveTicker highlights={snapshot.highlights} nowMs={nowMs} />

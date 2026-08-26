@@ -1,35 +1,39 @@
 "use client";
 
-import { formatRelativeTime, type DashboardHighlight } from "@/lib/dashboard";
+import { formatRelativeTime, recentHighlights, type DashboardHighlight } from "@/lib/dashboard";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { categoryColor } from "./panels";
 
 /**
- * Laufband der zuletzt freigeschalteten Reparaturen.
+ * Laufband der Reparaturen der letzten 24 Stunden.
  *
- * Der jeweils neueste Eintrag traegt eine Marke, damit auf der Buehne sichtbar
- * ist, dass gerade etwas dazugekommen ist. Die Liste wird so oft wiederholt,
- * dass das Band auch bei wenigen Eintraegen ohne Luecke laeuft: Die Animation
- * schiebt um genau die halbe Breite, also muss die zweite Haelfte der ersten
- * gleichen.
+ * Aelteres laeuft nicht mit: Ein Band, in dem "vor 39 Tagen" steht, ist kein
+ * Live-Band. Der jeweils neueste Eintrag traegt eine Marke, damit auf der Buehne
+ * sichtbar ist, dass gerade etwas dazugekommen ist.
+ *
+ * Die Liste wird so oft wiederholt, dass das Band auch bei wenigen Eintraegen
+ * ohne Luecke laeuft: Die Animation schiebt um genau die halbe Breite, also muss
+ * die zweite Haelfte der ersten gleichen.
  */
 
 /** Mindestzahl an Eintraegen pro Haelfte, damit keine Luecke entsteht. */
 const MIN_ENTRIES = 14;
 
 export function LiveTicker({ highlights, nowMs }: { highlights: DashboardHighlight[]; nowMs: number }) {
-  if (highlights.length === 0) {
+  const recent = recentHighlights(highlights, nowMs);
+
+  if (recent.length === 0) {
     return (
       <footer className="dashboard-ticker" aria-hidden="true">
         <div className="ticker-empty">
-          <span>Die ersten Reparaturen erscheinen hier, sobald sie geprueft sind.</span>
+          <span>In den letzten 24 Stunden ist noch keine Reparatur dazugekommen.</span>
         </div>
       </footer>
     );
   }
 
-  const repeats = Math.ceil(MIN_ENTRIES / highlights.length);
-  const half = Array.from({ length: repeats }, () => highlights).flat();
+  const repeats = Math.ceil(MIN_ENTRIES / recent.length);
+  const half = Array.from({ length: repeats }, () => recent).flat();
 
   // Bewusst aus dem Vorlesefluss genommen: Das Band wiederholt seinen Inhalt und
   // wuerde als Endlosliste vorgelesen. Die Zahlen stehen zugaenglich im Zaehler.
@@ -37,14 +41,16 @@ export function LiveTicker({ highlights, nowMs }: { highlights: DashboardHighlig
     <footer className="dashboard-ticker" aria-hidden="true">
       <div>
         {[...half, ...half].map((item, index) => {
-          const relative = formatRelativeTime(item.approvedAt, nowMs);
+          // Einreichung, nicht Freigabe: Die Zeit soll sagen, wann repariert
+          // wurde, nicht wann die Moderation den Beitrag abgearbeitet hat.
+          const relative = formatRelativeTime(item.submittedAt, nowMs);
           return (
             <span key={`${item.id}-${index}`}>
               <i style={{ background: categoryColor(item.category) }} />
               {index % half.length === 0 && <em>neu</em>}
               <b>{repairCategoryLabel(item.category)}</b>
               {item.brandModel ? <span className="ticker-model">{item.brandModel}</span> : null}
-              {relative ? <time dateTime={item.approvedAt ?? undefined}>{relative}</time> : null}
+              {relative ? <time dateTime={item.submittedAt ?? undefined}>{relative}</time> : null}
             </span>
           );
         })}
