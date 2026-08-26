@@ -354,7 +354,8 @@ export default function Home() {
                 <p className="counter-note">{statsState === "unavailable" ? "Der Live-Stand ist gerade nicht verfügbar." : statsUpdatedAt ? `Aktualisiert um ${statsUpdatedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.` : "Live-Stand wird geladen."}</p>
               </div>
               <div className="hero-qr">
-                <NextImage src="/brand/qr-reparatur.svg" alt="" width={82} height={82} aria-hidden="true" />
+                {/* Lokales, vertrauenswuerdiges SVG: der Image-Optimizer lehnt SVG ohne dangerouslyAllowSVG ab, und die Option wuerde ihn fuer alle SVGs oeffnen. */}
+                <NextImage src="/brand/qr-reparatur.svg" alt="" width={82} height={82} aria-hidden="true" unoptimized />
                 <span>QR-Code scannen<small>reparatur.fab-bergisch.org</small></span>
               </div>
             </aside>
