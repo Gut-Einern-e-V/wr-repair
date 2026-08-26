@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changedDigitIndices, goalProgress, formatMinutes, mergeDashboardDelta, MAX_HIGHLIGHTS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
+import { changedDigitIndices, changedSlotIndices, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, mergeDashboardDelta, MAX_HIGHLIGHTS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
 
 function highlight(id: string, category = "tools") {
   return { id, category, brandModel: null, imageUrl: null, imageAltText: null, approvedAt: "2026-10-01T10:00:00.000Z" };
@@ -15,6 +15,7 @@ const snapshot: DashboardSnapshot = {
   categories: { tools: 6, bicycle: 4 },
   performedBy: { alone: 10 },
   timeline: [{ date: "2026-10-01", total: 10 }],
+  cells: [],
   highlights: [highlight("a"), highlight("b")],
   cursor: "2026-10-01T10:00:00.000Z",
   generatedAt: "2026-10-01T10:00:00.000Z",
@@ -75,12 +76,83 @@ describe("changedDigitIndices", () => {
   });
 });
 
+describe("changedSlotIndices", () => {
+  it("beruecksichtigt den Tausenderpunkt an seiner Position", () => {
+    // Nur die letzte Stelle wechselt, der Punkt bleibt unberuehrt.
+    expect(changedSlotIndices("1.234", "1.235")).toEqual([4]);
+  });
+
+  it("markiert bei einer zusaetzlichen Stelle nur die neuen Positionen", () => {
+    // "999" -> "1.000": rechtsbuendig verglichen aendert sich jede Position.
+    expect(changedSlotIndices("999", "1.000")).toEqual([0, 1, 2, 3, 4]);
+    // Die vorderen Stellen von "10.940" -> "11.940" bleiben stehen.
+    expect(changedSlotIndices("10.940", "11.940")).toEqual([1]);
+  });
+
+  it("liefert nichts bei gleicher Zeichenkette", () => {
+    expect(changedSlotIndices("4.711", "4.711")).toEqual([]);
+  });
+});
+
+describe("formatRelativeTime", () => {
+  const now = Date.parse("2026-10-05T12:00:00.000Z");
+
+  it("staffelt Minuten, Stunden und Tage", () => {
+    expect(formatRelativeTime("2026-10-05T11:59:30.000Z", now)).toBe("gerade eben");
+    expect(formatRelativeTime("2026-10-05T11:56:00.000Z", now)).toBe("vor 4 Min.");
+    expect(formatRelativeTime("2026-10-05T09:00:00.000Z", now)).toBe("vor 3 Std.");
+    expect(formatRelativeTime("2026-10-04T11:00:00.000Z", now)).toBe("vor 1 Tag");
+    expect(formatRelativeTime("2026-10-02T11:00:00.000Z", now)).toBe("vor 3 Tagen");
+  });
+
+  it("behandelt eine vorlaufende Uhr wie jetzt", () => {
+    expect(formatRelativeTime("2026-10-05T12:04:00.000Z", now)).toBe("gerade eben");
+  });
+
+  it("bleibt bei fehlender oder unlesbarer Angabe leer", () => {
+    expect(formatRelativeTime(null, now)).toBe("");
+    expect(formatRelativeTime("irgendwann", now)).toBe("");
+  });
+});
+
 describe("goalProgress", () => {
   it("begrenzt den Fortschritt auf 0 bis 100 Prozent", () => {
     expect(goalProgress(2_500, 10_000)).toBe(25);
     expect(goalProgress(12_000, 10_000)).toBe(100);
     expect(goalProgress(-5, 10_000)).toBe(0);
     expect(goalProgress(5, 0)).toBe(0);
+  });
+});
+
+describe("goalPercent", () => {
+  it("zaehlt ueber das Ziel hinaus weiter", () => {
+    expect(goalPercent(2_500, 10_000)).toBe(25);
+    expect(goalPercent(12_500, 10_000)).toBe(125);
+    expect(goalPercent(-5, 10_000)).toBe(0);
+    expect(goalPercent(5, 0)).toBe(0);
+  });
+});
+
+describe("goalOverflow", () => {
+  it("bleibt vor dem Ziel bei null", () => {
+    expect(goalOverflow(9_999, 10_000)).toBe(0);
+    expect(goalOverflow(10_000, 10_000)).toBe(0);
+  });
+
+  it("zeigt den Fortschritt der laufenden Zusatzrunde", () => {
+    expect(goalOverflow(12_500, 10_000)).toBe(25);
+    // Genau am Rundenende voll, nicht zurueck auf null.
+    expect(goalOverflow(20_000, 10_000)).toBe(100);
+    expect(goalOverflow(23_000, 10_000)).toBe(30);
+  });
+});
+
+describe("goalLaps", () => {
+  it("zaehlt die vollstaendig erreichten Ziele", () => {
+    expect(goalLaps(9_999, 10_000)).toBe(0);
+    expect(goalLaps(10_000, 10_000)).toBe(1);
+    expect(goalLaps(21_400, 10_000)).toBe(2);
+    expect(goalLaps(5, 0)).toBe(0);
   });
 });
 

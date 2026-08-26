@@ -90,20 +90,19 @@ export function mergeDashboardDelta(snapshot: DashboardSnapshot, delta: Dashboar
 }
 
 /**
- * Liefert die Indizes der Ziffern, die sich zwischen zwei Zahlen geaendert
- * haben. Nur diese Stellen "explodieren" in der Zaehler-Animation.
- * Der Vergleich erfolgt rechtsbuendig, damit ein Stellenwechsel
- * (999 -> 1000) nicht alle Ziffern markiert.
+ * Liefert die Indizes der Stellen, die sich zwischen zwei Zeichenketten
+ * geaendert haben. Der Vergleich erfolgt rechtsbuendig, damit eine zusaetzliche
+ * Stelle (999 -> 1.000) nur die tatsaechlich neuen Positionen markiert.
+ *
+ * Die Zaehlerwolke laesst genau diese Stellen auseinanderfliegen; alle uebrigen
+ * bleiben ruhig stehen.
  */
-export function changedDigitIndices(previous: number, next: number): number[] {
-  const nextDigits = String(Math.max(0, Math.trunc(next)));
-  const previousDigits = String(Math.max(0, Math.trunc(previous)));
+export function changedSlotIndices(previous: string, next: string): number[] {
   const changed: number[] = [];
 
-  for (let index = 0; index < nextDigits.length; index += 1) {
-    const fromEnd = nextDigits.length - 1 - index;
-    const previousDigit = previousDigits[previousDigits.length - 1 - fromEnd];
-    if (previousDigit !== nextDigits[index]) {
+  for (let index = 0; index < next.length; index += 1) {
+    const fromEnd = next.length - 1 - index;
+    if (previous[previous.length - 1 - fromEnd] !== next[index]) {
       changed.push(index);
     }
   }
@@ -111,14 +110,80 @@ export function changedDigitIndices(previous: number, next: number): number[] {
   return changed;
 }
 
-/** Fortschritt in Prozent, auf 0..100 begrenzt. */
+/**
+ * Wie `changedSlotIndices`, aber fuer zwei Zahlen ohne Tausenderpunkte. Zaehlt
+ * also reine Ziffernstellen.
+ */
+export function changedDigitIndices(previous: number, next: number): number[] {
+  return changedSlotIndices(
+    String(Math.max(0, Math.trunc(previous))),
+    String(Math.max(0, Math.trunc(next))),
+  );
+}
+
+/** Fortschritt in Prozent, auf 0..100 begrenzt - fuer die Breite des Balkens. */
 export function goalProgress(total: number, goal: number): number {
   if (goal <= 0) return 0;
   return Math.min(100, Math.max(0, (total / goal) * 100));
+}
+
+/**
+ * Fortschritt in Prozent ohne Deckel - fuer die Beschriftung.
+ *
+ * Der Rekord ist mit dem Ziel nicht zu Ende: Wer 12.500 Reparaturen zaehlt, soll
+ * 125 % lesen und nicht weiterhin 100 %.
+ */
+export function goalPercent(total: number, goal: number): number {
+  if (goal <= 0) return 0;
+  return Math.max(0, (total / goal) * 100);
+}
+
+/**
+ * Fortschritt der laufenden Runde *ueber* dem Ziel, in Prozent.
+ *
+ * Damit bekommt der Ueberschuss einen eigenen Balken: Die erste Runde bleibt
+ * vollstaendig gefuellt stehen, darueber laeuft eine zweite an.
+ */
+export function goalOverflow(total: number, goal: number): number {
+  if (goal <= 0 || total <= goal) return 0;
+  return Math.min(100, ((total - goal) % goal || goal) / goal * 100);
+}
+
+/**
+ * Wie oft das Ziel vollstaendig erreicht wurde.
+ *
+ * Jede neue Runde ist ein Anlass zu feiern, nicht nur die erste.
+ */
+export function goalLaps(total: number, goal: number): number {
+  if (goal <= 0) return 0;
+  return Math.floor(total / goal);
 }
 
 /** Menschenlesbare Dauer aus Minuten, z. B. "1.204 h". */
 export function formatMinutes(minutes: number): string {
   if (minutes < 60) return `${Math.round(minutes)} min`;
   return `${Math.round(minutes / 60).toLocaleString("de-DE")} h`;
+}
+
+/**
+ * Kurze Zeitangabe fuer das Laufband, z. B. "vor 4 Min.".
+ *
+ * Zeitpunkte in der Zukunft koennen durch eine leicht abweichende Uhr des
+ * Anzeigerechners entstehen und werden wie "jetzt" behandelt.
+ */
+export function formatRelativeTime(iso: string | null, nowMs: number): string {
+  if (!iso) return "";
+
+  const then = Date.parse(iso);
+  if (Number.isNaN(then)) return "";
+
+  const minutes = Math.floor(Math.max(0, nowMs - then) / 60_000);
+  if (minutes < 1) return "gerade eben";
+  if (minutes < 60) return `vor ${minutes} Min.`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `vor ${hours} Std.`;
+
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "vor 1 Tag" : `vor ${days} Tagen`;
 }

@@ -1,11 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
-import { mergeDashboardDelta, type DashboardDelta, type DashboardSnapshot } from "@/lib/dashboard";
+import { goalLaps, mergeDashboardDelta, type DashboardDelta, type DashboardSnapshot } from "@/lib/dashboard";
+import { kreisTotals } from "@/lib/nrw-map";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { RepairCloud } from "./repair-cloud";
 import { RecordCounter } from "./record-counter";
+import { LiveTicker } from "./live-ticker";
 import { CategoryBars, MetricTiles, TimelineChart, categoryColor } from "./panels";
 
 /**
@@ -22,6 +25,7 @@ const DELTA_INTERVAL_MS = 15_000;
 const SNAPSHOT_INTERVAL_MS = 5 * 60_000;
 const SPOTLIGHT_CYCLE_MS = 20_000;
 const SPOTLIGHT_HOLD_MS = 5_000;
+const CELEBRATION_MS = 14_000;
 
 type Status = "loading" | "ready" | "closed" | "error";
 
@@ -32,9 +36,19 @@ export default function LiveDashboardPage() {
   const [spotlight, setSpotlight] = useState<number | null>(null);
   const [celebrating, setCelebrating] = useState(false);
   const [clock, setClock] = useState("");
+  // Basis fuer die relativen Zeitangaben im Laufband; laeuft mit der Uhr mit.
+  // Startwert 0 statt Date.now(): Auf dem Server gaebe das eine andere Zeit als
+  // im Browser und damit einen Hydration-Konflikt.
+  const [nowMs, setNowMs] = useState(0);
+  // Zaehler im Vollbild: fuer den Moment, in dem nur die Zahl zaehlt.
+  const [counterFullscreen, setCounterFullscreen] = useState(false);
 
   const cursorRef = useRef<string | null>(null);
-  const reachedRef = useRef(false);
+  /** Letzte gefeierte Runde, damit dieselbe nicht zweimal gefeiert wird. */
+  const celebratedLapRef = useRef(0);
+  // Flaeche, in die die Karte gezeichnet wird. Die Canvas liegt ganzflaechig
+  // hinter dem Layout, die Karte selbst gehoert aber in die Buehnenspalte.
+  const stageRef = useRef<HTMLElement | null>(null);
   // Die Intervall-Callbacks werden nur einmal registriert und lesen den
   // aktuellen Stand deshalb ueber eine Ref statt ueber die Closure.
   const totalRef = useRef(0);
@@ -53,7 +67,9 @@ export default function LiveDashboardPage() {
 
       const data = await response.json() as DashboardSnapshot;
       cursorRef.current = data.cursor;
-      reachedRef.current = data.total >= data.goal;
+      // Beim ersten Laden nicht feiern: Ein Dashboard, das mitten im Betrieb neu
+      // startet, soll nicht sofort Konfetti werfen.
+      celebratedLapRef.current = Math.max(celebratedLapRef.current, goalLaps(data.total, data.goal));
       setSnapshot(data);
       setStatus("ready");
     } catch {
@@ -98,14 +114,16 @@ export default function LiveDashboardPage() {
     return () => window.clearInterval(timer);
   }, []);
 
-  // Zielerreichung feiern, sobald die Marke ueberschritten wird.
+  // Zielerreichung feiern - und jede weitere volle Runde genauso. Der Rekord
+  // ist mit dem Ziel nicht zu Ende, also ist das Feiern nicht einmalig.
+  const laps = snapshot ? goalLaps(snapshot.total, snapshot.goal) : 0;
   useEffect(() => {
-    if (!snapshot || snapshot.total < snapshot.goal || reachedRef.current) return;
-    reachedRef.current = true;
+    if (laps === 0 || laps <= celebratedLapRef.current) return;
+    celebratedLapRef.current = laps;
     setCelebrating(true);
-    const timer = window.setTimeout(() => setCelebrating(false), 12_000);
+    const timer = window.setTimeout(() => setCelebrating(false), CELEBRATION_MS);
     return () => window.clearTimeout(timer);
-  }, [snapshot]);
+  }, [laps]);
 
   // Spotlight: alle 20 Sekunden faehrt die Kamera fuenf Sekunden auf ein Bild.
   const highlightCount = snapshot?.highlights.length ?? 0;
@@ -129,14 +147,34 @@ export default function LiveDashboardPage() {
     };
   }, [highlightCount]);
 
+  // Vollbild des Zaehlers: F schaltet um, Escape zurueck. Beides ist auf einer
+  // Buehne bequemer als eine Schaltflaeche zu treffen.
   useEffect(() => {
-    const tick = () => setClock(new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }));
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "f" || event.key === "F") setCounterFullscreen((current) => !current);
+      else if (event.key === "Escape") setCounterFullscreen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      setClock(now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }));
+      setNowMs(now.getTime());
+    };
     tick();
     const timer = window.setInterval(tick, 30_000);
     return () => window.clearInterval(timer);
   }, []);
 
   const featured = spotlight !== null ? snapshot?.highlights[spotlight] ?? null : null;
+
+  // Reparaturen je Kreis. Stabil gehalten, weil die Karte daraus ihre
+  // Fuellfarben baut und das nicht in jedem Frame passieren soll.
+  const cells = snapshot?.cells;
+  const kreisCounts = useMemo(() => kreisTotals(cells ?? []), [cells]);
 
   if (status !== "ready" || !snapshot) {
     return (
@@ -160,22 +198,38 @@ export default function LiveDashboardPage() {
         celebrating={celebrating}
         cells={snapshot.cells}
         focusId={featured?.id ?? null}
+        frameRef={stageRef}
+        kreisCounts={kreisCounts}
         total={snapshot.total}
       />
 
       <div className="dashboard-grid">
         <header className="dashboard-bar">
-          <p className="dashboard-brand"><span aria-hidden="true">R</span>Reparaturrekord NRW</p>
+          <Link className="dashboard-brand" href="/">
+            <span className="brand-mark" aria-hidden="true">R</span>
+            <span>Reparaturrekord<br />NRW</span>
+          </Link>
           <p className="dashboard-live"><i aria-hidden="true" />Live aus Nordrhein-Westfalen</p>
           <p className="dashboard-clock">{clock} Uhr</p>
         </header>
 
         <section className="dashboard-panel panel-left">
-          <RecordCounter goal={snapshot.goal} reached={snapshot.total >= snapshot.goal} total={snapshot.total} />
+          {/* Im Vollbild zieht der Zaehler nach unten aus dem Panel heraus. Er
+              kann nicht einfach `position: fixed` bekommen: Das `backdrop-filter`
+              des Panels macht dieses selbst zum Bezugsrahmen. */}
+          {!counterFullscreen && (
+            <RecordCounter
+              celebrating={celebrating}
+              fullscreen={false}
+              goal={snapshot.goal}
+              onToggleFullscreen={() => setCounterFullscreen(true)}
+              total={snapshot.total}
+            />
+          )}
           <MetricTiles snapshot={snapshot} />
         </section>
 
-        <section className="dashboard-stage" aria-label="Karte der Reparaturen">
+        <section className="dashboard-stage" aria-label="Karte der Reparaturen" ref={stageRef}>
           {featured && (
             <figure className="spotlight">
               {featured.imageUrl
@@ -193,28 +247,33 @@ export default function LiveDashboardPage() {
             {snapshot.cells.length > 0
               ? "Jeder Punkt steht fuer eine Reparatur. Die Herkunft ist auf rund 5 km gerundet."
               : "Jeder Punkt steht fuer eine Reparatur. Die Standorte sind aus Datenschutzgruenden stilisiert."}
+            <span className="stage-credit">Kartendaten © OpenStreetMap-Mitwirkende</span>
           </p>
         </section>
 
         <section className="dashboard-panel panel-right">
           <p className="panel-label">Was repariert wird</p>
           <CategoryBars categories={snapshot.categories} />
-          <p className="panel-label">Freigaben der letzten 30 Tage</p>
+          <p className="panel-label">Reparaturen der letzten 30 Tage</p>
           <TimelineChart timeline={snapshot.timeline} />
         </section>
 
-        <footer className="dashboard-ticker" aria-hidden="true">
-          <div>
-            {[...snapshot.highlights, ...snapshot.highlights].map((item, index) => (
-              <span key={`${item.id}-${index}`}>
-                <i style={{ background: categoryColor(item.category) }} />
-                {repairCategoryLabel(item.category)}
-                {item.brandModel ? ` · ${item.brandModel}` : ""}
-              </span>
-            ))}
-          </div>
-        </footer>
+        <LiveTicker highlights={snapshot.highlights} nowMs={nowMs} />
       </div>
+
+      {/* Ausserhalb des Rasters: hier gibt es keinen Filter, der den festen
+          Bezugsrahmen des Viewports brechen wuerde. */}
+      {counterFullscreen && (
+        <div className="counter-overlay">
+          <RecordCounter
+            celebrating={celebrating}
+            fullscreen
+            goal={snapshot.goal}
+            onToggleFullscreen={() => setCounterFullscreen(false)}
+            total={snapshot.total}
+          />
+        </div>
+      )}
     </main>
   );
 }

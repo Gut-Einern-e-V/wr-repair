@@ -3,6 +3,15 @@
 alter table public.repairs
   drop constraint if exists repairs_category_check;
 
+-- Remap legacy category values (from the pre-rebuild 9-category set) onto
+-- their closest match in the new 12-category set before the constraint
+-- below enforces it. No-op for rows that already use a current value.
+update public.repairs set category = 'household_appliances' where category = 'electrical_appliances';
+update public.repairs set category = 'computers_and_phones' where category = 'computers_and_communication';
+update public.repairs set category = 'bicycle' where category = 'bicycles';
+update public.repairs set category = 'textiles' where category = 'textiles_and_clothing';
+update public.repairs set category = 'toys' where category = 'toys_and_leisure';
+
 alter table public.repairs
   add constraint repairs_category_check check (category in (
     'other',

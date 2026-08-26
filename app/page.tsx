@@ -176,8 +176,8 @@ export default function Home() {
           <div className="hero-side">
             <aside className="hero-facts" id="counter">
               <div>
-                <p className="counter-label">Freigegebene Reparaturen</p>
-                <p className={`counter-number ${animatedRepairCount === null ? "is-loading" : ""}`} aria-live="polite" aria-label={animatedRepairCount === null ? "Freigegebene Reparaturen werden geladen" : `${animatedRepairCount} freigegebene Reparaturen`}>{animatedRepairCount === null ? "..." : animatedRepairCount.toLocaleString("de-DE")}</p>
+                <p className="counter-label">Reparaturen in Nordrhein-Westfalen</p>
+                <p className={`counter-number ${animatedRepairCount === null ? "is-loading" : ""}`} aria-live="polite" aria-label={animatedRepairCount === null ? "Reparaturen werden geladen" : `${animatedRepairCount} Reparaturen`}>{animatedRepairCount === null ? "..." : animatedRepairCount.toLocaleString("de-DE")}</p>
                 <div className="counter-meta">
                   <span>Unser Ziel: 10.000</span>
                   <span>{((repairCount ?? 0) / 10_000 * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
@@ -245,7 +245,7 @@ export default function Home() {
       <section className="stories-section" id="geschichten" aria-labelledby="stories-title">
         <div className="section-heading">
           <div>
-            <p className="section-index">Freigegebene Reparaturen</p>
+            <p className="section-index">Reparaturen aus NRW</p>
             <h2 id="stories-title">Gegenstaende mit zweitem Kapitel.</h2>
           </div>
           <Link className="text-button" href="/stories">Alle Geschichten <span aria-hidden="true">&#8594;</span></Link>
