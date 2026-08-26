@@ -48,7 +48,7 @@ export function TimelineChart({ timeline }: { timeline: DashboardSnapshot["timel
   const max = Math.max(...timeline.map((day) => day.total), 1);
 
   return (
-    <div className="timeline-strip" role="img" aria-label="Freigaben der letzten 30 Tage">
+    <div className="timeline-strip" role="img" aria-label="Reparaturen der letzten 30 Tage">
       {timeline.map((day, index) => (
         <span key={day.date} style={{ animationDelay: `${index * 22}ms` }}>
           <i style={{ height: `${Math.max((day.total / max) * 100, 2)}%` }} />
