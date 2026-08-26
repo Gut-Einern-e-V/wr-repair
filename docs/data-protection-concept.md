@@ -12,7 +12,8 @@ Die Plattform erfasst Reparaturen fuer den Weltrekordversuch, moderiert sie und 
 | --- | --- | --- |
 | Reparaturangaben | Kategorie, Beschreibung, Antworten, Reparaturerfolg, optionale redaktionelle Metadaten und Moderationskommentar | Tabelle `repairs` in Supabase; nur Moderator*innen und hoeher sehen nicht freigegebene Beitraege. |
 | Bild | Vom Browser neu gerendertes JPEG ohne EXIF- und GPS-Metadaten | Privater Supabase-Storage-Bucket `repair-images`; oeffentliche Galerie und Moderation erhalten nur kurzlebige signierte URLs. |
-| Grobe Region | Ausschliesslich der Wert `Nordrhein-Westfalen` nach erfolgreicher Vercel-Header-Pruefung | Spalte `location_region` in `repairs`; keine Stadt-, Postleitzahl- oder Koordinatendaten. |
+| Grobe Region | Ausschliesslich der Wert `Nordrhein-Westfalen` nach erfolgreicher Vercel-Header-Pruefung | Spalte `location_region` in `repairs`; keine Stadt- oder Postleitzahldaten. |
+| Anonymisierte Herkunft | Optional der Mittelpunkt einer festen Rasterzelle von rund 5 km Kantenlaenge | Spalten `location_lat` und `location_lon` in `repairs`. Die Zuordnung erfolgt im Browser; die zugrunde liegende genaue Koordinate wird nicht uebertragen. Oeffentlich sichtbar nur aggregiert und erst ab fuenf Reparaturen je Zelle. |
 | IP-Adresse | Kurzzeitig als Schlüssel des prozesslokalen Rate Limits | Nicht in `repairs` geschrieben. Der Zaehlereintrag wird nach dem jeweiligen Limitfenster verworfen: 15 Minuten fuer Einreichungen, 1 Minute fuer Statistikabfragen. |
 | Friendly-Captcha-Loesung | Loesungswert aus dem Formular zur Bot-Pruefung | Nicht in der Datenbank gespeichert; wird serverseitig an Friendly Captcha `siteverify` gesendet. |
 | Admin-Konten | Auth-E-Mail, optionaler Anzeigename und Anwendungrolle | Supabase Auth sowie die Tabellen `profiles` und `user_roles`; nur fuer den Moderationsbetrieb. |
@@ -25,6 +26,19 @@ Der NRW-Check verwendet die von Vercel bereitgestellten Request-Header `x-vercel
 
 Friendly Captcha muss vor dem Produktionsstart datenschutzrechtlich freigegeben werden. Insbesondere sind dessen Datenschutzinformationen, ein moeglicher Auftragsverarbeitungsvertrag, der vom Widget geladene CDN-Code und die Einbindung in die oeffentliche Datenschutzerklaerung zu pruefen.
 
+## Anonymisierung der Herkunft
+
+Fuer die Karte im Live-Dashboard wird je Reparatur hoechstens eine grob gerasterte Herkunft gespeichert. Der Ablauf ist so gebaut, dass genaue Koordinaten den Browser nie verlassen:
+
+1. Der Browser liest die GPS-Koordinate aus den EXIF-Daten des gewaehlten Bildes, **bevor** das Bild neu gerendert und die Metadaten damit verworfen werden.
+2. Der Browser schnappt die Koordinate auf den Mittelpunkt einer festen Rasterzelle von rund 5 km Kantenlaenge und sendet ausschliesslich diesen Zellwert. Die Ausgangskoordinate wird nicht uebertragen.
+3. Enthaelt das Bild keine Koordinate, wird ersatzweise die von Vercel aus der IP-Adresse abgeleitete Stadtkoordinate verwendet und identisch gerastert. Die IP-Adresse selbst wird dabei nicht gespeichert.
+4. Der Server akzeptiert einen vom Browser gesendeten Wert nur, wenn er exakt einem Zellmittelpunkt entspricht und innerhalb der konfigurierten Region liegt. Genauere Werte werden verworfen.
+
+Das Raster ist idempotent: Derselbe Ort ergibt immer dieselbe Zelle. Ein rein zufaelliger Versatz waere schwaecher, weil sich der Mittelwert mehrerer Einreichungen vom selben Ort dem echten Punkt annaehern wuerde.
+
+Die oeffentliche Aggregatfunktion gibt eine Zelle erst aus, wenn ihr mindestens fuenf freigegebene Reparaturen zugeordnet sind. Die Spalten `location_lat` und `location_lon` sind ausserdem per Spalten-GRANT fuer die anonyme Datenbankrolle gesperrt, damit diese Schwelle nicht ueber einen direkten Tabellenzugriff umgangen werden kann.
+
 ## Zugriff und Veroeffentlichung
 
 - Der Bucket fuer Reparaturbilder ist privat.
@@ -32,7 +46,7 @@ Friendly Captcha muss vor dem Produktionsstart datenschutzrechtlich freigegeben 
 - Nur `approved` Reparaturen mit Veroeffentlichungszustimmung erscheinen in Galerie und Statistik.
 - Moderator*innen erhalten zeitlich begrenzte Bild-URLs. Admins und Superadmins koennen einen nicht gecachten CSV-Export erstellen.
 - Der CSV-Export enthaelt keine Bild-URLs oder Roh-IP-Adressen, aber Reparatur- und Moderationsdaten. Er darf nur in einem geschuetzten Arbeitsumfeld verarbeitet werden.
-- Die oeffentliche Statistik verarbeitet nur aggregierte Zahlen freigegebener Reparaturen. Da ausschliesslich die grobe Region `Nordrhein-Westfalen` gespeichert wird, gibt es keine Karte und keine ortsbezogene Auswertung einzelner oder gruppierter Einreichungen.
+- Die oeffentliche Statistik verarbeitet nur aggregierte Zahlen freigegebener Reparaturen. Die Karte im Live-Dashboard zeigt ausschliesslich Rasterzellen von rund 5 km Kantenlaenge, und auch diese erst ab fuenf Reparaturen je Zelle. Einzelne Einreichungen sind darueber nicht identifizierbar.
 
 ## Aufbewahrung und Loeschung
 

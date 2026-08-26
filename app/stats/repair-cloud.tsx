@@ -80,10 +80,15 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells }: Pr
     let width = 0;
     let height = 0;
     const resize = () => {
-      const ratio = Math.min(window.devicePixelRatio || 1, 2);
-      const rect = canvas.getBoundingClientRect();
-      width = Math.max(1, Math.round(rect.width));
-      height = Math.max(1, Math.round(rect.height));
+      // clientWidth/-Height statt getBoundingClientRect(): Im erzwungenen
+      // Widescreen-Modus auf dem Smartphone ist die Buehne um 90 Grad gedreht.
+      // Das Rect meldet dann die Masse *nach* der Transformation, also
+      // vertauscht - die Layoutmasse hier sind die richtigen.
+      width = Math.max(1, canvas.clientWidth);
+      height = Math.max(1, canvas.clientHeight);
+      // Ueber 4K bringt eine hoehere Pixeldichte nichts mehr, kostet aber
+      // quadratisch Fuellrate. Deshalb zusaetzlich zur Geraetedichte deckeln.
+      const ratio = Math.min(window.devicePixelRatio || 1, 2, 3_840 / width);
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -156,7 +161,10 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells }: Pr
 
     function draw(now: number) {
       const time = (now - start) / 1000;
-      const desired = Math.min(stateRef.current.total, MAX_PARTICLES);
+      // Auf einem Handydisplay waeren 9.000 Punkte nur noch Rauschen und
+      // kosten Akku; auf einer 4K-Wand duerfen es alle sein.
+      const budgetForArea = Math.round((width * height) / 90);
+      const desired = Math.min(stateRef.current.total, MAX_PARTICLES, Math.max(600, budgetForArea));
 
       // Fehlende Punkte auffuellen: fuer noch unbekannte Einreichungen wird ein
       // stabiler Ersatz-Seed benutzt, damit die Wolke die Gesamtzahl abbildet.
@@ -216,6 +224,9 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells }: Pr
       // Punkte, nach Farbe gruppiert, damit fillStyle selten wechselt.
       const shift = Math.floor(time / 6);
       const wobble = reduceMotion ? 0 : 1;
+      // Ohne diese Skalierung waeren die Punkte auf einer 4K-Wand halb so
+      // gross wie auf 1080p und die Wolke wirkte ausgeduennt.
+      const pointScale = Math.max(0.75, Math.min(width, height) / 900);
       for (let group = 0; group < palette.length; group += 1) {
         context.fillStyle = palette[(group + shift) % palette.length];
         for (let index = 0; index < count; index += 1) {
@@ -227,10 +238,10 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells }: Pr
           const screen = project(unitX, unitY, scale);
           if (screen.x < -20 || screen.y < -20 || screen.x > width + 20 || screen.y > height + 20) continue;
 
-          let radius = size[index] * Math.min(camera.zoom, 2.2);
+          let radius = size[index] * pointScale * Math.min(camera.zoom, 2.2);
           if (landing[index] > 0) {
             landing[index] = Math.max(0, landing[index] - 0.006);
-            radius += landing[index] * 9;
+            radius += landing[index] * 9 * pointScale;
             context.globalAlpha = 0.55 + landing[index] * 0.45;
           } else {
             context.globalAlpha = 0.72;

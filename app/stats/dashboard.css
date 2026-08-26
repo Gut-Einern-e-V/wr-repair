@@ -2,6 +2,11 @@
    Bewusst getrennt von globals.css, weil hier weder Header/Footer noch das
    helle Papier-Layout der Website gelten. */
 
+/* Solange die Buehne im Dokument haengt, darf die Seite nicht scrollen. Im
+   gedrehten Portraet-Modus ragt der Kasten sonst seitlich aus dem Viewport
+   und erzeugt eine horizontale Scrollleiste. */
+html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
+
 .dashboard-root {
   position: fixed;
   inset: 0;
@@ -159,12 +164,96 @@
 .standby-mark { margin: 0; font: 800 clamp(2rem, 5vw, 4rem) var(--sans); letter-spacing: -.02em; }
 .standby-message { margin: 0; color: var(--stage-dim); font: 500 13px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
 
-/* Kleinere Buehnen ------------------------------------------------------ */
-@media (max-width: 1100px) {
+/* Kleinere Buehnen ------------------------------------------------------
+   Gilt bewusst nicht fuer Telefone (ab 901px): die laufen weiter unten immer
+   im Widescreen-Layout, auch hochkant. */
+@media (max-width: 1100px) and (min-width: 901px) {
   .dashboard-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 56px minmax(0, 1.2fr) minmax(0, 1fr) 46px; grid-template-areas: "bar bar" "stage stage" "left right" "ticker ticker"; }
   .panel-left { border-right: none; border-top: var(--stage-line); }
   .panel-right { border-left: var(--stage-line); border-top: var(--stage-line); }
   .spotlight { max-width: min(70vw, 340px); }
+}
+
+/* Grossbildwaende (4K und darueber) --------------------------------------
+   Ohne diesen Block wachsen nur die vw-Anteile; die clamp()-Deckel waren fuer
+   1080p gesetzt und liessen alles auf 3840px verloren wirken. */
+@media (min-width: 2200px) {
+  .dashboard-grid { grid-template-columns: minmax(420px, 24vw) minmax(0, 1fr) minmax(440px, 22vw); grid-template-rows: 5.2vh minmax(0, 1fr) 4vh; }
+  .dashboard-bar { padding: 0 2.2vw; }
+  .dashboard-bar p { font-size: clamp(12px, .82vw, 22px); }
+  .dashboard-brand span { width: 2vw; height: 2vw; font-size: 1.25vw; }
+  .dashboard-panel { gap: 1.6vh; padding: 2.2vh 1.7vw; }
+  .panel-label { font-size: clamp(11px, .68vw, 19px); }
+  /* Der Deckel muss zur Spaltenbreite passen: "10.000" belegt gemessen rund
+     4,4em, die Spalte 24vw abzueglich Polsterung. Ein zu hoher Deckel schiebt
+     die Ziffern sonst unbemerkt aus dem Panel. */
+  .counter-digit { font-size: clamp(4rem, 4.4vw, 10rem); }
+  .counter-goal, .category-count, .metric-tiles span { font-size: clamp(12px, .72vw, 20px); }
+  .metric-tiles strong { font-size: clamp(1.7rem, 2vw, 3.4rem); }
+  .category-name { font-size: clamp(14px, .85vw, 24px); }
+  .category-track, .counter-track { height: 1.5vh; }
+  .spotlight { max-width: min(30vw, 900px); }
+  .spotlight figcaption strong { font-size: clamp(1.6rem, 1.8vw, 3rem); }
+  .stage-note { bottom: 1.6vh; font-size: clamp(10px, .62vw, 18px); }
+  .dashboard-ticker span { height: 4vh; font-size: clamp(12px, .72vw, 20px); }
+}
+
+/* Telefone: immer Widescreen --------------------------------------------
+   Das Dashboard ist eine Buehnenansicht und hat hochkant kein sinnvolles
+   Layout. Statt eines eigenen Portraet-Entwurfs wird die gesamte Buehne
+   gedreht: Der Kasten bekommt die Viewport-Masse ueber Kreuz und dreht sich
+   um 90 Grad in den Bildschirm. Quer liegt er ohnehin schon richtig, dort
+   entfaellt die Drehung - die Ansicht bleibt in beiden Haltungen dieselbe. */
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: minmax(150px, 27%) minmax(0, 1fr) minmax(160px, 29%);
+    grid-template-rows: 34px minmax(0, 1fr) 30px;
+    height: 100%;
+  }
+  .dashboard-bar { padding: 0 10px; }
+  .dashboard-bar p { font-size: 8px; letter-spacing: .08em; }
+  .dashboard-brand { gap: 7px; }
+  .dashboard-brand span { width: 18px; height: 18px; font-size: 12px; }
+  .dashboard-panel { gap: 8px; padding: 9px 11px; }
+  .panel-label { font-size: 8px; }
+  .record-counter { gap: 7px; }
+  .counter-digit { font-size: 1.9rem; }
+  .counter-goal { font-size: 8px; }
+  .counter-track { height: 5px; }
+  .counter-reached { font-size: 13px; }
+  .metric-tiles { gap: 4px; }
+  .metric-tiles li { padding: 5px 0; }
+  .metric-tiles strong { font-size: .95rem; }
+  .metric-tiles span { font-size: 8px; }
+  .category-bars { gap: 4px; }
+  .category-name { font-size: 9px; }
+  .category-track { height: 6px; }
+  .category-count { font-size: 8px; }
+  .timeline-strip { height: 42px; gap: 2px; }
+  .dashboard-stage { padding: 9px; }
+  .spotlight { max-width: 42%; border-width: 1px; }
+  .spotlight img { max-height: 40vmin; }
+  .spotlight figcaption { gap: 3px; padding: 6px 8px; }
+  .spotlight figcaption span { font-size: 8px; }
+  .spotlight figcaption strong { font-size: .85rem; }
+  .stage-note { bottom: 4px; font-size: 7px; }
+  .dashboard-ticker span { height: 30px; font-size: 9px; }
+  .dashboard-ticker > div { gap: 20px; }
+}
+
+@media (max-width: 900px) and (orientation: portrait) {
+  .dashboard-root {
+    inset: auto;
+    top: 50%;
+    left: 50%;
+    /* Ueber Kreuz: Die Breite der gedrehten Buehne ist die Hoehe des
+       Bildschirms. 100dvh statt 100vh, damit die Adressleiste des Browsers
+       nicht ueber den Rand hinausschiebt. */
+    width: 100dvh;
+    height: 100dvw;
+    transform: translate(-50%, -50%) rotate(90deg);
+    transform-origin: center;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -168,9 +168,14 @@ export function RepairSubmissionForm({
       setUploadFile(compressedFile);
       setPreviewUrl(URL.createObjectURL(compressedFile));
       setCompressionMessage(
-        compressedFile.size < file.size
+        (compressedFile.size < file.size
           ? `Bild wurde von ${Math.ceil(file.size / 1024)} KB auf ${Math.ceil(compressedFile.size / 1024)} KB komprimiert. Metadaten wurden entfernt.`
-          : "Bilddaten wurden vor dem Upload bereinigt. EXIF- und Standortdaten wurden entfernt.",
+          : "Bilddaten wurden vor dem Upload bereinigt. EXIF- und Standortdaten wurden entfernt.")
+        + (origin
+          // Nur anzeigen, wenn wirklich eine Herkunft ermittelt wurde - sonst
+          // waere es ein Versprechen ueber Daten, die es gar nicht gibt.
+          ? " Fuer die Karte wird nur ein auf rund 5 km gerundeter Bereich uebertragen."
+          : ""),
       );
     } catch (error) {
       setFileError(error instanceof Error ? error.message : "Das Bild konnte nicht verarbeitet werden.");
