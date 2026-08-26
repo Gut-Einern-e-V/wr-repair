@@ -519,7 +519,7 @@ export default function Home() {
                   </fieldset>
                 )}
 
-                <p className="geo-notice">Teilnahme ist nur aus Nordrhein-Westfalen möglich. Der Standort wird beim Absenden über die Vercel-Regionserkennung geprüft; die IP-Adresse wird nicht gespeichert.</p>
+                <p className="geo-notice">Teilnahme ist nur aus {process.env.NEXT_PUBLIC_REGION_LABEL ?? "Nordrhein-Westfalen"} möglich. Der Standort wird beim Absenden über die Vercel-Regionserkennung geprüft; die IP-Adresse wird nicht gespeichert.</p>
                 {captchaEnabled ? friendlyCaptchaSiteKey ? <div className="captcha-field"><FriendlyCaptcha sitekey={friendlyCaptchaSiteKey} onError={setCaptchaError} /><small>Der Spam-Schutz von Friendly Captcha wird vor dem Absenden automatisch vorbereitet.</small></div> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p> : <p className="form-notice" role="status">Der Spam-Schutz ist vorübergehend deaktiviert.</p>}
                 {captchaError && <p className="form-error" role="alert">{captchaError}</p>}
                 {uploadProgress !== null && <div className="upload-progress" aria-live="polite"><span>Bild wird hochgeladen: {uploadProgress} %</span><progress value={uploadProgress} max="100" /></div>}

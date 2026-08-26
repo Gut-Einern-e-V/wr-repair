@@ -1,5 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { verifyNorthrhineWestphalia } from "@/lib/geo";
+import { verifyRegion, isWithinRegion } from "@/lib/geo";
+import { getRegionConfig } from "@/lib/region-config";
+import { extractExif } from "@/lib/exif";
 import { rateLimit } from "@/lib/rate-limit";
 import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
 import { repairCategoryValues } from "@/lib/repair-catalog";
@@ -49,15 +51,7 @@ export async function POST(request: Request) {
     return errorResponse("Einreichungen sind derzeit nicht geoeffnet.", 403);
   }
 
-  const geoCheck = verifyNorthrhineWestphalia(request);
-  if (!geoCheck.allowed) {
-    return errorResponse(
-      geoCheck.reason === "outside-nrw"
-        ? "Einreichungen sind nur aus Nordrhein-Westfalen moeglich."
-        : "Dein Standort konnte nicht eindeutig Nordrhein-Westfalen zugeordnet werden. Bitte deaktiviere VPN oder Proxy und versuche es erneut.",
-      403,
-    );
-  }
+  const geoCheck = verifyRegion(request);
 
   const limit = rateLimit(request, "repair-submission", { limit: 3, windowMs: 15 * 60 * 1_000 });
   if (!limit.allowed) {
@@ -75,7 +69,7 @@ export async function POST(request: Request) {
   const performedBy = formData.get("performed_by");
   const story = formData.get("story");
   const consent = formData.get("consent");
-  const image = formData.get("image");
+  let image = formData.get("image");
   const captchaToken = formData.get("frc-captcha-response");
   const repairSucceeded = formData.get("repair_succeeded") !== "false";
 
@@ -136,8 +130,23 @@ export async function POST(request: Request) {
 
   const repairId = crypto.randomUUID();
 
+  // Determine location_region: IP geo first, then EXIF GPS as fallback.
+  let locationRegion: string | null = geoCheck.allowed ? geoCheck.region : null;
+
   if (image instanceof File && image.size > 0) {
     imagePath = `pending/${repairId}.${imageExtensions[image.type]}`;
+
+    // Extract EXIF GPS for region verification (not stored in DB).
+    if (!geoCheck.allowed && image.type === "image/jpeg") {
+      const buffer = await image.arrayBuffer();
+      const exif = await extractExif(buffer);
+      if (exif.latitude !== null && exif.longitude !== null && isWithinRegion(exif.latitude, exif.longitude)) {
+        locationRegion = getRegionConfig().label;
+      }
+      // Re-create the file from the buffer so we can still upload the original bytes.
+      image = new File([buffer], image.name, { type: image.type });
+    }
+
     const { error: uploadError } = await supabase.storage
       .from("repair-images")
       .upload(imagePath, image, { contentType: image.type, upsert: false });
@@ -161,7 +170,7 @@ export async function POST(request: Request) {
     repair_succeeded: repairSucceeded,
     image_path: imagePath,
     consent_publication: true,
-    location_region: geoCheck.region,
+    location_region: locationRegion,
     status: "pending",
   });
 
