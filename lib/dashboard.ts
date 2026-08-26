@@ -16,6 +16,15 @@ export type DashboardHighlight = {
   approvedAt: string | null;
 };
 
+/**
+ * Anonymisierte Herkunftszelle mit der Zahl der Reparaturen darin.
+ *
+ * Nur Zellen oberhalb der k-Anonymitaetsschwelle werden ueberhaupt
+ * ausgeliefert (siehe `dashboard_stats()`), einzelne Reparaturen sind darin
+ * nicht mehr unterscheidbar.
+ */
+export type DashboardCell = { lat: number; lon: number; count: number };
+
 export type DashboardSnapshot = {
   total: number;
   goal: number;
@@ -26,11 +35,13 @@ export type DashboardSnapshot = {
   categories: Record<string, number>;
   performedBy: Record<string, number>;
   timeline: { date: string; total: number }[];
+  cells: DashboardCell[];
   highlights: DashboardHighlight[];
   /** ISO-Zeitstempel der juengsten beruecksichtigten Freigabe. */
   cursor: string | null;
   generatedAt: string;
 };
+
 
 export type DashboardDelta = {
   total: number;

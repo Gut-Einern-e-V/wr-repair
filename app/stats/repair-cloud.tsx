@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { hashString, nrwOutline, projectToUnitSquare, seededRandom, symbolicPosition } from "@/lib/nrw-map";
+import { hashString, nrwOutline, positionForId, projectToUnitSquare, seededRandom, type OriginCell } from "@/lib/nrw-map";
 
 /**
  * Punktwolke aller Reparaturen ueber einer stilisierten NRW-Karte.
@@ -24,6 +24,8 @@ type Props = {
   focusId: string | null;
   /** Zielerreichung: loest einen Konfetti-Ausbruch aus. */
   celebrating: boolean;
+  /** Anonymisierte Herkunftszellen; leer heisst symbolische Verteilung. */
+  cells: OriginCell[];
 };
 
 /** CI-Palette; die Punkte wandern langsam durch diese Farben. */
@@ -34,7 +36,7 @@ const MAX_PARTICLES = 9_000;
 
 const outlineUnit = nrwOutline.map(projectToUnitSquare);
 
-export function RepairCloud({ total, arrivals, focusId, celebrating }: Props) {
+export function RepairCloud({ total, arrivals, focusId, celebrating, cells }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // Die Animationsschleife laeuft ausserhalb von React und liest den aktuellen
   // Stand deshalb aus einer Ref, die nach jedem Render nachgezogen wird.
@@ -44,6 +46,14 @@ export function RepairCloud({ total, arrivals, focusId, celebrating }: Props) {
     stateRef.current.focusId = focusId;
     stateRef.current.celebrating = celebrating;
   }, [total, focusId, celebrating]);
+
+  // Zellen kommen erst mit dem ersten Snapshot an. Bereits gesetzte Punkte
+  // bleiben, wo sie sind - ein Umspringen der ganzen Wolke waere unruhiger als
+  // die wenigen symbolisch platzierten Punkte der ersten Sekunden.
+  const cellsRef = useRef(cells);
+  useEffect(() => {
+    cellsRef.current = cells;
+  }, [cells]);
 
   // Neuzugaenge werden nur einmal eingespielt, deshalb ueber eine Queue.
   const queueRef = useRef<string[]>([]);
@@ -98,7 +108,7 @@ export function RepairCloud({ total, arrivals, focusId, celebrating }: Props) {
 
     function addParticle(id: string, isNew: boolean) {
       if (count >= MAX_PARTICLES) return;
-      const point = symbolicPosition(id);
+      const point = positionForId(id, cellsRef.current);
       const random = seededRandom(hashString(`${id}:wobble`));
       const index = count;
       baseX[index] = point.x;

@@ -158,6 +158,7 @@ export default function LiveDashboardPage() {
       <RepairCloud
         arrivals={arrivals}
         celebrating={celebrating}
+        cells={snapshot.cells}
         focusId={featured?.id ?? null}
         total={snapshot.total}
       />
@@ -188,7 +189,11 @@ export default function LiveDashboardPage() {
               </figcaption>
             </figure>
           )}
-          <p className="stage-note">Jeder Punkt steht fuer eine Reparatur. Die Standorte sind aus Datenschutzgruenden stilisiert.</p>
+          <p className="stage-note">
+            {snapshot.cells.length > 0
+              ? "Jeder Punkt steht fuer eine Reparatur. Die Herkunft ist auf rund 5 km gerundet."
+              : "Jeder Punkt steht fuer eine Reparatur. Die Standorte sind aus Datenschutzgruenden stilisiert."}
+          </p>
         </section>
 
         <section className="dashboard-panel panel-right">

@@ -139,3 +139,48 @@ export function symbolicPosition(id: string): { x: number; y: number; hub: strin
 
   return { ...projected, hub: hub.name };
 }
+
+/** Anonymisierte Herkunftszelle, wie sie das Dashboard-Aggregat liefert. */
+export type OriginCell = { lat: number; lon: number; count: number };
+
+/**
+ * Position eines Punktes auf der Karte.
+ *
+ * Liegen Herkunftszellen vor, wird der Punkt einer davon zugelost - gewichtet
+ * nach der Zahl der Reparaturen darin. Innerhalb der Zelle wird er zusaetzlich
+ * gestreut, damit nicht alle Punkte einer Zelle exakt uebereinander liegen.
+ * Das ist rein optisch; die Zuordnung Punkt-zu-Zelle ist ohnehin willkuerlich,
+ * weil das Aggregat nur Summen und keine Einzelbeitraege enthaelt.
+ *
+ * Ohne Zellen - etwa vor der ersten anonymisierten Einreichung - bleibt es bei
+ * der symbolischen Verteilung ueber die Ballungsraeume.
+ */
+export function positionForId(id: string, cells: OriginCell[]): { x: number; y: number } {
+  if (cells.length === 0) return symbolicPosition(id);
+
+  const total = cells.reduce((sum, cell) => sum + cell.count, 0);
+  if (total <= 0) return symbolicPosition(id);
+
+  const random = seededRandom(hashString(`${id}:cell`));
+  let pick = random() * total;
+  let chosen = cells[cells.length - 1];
+
+  for (const candidate of cells) {
+    pick -= candidate.count;
+    if (pick <= 0) {
+      chosen = candidate;
+      break;
+    }
+  }
+
+  // Streuradius etwa eine halbe Zellbreite (~2,5 km).
+  const spread = 2.5 / 111.32;
+  const angle = random() * Math.PI * 2;
+  const distance = Math.sqrt(random()) * spread;
+
+  return projectToUnitSquare({
+    lat: chosen.lat + Math.sin(angle) * distance,
+    lon: chosen.lon + (Math.cos(angle) * distance) / latitudeScale,
+  });
+}
+

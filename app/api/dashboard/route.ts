@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
-import { getRecordGoal, MAX_HIGHLIGHTS, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
+import { getRecordGoal, MAX_HIGHLIGHTS, type DashboardCell, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
 
 /**
  * Datenquelle des Buehnen-Dashboards.
@@ -86,6 +86,27 @@ async function toHighlights(supabase: SupabaseAdmin, rows: RepairRow[]): Promise
 
 const highlightColumns = "id, category, brand_model, image_path, image_alt_text, moderated_at";
 
+/**
+ * Liest die Herkunftszellen aus dem Aggregat.
+ *
+ * Die k-Anonymitaetsschwelle steckt bereits in `dashboard_stats()`; hier wird
+ * nur noch auf Plausibilitaet geprueft, damit ein fehlerhafter Datensatz die
+ * Kartenprojektion nicht sprengt.
+ */
+function toCells(value: unknown): DashboardCell[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object") return [];
+    const record = entry as Record<string, unknown>;
+    const lat = Number(record.lat);
+    const lon = Number(record.lon);
+    const count = Number(record.count);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(count)) return [];
+    return [{ lat, lon, count }];
+  });
+}
+
 async function loadSnapshot(supabase: SupabaseAdmin): Promise<DashboardSnapshot | null> {
   const { data, error } = await supabase.rpc("dashboard_stats");
   if (error || !data) return null;
@@ -109,6 +130,7 @@ async function loadSnapshot(supabase: SupabaseAdmin): Promise<DashboardSnapshot 
     categories: toCounts(aggregate.categories),
     performedBy: toCounts(aggregate.performedBy),
     timeline: fillTimeline(aggregate.timeline),
+    cells: toCells(aggregate.cells),
     highlights: await toHighlights(supabase, (recent ?? []) as RepairRow[]),
     cursor: typeof aggregate.cursor === "string" ? aggregate.cursor : null,
     generatedAt: new Date().toISOString(),
