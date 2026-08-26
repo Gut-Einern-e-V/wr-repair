@@ -1,7 +1,8 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
-import { getRecordGoal, MAX_HIGHLIGHTS, type DashboardCell, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
+import { getRecordGoal, KREIS_MIN_FOR_LABEL, MAX_HIGHLIGHTS, type DashboardCell, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
+import { kreisForPoint, kreisTotals } from "@/lib/nrw-map";
 
 /**
  * Datenquelle des Buehnen-Dashboards.
@@ -27,6 +28,17 @@ type CacheEntry<T> = { value: T; expiresAt: number };
 let snapshotCache: CacheEntry<DashboardSnapshot> | null = null;
 const deltaCache = new Map<string, CacheEntry<DashboardDelta>>();
 
+/**
+ * Zuletzt bekannte Reparaturzahlen je Kreis, gemerkt aus dem Snapshot.
+ *
+ * Der Delta-Pfad ruft das Aggregat bewusst nicht auf - genau das macht ihn
+ * billig. Fuer die Ortsangabe braucht er die Schwelle trotzdem. Ist noch kein
+ * Snapshot durch diese Instanz gelaufen, bleibt die Karte leer und die Eintraege
+ * bekommen keinen Ort. Das ist die richtige Richtung: im Zweifel weniger
+ * veroeffentlichen, der naechste Snapshot traegt ihn nach.
+ */
+let lastKreisTotals: Record<string, number> = {};
+
 type SupabaseAdmin = ReturnType<typeof createSupabaseAdminClient>;
 
 type RepairRow = {
@@ -37,6 +49,8 @@ type RepairRow = {
   image_alt_text: string | null;
   created_at: string | null;
   moderated_at: string | null;
+  location_lat: number | null;
+  location_lon: number | null;
 };
 
 function toNumber(value: unknown): number {
@@ -67,7 +81,30 @@ function fillTimeline(rows: unknown): { date: string; total: number }[] {
   return timeline;
 }
 
-async function toHighlights(supabase: SupabaseAdmin, rows: RepairRow[]): Promise<DashboardHighlight[]> {
+/**
+ * Ortsangabe eines einzelnen Eintrags - oder `null`.
+ *
+ * Der Kreis wird nur genannt, wenn ihm mindestens `KREIS_MIN_FOR_LABEL`
+ * freigegebene Reparaturen zugeordnet sind. `busyKreise` kommt aus denselben
+ * anonymisierten Zellen, die auch die Karte fuellt, also aus Zellen mit jeweils
+ * mindestens fuenf Reparaturen. Damit steht eine sichtbare Ortsangabe immer fuer
+ * eine Gruppe und nie fuer eine einzelne Person. Die Rohkoordinate verlaesst den
+ * Server ohnehin nie - sie ist bereits auf eine 5-km-Zelle gerundet gespeichert.
+ */
+function toKreis(row: RepairRow, busyKreise: Record<string, number>): string | null {
+  if (row.location_lat === null || row.location_lon === null) return null;
+
+  const kreis = kreisForPoint({ lat: row.location_lat, lon: row.location_lon });
+  if (!kreis) return null;
+
+  return (busyKreise[kreis] ?? 0) >= KREIS_MIN_FOR_LABEL ? kreis : null;
+}
+
+async function toHighlights(
+  supabase: SupabaseAdmin,
+  rows: RepairRow[],
+  busyKreise: Record<string, number>,
+): Promise<DashboardHighlight[]> {
   const paths = rows.map((row) => row.image_path).filter((path): path is string => Boolean(path));
   const signed = paths.length
     ? await supabase.storage.from("repair-images").createSignedUrls(paths, SIGNED_URL_TTL_SECONDS)
@@ -83,13 +120,16 @@ async function toHighlights(supabase: SupabaseAdmin, rows: RepairRow[]): Promise
     imageAltText: row.image_alt_text,
     submittedAt: row.created_at,
     approvedAt: row.moderated_at,
+    kreis: toKreis(row, busyKreise),
   }));
 }
 
 // `created_at` ist der Einreichungszeitpunkt und damit die Angabe, die das
 // Laufband zeigt. `moderated_at` bleibt trotzdem dabei: Daran haengen die
-// Reihenfolge der Deltas und der Cursor.
-const highlightColumns = "id, category, brand_model, image_path, image_alt_text, created_at, moderated_at";
+// Reihenfolge der Deltas und der Cursor. Die gerundete Koordinate dient nur der
+// Zuordnung zum Kreis in `toKreis` und wird selbst nie ausgeliefert.
+const highlightColumns =
+  "id, category, brand_model, image_path, image_alt_text, created_at, moderated_at, location_lat, location_lon";
 
 /**
  * Liest die Herkunftszellen aus dem Aggregat.
@@ -112,11 +152,14 @@ function toCells(value: unknown): DashboardCell[] {
   });
 }
 
-async function loadSnapshot(supabase: SupabaseAdmin): Promise<DashboardSnapshot | null> {
+async function loadSnapshot(supabase: SupabaseAdmin, campaign: DashboardSnapshot["campaign"]): Promise<DashboardSnapshot | null> {
   const { data, error } = await supabase.rpc("dashboard_stats");
   if (error || !data) return null;
 
   const aggregate = data as Record<string, unknown>;
+  const cells = toCells(aggregate.cells);
+  const busyKreise = kreisTotals(cells);
+  lastKreisTotals = busyKreise;
 
   const { data: recent } = await supabase
     .from("repairs")
@@ -135,8 +178,9 @@ async function loadSnapshot(supabase: SupabaseAdmin): Promise<DashboardSnapshot 
     categories: toCounts(aggregate.categories),
     performedBy: toCounts(aggregate.performedBy),
     timeline: fillTimeline(aggregate.timeline),
-    cells: toCells(aggregate.cells),
-    highlights: await toHighlights(supabase, (recent ?? []) as RepairRow[]),
+    cells,
+    highlights: await toHighlights(supabase, (recent ?? []) as RepairRow[], busyKreise),
+    campaign,
     cursor: typeof aggregate.cursor === "string" ? aggregate.cursor : null,
     generatedAt: new Date().toISOString(),
   };
@@ -166,7 +210,7 @@ async function loadDelta(supabase: SupabaseAdmin, since: string): Promise<Dashbo
     categories[row.category] = (categories[row.category] ?? 0) + 1;
   }
 
-  const highlights = await toHighlights(supabase, rows);
+  const highlights = await toHighlights(supabase, rows, lastKreisTotals);
 
   return {
     total: count ?? 0,
@@ -178,7 +222,8 @@ async function loadDelta(supabase: SupabaseAdmin, since: string): Promise<Dashbo
 }
 
 export async function GET(request: Request) {
-  if ((await getConfiguredSubmissionWindow()).status !== "open") {
+  const campaign = await getConfiguredSubmissionWindow();
+  if (campaign.status !== "open") {
     return Response.json(
       { error: "Das Live-Dashboard ist nur waehrend des Weltrekordversuchs verfuegbar.", code: "outside-campaign-window" },
       { status: 403, headers: { "Cache-Control": "no-store" } },
@@ -229,7 +274,10 @@ export async function GET(request: Request) {
     return Response.json(delta, { headers: { "Cache-Control": "public, s-maxage=5, stale-while-revalidate=30" } });
   }
 
-  const snapshot = await loadSnapshot(supabase);
+  const snapshot = await loadSnapshot(supabase, {
+    startAt: campaign.startAt?.toISOString() ?? null,
+    endAt: campaign.endAt?.toISOString() ?? null,
+  });
   if (!snapshot) {
     return Response.json({ error: "Die Live-Daten konnten nicht geladen werden." }, { status: 502 });
   }

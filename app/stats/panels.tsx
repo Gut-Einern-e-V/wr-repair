@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
-import { formatMinutes, type DashboardSnapshot } from "@/lib/dashboard";
+import { campaignElapsed, countdownTo, formatMinutes, formatRemaining, goalPercent, paceVerdict, requiredPerHour, type DashboardSnapshot, type PaceVerdict } from "@/lib/dashboard";
 import { type KreisRank } from "@/lib/nrw-map";
 import { treemap } from "@/lib/treemap";
 
@@ -95,19 +95,81 @@ export function CategoryTreemap({ categories }: { categories: Record<string, num
   );
 }
 
-export function TimelineChart({ timeline }: { timeline: DashboardSnapshot["timeline"] }) {
-  const max = Math.max(...timeline.map((day) => day.total), 1);
+const verdictText: Record<PaceVerdict["state"], string> = {
+  ahead: "vor dem Plan",
+  onTrack: "im Plan",
+  behind: "hinter dem Plan",
+};
+
+/**
+ * Restzeit und Soll-Ist-Vergleich.
+ *
+ * Ersetzt die Zeitachse der letzten 30 Tage, die auf einer Buehne vor allem
+ * leere Tage zeigte. Eine blosse Uhr waere aber auch nur eine Uhr: Fuer einen
+ * Rekordversuch lautet die Frage nicht "wie viel Zeit bleibt", sondern "reicht
+ * sie". Deshalb stehen die beiden Balken untereinander - verbrauchte Zeit gegen
+ * erreichten Anteil. Liegt der Rekordbalken zurueck, sieht man das sofort.
+ *
+ * Das noetige Tempo erscheint nur, solange es eine sinnvolle Zahl ergibt - also
+ * wenn noch etwas fehlt und noch Zeit bleibt (siehe `requiredPerHour`).
+ */
+export function DeadlineCountdown({ campaign, total, goal, nowMs }: { campaign: DashboardSnapshot["campaign"]; total: number; goal: number; nowMs: number }) {
+  const countdown = countdownTo(campaign.endAt, nowMs);
+
+  if (!countdown) {
+    return <p className="stage-countdown-note">Der Zeitraum fuer Einreichungen wird gerade eingerichtet.</p>;
+  }
+
+  if (countdown.expired) {
+    return <p className="stage-countdown-note">Das Einreichungsfenster ist geschlossen. Danke an alle, die mitgemacht haben.</p>;
+  }
+
+  const missing = Math.max(0, goal - total);
+  const pace = requiredPerHour(total, goal, countdown.totalMs);
+  const reached = goalPercent(total, goal);
+  const elapsed = campaignElapsed(campaign.startAt, campaign.endAt, nowMs);
+  const verdict = elapsed === null ? null : paceVerdict(reached, elapsed);
 
   return (
-    <div className="timeline-strip" role="img" aria-label="Reparaturen der letzten 30 Tage">
-      {timeline.map((day, index) => (
-        <span key={day.date} style={{ animationDelay: `${index * 22}ms` }}>
-          <i style={{ height: `${Math.max((day.total / max) * 100, 2)}%` }} />
-        </span>
-      ))}
+    <div className="stage-countdown">
+      <p className="stage-countdown-remaining">{formatRemaining(countdown)}</p>
+
+      {/* Der eigentliche Punkt: nicht wie viel Zeit bleibt, sondern ob der
+          Rekord mit ihr Schritt haelt. Zwei Balken uebereinander, damit der
+          Vergleich ohne Rechnen sichtbar ist. */}
+      {elapsed !== null && (
+        <div className={`stage-countdown-race is-${verdict?.state ?? "onTrack"}`}>
+          <span>Rekord</span>
+          <span className="stage-countdown-bar"><i style={{ width: `${Math.min(100, reached)}%` }} /></span>
+          <b>{Math.round(reached)} %</b>
+
+          <span>Zeit</span>
+          <span className="stage-countdown-bar is-time"><i style={{ width: `${elapsed}%` }} /></span>
+          <b>{Math.round(elapsed)} %</b>
+        </div>
+      )}
+
+      {verdict && (
+        <p className={`stage-countdown-verdict is-${verdict.state}`}>
+          {verdict.state === "onTrack"
+            ? "Genau im Plan"
+            : <>{Math.abs(Math.round(verdict.gap))} Punkte {verdictText[verdict.state]}</>}
+        </p>
+      )}
+
+      <p className="stage-countdown-line">
+        {missing > 0
+          ? <>Noch <b>{missing.toLocaleString("de-DE")}</b> bis zum Ziel{pace !== null && <>, das sind <b>{pace < 10 ? pace.toLocaleString("de-DE", { maximumFractionDigits: 1 }) : Math.ceil(pace).toLocaleString("de-DE")}</b> pro Stunde</>}</>
+          : <>Das Ziel steht - jede weitere Reparatur baut den Rekord aus.</>}
+      </p>
     </div>
   );
 }
+
+/** Ab dieser Laenge wandert die Liste; darunter passt sie ohnehin ins Panel. */
+const KREIS_SCROLL_FROM = 8;
+/** Sekunden je Zeile fuer eine Richtung - langsam genug zum Mitlesen. */
+const KREIS_SECONDS_PER_ROW = 1.9;
 
 /**
  * Rangliste der aktivsten Kreise.
@@ -116,11 +178,6 @@ export function TimelineChart({ timeline }: { timeline: DashboardSnapshot["timel
  * Kreis liefert das Aggregat nicht (siehe `rankKreise`). Ohne Zuwachs bleibt die
  * Spalte leer, statt eine Null hinzuschreiben, die wie ein Stillstand aussieht.
  */
-/** Ab dieser Laenge wandert die Liste; darunter passt sie ohnehin ins Panel. */
-const KREIS_SCROLL_FROM = 8;
-/** Sekunden je Zeile fuer eine Richtung - langsam genug zum Mitlesen. */
-const KREIS_SECONDS_PER_ROW = 1.9;
-
 export function KreisTop({ ranking }: { ranking: KreisRank[] }) {
   if (ranking.length === 0) {
     return <p className="kreis-top-empty">Sobald genug Reparaturen je Ort zusammenkommen, erscheint hier die Rangliste.</p>;

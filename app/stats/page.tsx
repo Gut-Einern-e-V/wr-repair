@@ -9,7 +9,7 @@ import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { RepairCloud } from "./repair-cloud";
 import { RecordCounter } from "./record-counter";
 import { LiveTicker } from "./live-ticker";
-import { CategoryTreemap, KreisTop, MetricTiles, TimelineChart, categoryColor } from "./panels";
+import { CategoryTreemap, DeadlineCountdown, KreisTop, MetricTiles, categoryColor } from "./panels";
 import { StageSettings } from "./stage-settings";
 import { SubmitQr } from "./submit-qr";
 
@@ -298,8 +298,8 @@ export default function LiveDashboardPage() {
         <section className="dashboard-panel panel-right">
           <p className="panel-label">Was repariert wird</p>
           <CategoryTreemap categories={snapshot.categories} />
-          <p className="panel-label">Reparaturen der letzten 30 Tage</p>
-          <TimelineChart timeline={snapshot.timeline} />
+          <p className="panel-label">Noch Zeit bis zum Ende</p>
+          <DeadlineCountdown campaign={snapshot.campaign} goal={snapshot.goal} nowMs={nowMs} total={snapshot.total} />
           <SubmitQr />
         </section>
 

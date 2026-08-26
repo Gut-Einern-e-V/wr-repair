@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { changedDigitIndices, changedSlotIndices, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, mergeDashboardDelta, recentHighlights, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
+import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, isFreshlyApproved, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
 
 function highlight(id: string, category = "tools") {
   return {
@@ -10,6 +10,7 @@ function highlight(id: string, category = "tools") {
     imageAltText: null,
     submittedAt: "2026-10-01T09:00:00.000Z",
     approvedAt: "2026-10-01T10:00:00.000Z",
+    kreis: null,
   };
 }
 
@@ -25,6 +26,7 @@ const snapshot: DashboardSnapshot = {
   timeline: [{ date: "2026-10-01", total: 10 }],
   cells: [],
   highlights: [highlight("a"), highlight("b")],
+  campaign: { startAt: "2026-10-01T00:00:00.000Z", endAt: "2026-10-31T22:59:59.000Z" },
   cursor: "2026-10-01T10:00:00.000Z",
   generatedAt: "2026-10-01T10:00:00.000Z",
 };
@@ -120,6 +122,126 @@ describe("formatRelativeTime", () => {
   it("bleibt bei fehlender oder unlesbarer Angabe leer", () => {
     expect(formatRelativeTime(null, now)).toBe("");
     expect(formatRelativeTime("irgendwann", now)).toBe("");
+  });
+});
+
+describe("isFreshlyApproved", () => {
+  const now = Date.parse("2026-10-05T12:00:00.000Z");
+
+  it("markiert nur die letzten 15 Minuten", () => {
+    expect(isFreshlyApproved("2026-10-05T11:58:00.000Z", now)).toBe(true);
+    expect(isFreshlyApproved("2026-10-05T11:46:00.000Z", now)).toBe(true);
+    expect(isFreshlyApproved("2026-10-05T11:44:00.000Z", now)).toBe(false);
+    expect(isFreshlyApproved("2026-10-04T12:00:00.000Z", now)).toBe(false);
+  });
+
+  it("toleriert eine leicht vorlaufende Uhr", () => {
+    expect(isFreshlyApproved("2026-10-05T12:00:30.000Z", now)).toBe(true);
+    expect(isFreshlyApproved("2026-10-05T12:05:00.000Z", now)).toBe(false);
+  });
+
+  it("bleibt ohne brauchbare Angabe oder Uhr bei false", () => {
+    expect(isFreshlyApproved(null, now)).toBe(false);
+    expect(isFreshlyApproved("irgendwann", now)).toBe(false);
+    expect(isFreshlyApproved("2026-10-05T11:58:00.000Z", 0)).toBe(false);
+  });
+
+  it("nimmt das Fenster als Parameter", () => {
+    expect(isFreshlyApproved("2026-10-05T11:30:00.000Z", now, FRESH_APPROVAL_MS)).toBe(false);
+    expect(isFreshlyApproved("2026-10-05T11:30:00.000Z", now, 60 * 60 * 1_000)).toBe(true);
+  });
+});
+
+describe("countdownTo", () => {
+  const now = Date.parse("2026-10-05T12:00:00.000Z");
+
+  it("zerlegt die Restzeit in Tage, Stunden und Minuten", () => {
+    const countdown = countdownTo("2026-10-08T14:30:00.000Z", now);
+    expect(countdown).toMatchObject({ days: 3, hours: 2, minutes: 30, expired: false });
+  });
+
+  it("meldet abgelaufene Fenster ohne negative Zahlen", () => {
+    const countdown = countdownTo("2026-10-04T12:00:00.000Z", now);
+    expect(countdown).toMatchObject({ days: 0, hours: 0, minutes: 0, totalMs: 0, expired: true });
+  });
+
+  it("liefert null ohne Deadline oder vor dem ersten Uhrentakt", () => {
+    expect(countdownTo(null, now)).toBeNull();
+    expect(countdownTo("keine-zeit", now)).toBeNull();
+    expect(countdownTo("2026-10-08T14:30:00.000Z", 0)).toBeNull();
+  });
+});
+
+describe("formatRemaining", () => {
+  const at = (iso: string) => countdownTo(iso, Date.parse("2026-10-05T12:00:00.000Z"))!;
+
+  it("nennt die groebste Einheit, die noch etwas aussagt", () => {
+    expect(formatRemaining(at("2026-10-08T14:30:00.000Z"))).toBe("3 Tage, 2 Std.");
+    expect(formatRemaining(at("2026-10-06T12:00:00.000Z"))).toBe("1 Tag");
+    expect(formatRemaining(at("2026-10-05T14:30:00.000Z"))).toBe("2 Std., 30 Min.");
+    expect(formatRemaining(at("2026-10-05T15:00:00.000Z"))).toBe("3 Std.");
+    expect(formatRemaining(at("2026-10-05T12:42:00.000Z"))).toBe("42 Min.");
+  });
+
+  it("schreibt in der letzten Minute keine Null", () => {
+    expect(formatRemaining(at("2026-10-05T12:00:30.000Z"))).toBe("weniger als 1 Min.");
+    expect(formatRemaining(at("2026-10-04T12:00:00.000Z"))).toBe("vorbei");
+  });
+});
+
+describe("campaignElapsed", () => {
+  it("gibt den verbrauchten Anteil des Fensters", () => {
+    const start = "2026-10-01T00:00:00.000Z";
+    const end = "2026-10-11T00:00:00.000Z";
+    expect(campaignElapsed(start, end, Date.parse("2026-10-06T00:00:00.000Z"))).toBeCloseTo(50, 6);
+    expect(campaignElapsed(start, end, Date.parse("2026-10-01T00:00:00.000Z"))).toBe(0);
+  });
+
+  it("begrenzt auf 0 bis 100", () => {
+    const start = "2026-10-01T00:00:00.000Z";
+    const end = "2026-10-11T00:00:00.000Z";
+    expect(campaignElapsed(start, end, Date.parse("2026-09-01T00:00:00.000Z"))).toBe(0);
+    expect(campaignElapsed(start, end, Date.parse("2026-12-01T00:00:00.000Z"))).toBe(100);
+  });
+
+  it("liefert null bei unbrauchbarem Fenster", () => {
+    expect(campaignElapsed(null, "2026-10-11T00:00:00.000Z", 1)).toBeNull();
+    expect(campaignElapsed("2026-10-01T00:00:00.000Z", null, 1)).toBeNull();
+    // Ende vor Start ergibt keinen Anteil.
+    expect(campaignElapsed("2026-10-11T00:00:00.000Z", "2026-10-01T00:00:00.000Z", 1)).toBeNull();
+    expect(campaignElapsed("2026-10-01T00:00:00.000Z", "2026-10-11T00:00:00.000Z", 0)).toBeNull();
+  });
+});
+
+describe("paceVerdict", () => {
+  it("urteilt anhand des Abstands in Prozentpunkten", () => {
+    expect(paceVerdict(60, 50).state).toBe("ahead");
+    expect(paceVerdict(40, 50).state).toBe("behind");
+  });
+
+  it("haelt kleine Abweichungen ruhig", () => {
+    // Ohne Totzone kippte die Aussage bei jedem einzelnen Eintrag.
+    expect(paceVerdict(51, 50).state).toBe("onTrack");
+    expect(paceVerdict(49, 50).state).toBe("onTrack");
+    expect(paceVerdict(52, 50).state).toBe("onTrack");
+  });
+
+  it("gibt den Abstand vorzeichenrichtig zurueck", () => {
+    expect(paceVerdict(60, 50).gap).toBeCloseTo(10, 6);
+    expect(paceVerdict(40, 50).gap).toBeCloseTo(-10, 6);
+  });
+});
+
+describe("requiredPerHour", () => {
+  it("rechnet das noetige Tempo auf die Restzeit", () => {
+    // 100 fehlen, 10 Stunden Zeit.
+    expect(requiredPerHour(900, 1_000, 10 * 3_600_000)).toBeCloseTo(10, 6);
+  });
+
+  it("schweigt, wenn die Frage sich nicht stellt", () => {
+    expect(requiredPerHour(1_000, 1_000, 3_600_000)).toBeNull();
+    expect(requiredPerHour(1_200, 1_000, 3_600_000)).toBeNull();
+    expect(requiredPerHour(900, 1_000, 0)).toBeNull();
   });
 });
 
