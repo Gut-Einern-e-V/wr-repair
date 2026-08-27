@@ -49,12 +49,34 @@ async function readStory(fileName: string): Promise<Story> {
   return { slug, title: metadata.title, summary: metadata.summary, category: metadata.category, date: metadata.date, readingTime: metadata.readingTime, blocks: parseBlocks(body) };
 }
 
+/* README.md und Dateien mit fuehrendem Unterstrich sind Redaktionshinweise bzw.
+   Entwuerfe und haben kein Frontmatter - sie duerfen den Build nicht abbrechen. */
+function isStoryFile(fileName: string) {
+  return fileName.endsWith(".md") && fileName !== "README.md" && !fileName.startsWith("_");
+}
+
 export async function getStories() {
-  const files = (await readdir(storiesDirectory)).filter((fileName) => fileName.endsWith(".md"));
+  const files = (await readdir(storiesDirectory)).filter(isStoryFile);
   const stories = await Promise.all(files.map(readStory));
   return stories.sort((left, right) => right.date.localeCompare(left.date));
 }
 
 export async function getStory(slug: string) {
   return (await getStories()).find((story) => story.slug === slug);
+}
+
+export type StoryTeaser = Omit<Story, "blocks">;
+
+/* Teaser fuer Uebersichten: ohne Textbloecke, damit die Startseite nur die
+   Kachel-Daten in den RSC-Payload schreibt. Die Markdown-Dateien werden beim
+   Build gelesen, deshalb entsteht zur Laufzeit keine einzige Anfrage. */
+export async function getStoryTeasers(): Promise<StoryTeaser[]> {
+  return (await getStories()).map((story) => ({
+    slug: story.slug,
+    title: story.title,
+    summary: story.summary,
+    category: story.category,
+    date: story.date,
+    readingTime: story.readingTime,
+  }));
 }

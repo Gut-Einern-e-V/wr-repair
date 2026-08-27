@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getMessages } from "@/lib/i18n";
 import { getSiteLogoUrl } from "@/lib/site-logo";
 import { MobileNavigation } from "@/components/mobile-navigation";
+import { FundingStrip } from "@/components/funding-strip";
 
 const messages = getMessages();
 
@@ -19,10 +20,17 @@ export async function SiteHeader() {
   </header>;
 }
 
-export function SiteFooter() {
-  return <footer className="site-footer">
-    <p><strong>Reparaturrekord NRW</strong><br />Ein Projekt der FAB Region Bergisches Land.</p>
-    <div><Link href="/privacy">{messages.footer.privacy}</Link><Link href="/imprint">{messages.footer.imprint}</Link><Link href="/accessibility">{messages.footer.accessibility}</Link></div>
-    <p>Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
-  </footer>;
+/* Der Foerderhinweis gehoert auf jede oeffentliche Seite und steht deshalb hier,
+   direkt ueber dem Footer. Die Startseite bindet ihn selbst ein, weil sie ihren
+   eigenen Footer rendert. `funding={false}` nur dort, wo die Foerderlogos schon
+   im Seiteninhalt stehen (/supporters) - zweimal auf einer Seite ist redundant. */
+export function SiteFooter({ funding = true }: { funding?: boolean } = {}) {
+  return <>
+    {funding && <FundingStrip />}
+    <footer className="site-footer">
+      <p><strong>Reparaturrekord NRW</strong><br />Ein Projekt der FAB Region Bergisches Land.</p>
+      <div><Link href="/privacy">{messages.footer.privacy}</Link><Link href="/imprint">{messages.footer.imprint}</Link><Link href="/accessibility">{messages.footer.accessibility}</Link></div>
+      <p>Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
+    </footer>
+  </>;
 }
