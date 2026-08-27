@@ -17,6 +17,7 @@ Die Plattform erfasst Reparaturen fuer den Weltrekordversuch, moderiert sie und 
 | IP-Adresse | Kurzzeitig als Schlüssel des prozesslokalen Rate Limits | Nicht in `repairs` geschrieben. Der Zaehlereintrag wird nach dem jeweiligen Limitfenster verworfen: 15 Minuten fuer Einreichungen, 1 Minute fuer Statistikabfragen. |
 | Friendly-Captcha-Loesung | Loesungswert aus dem Formular zur Bot-Pruefung | Nicht in der Datenbank gespeichert; wird serverseitig an Friendly Captcha `siteverify` gesendet. |
 | Admin-Konten | Auth-E-Mail, optionaler Anzeigename und Anwendungrolle | Supabase Auth sowie die Tabellen `profiles` und `user_roles`; nur fuer den Moderationsbetrieb. |
+| Moderationsvorgang | Wer eine Einreichung entschieden hat (`moderated_by`, `moderated_at`) und wer sie gerade prueft (`claimed_by`, `claimed_at`) | Spalten in `repairs`, nur mit dem Service-Role-Key lesbar. Der Anspruch verhindert doppelte Arbeit bei paralleler Moderation und faellt mit der Entscheidung oder nach fuenf Minuten weg; an den Browser geht nur, *ob* jemand prueft, nicht wer. |
 
 Die Datenbankmigration enthaelt derzeit die Spalte `entry_ip`. Die aktuelle Upload-API setzt sie nicht. Sie darf nicht fuer neue Funktionen verwendet werden, bevor Notwendigkeit, Rechtsgrundlage und Aufbewahrungsfrist rechtlich festgelegt sind.
 

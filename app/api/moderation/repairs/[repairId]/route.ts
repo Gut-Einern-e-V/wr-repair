@@ -1,5 +1,4 @@
-import { requireModerator } from "@/lib/admin-auth";
-import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
+import { requireModerationAccess } from "@/lib/moderation";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { repairCategoryValues } from "@/lib/repair-catalog";
 
@@ -33,13 +32,9 @@ function isOptionalNumericString(value: unknown, min: number, max: number) {
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ repairId: string }> }) {
-  const authorization = await requireModerator();
-  if (!authorization.authorized) {
-    return Response.json({ error: authorization.error }, { status: authorization.status });
-  }
-
-  if (!authorization.currentAdmin.roles.some((role) => ["admin", "superadmin"].includes(role)) && (await getConfiguredSubmissionWindow()).status !== "open") {
-    return Response.json({ error: "Moderation ist nur waehrend des Einreichungszeitraums moeglich." }, { status: 403 });
+  const access = await requireModerationAccess();
+  if (!access.ok) {
+    return access.response;
   }
 
   const { repairId } = await context.params;
@@ -68,13 +63,9 @@ export async function DELETE(request: Request, context: { params: Promise<{ repa
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ repairId: string }> }) {
-  const authorization = await requireModerator();
-  if (!authorization.authorized) {
-    return Response.json({ error: authorization.error }, { status: authorization.status });
-  }
-
-  if (!authorization.currentAdmin.roles.some((role) => ["admin", "superadmin"].includes(role)) && (await getConfiguredSubmissionWindow()).status !== "open") {
-    return Response.json({ error: "Moderation ist nur waehrend des Einreichungszeitraums moeglich." }, { status: 403 });
+  const access = await requireModerationAccess();
+  if (!access.ok) {
+    return access.response;
   }
 
   const { repairId } = await context.params;
@@ -111,12 +102,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
   const supabase = createSupabaseAdminClient();
   const { data: repair, error: repairError } = await supabase
     .from("repairs")
-    .select("id, image_path, consent_publication")
+    .select("id, image_path, consent_publication, status")
     .eq("id", repairId)
     .single();
 
   if (repairError || !repair) {
     return Response.json({ error: "Einreichung nicht gefunden." }, { status: 404 });
+  }
+
+  if (body.status && repair.status !== "pending") {
+    return Response.json({ error: decidedElsewhere(repair.status) }, { status: 409 });
   }
 
   if (body.status === "approved" && !repair.consent_publication) {
@@ -152,18 +147,31 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     return Response.json({ ok: true });
   }
 
-  const { error: updateError } = await supabase
+  // Die Bedingung `status = 'pending'` entscheidet das Rennen zweier
+  // gleichzeitiger Sitzungen: Nur die erste Entscheidung aendert eine Zeile,
+  // die zweite bekommt 409 statt die erste zu ueberschreiben (Issue #38).
+  // Mit der Entscheidung faellt auch der Anspruch.
+  const { data: decided, error: updateError } = await supabase
     .from("repairs")
     .update({
       status: body.status,
       moderator_comment: moderatorComment || null,
-      moderated_by: authorization.currentAdmin.user.id,
+      moderated_by: access.currentAdmin.user.id,
       moderated_at: new Date().toISOString(),
+      claimed_by: null,
+      claimed_at: null,
     })
-    .eq("id", repairId);
+    .eq("id", repairId)
+    .eq("status", "pending")
+    .select("id");
 
   if (updateError) {
     return Response.json({ error: "Moderationsentscheidung konnte nicht gespeichert werden." }, { status: 502 });
+  }
+
+  if (!decided?.length) {
+    const { data: current } = await supabase.from("repairs").select("status").eq("id", repairId).single();
+    return Response.json({ error: decidedElsewhere(current?.status ?? "") }, { status: 409 });
   }
 
   if (body.status === "rejected" && repair.image_path) {
@@ -174,4 +182,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
   }
 
   return Response.json({ ok: true, imageDeleted: true });
+}
+
+function decidedElsewhere(status: string) {
+  const decision = status === "approved" ? "freigegeben" : status === "rejected" ? "abgelehnt" : "entschieden";
+  return `Diese Einreichung hat inzwischen jemand anderes ${decision}.`;
 }
