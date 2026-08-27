@@ -1,14 +1,10 @@
-import { requireModerator } from "@/lib/admin-auth";
-import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
 import { repairCategoryValues } from "@/lib/repair-catalog";
+import { moderationColumns, requireModerationAccess, signRepairImages, toModerationRepair } from "@/lib/moderation";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const statuses = new Set(["pending", "approved", "rejected"]);
 const categoriesSet = new Set(repairCategoryValues as string[]);
 const MAX_LIMIT = 200;
-
-const columns =
-  "id, category, brand_model, duration_minutes, item_value_euros, performed_by, story, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time";
 
 /** PostgREST-Filter brauchen maskierte Sonderzeichen im `ilike`-Muster. */
 function escapeLike(value: string) {
@@ -16,14 +12,9 @@ function escapeLike(value: string) {
 }
 
 export async function GET(request: Request) {
-  const authorization = await requireModerator();
-  if (!authorization.authorized) {
-    return Response.json({ error: authorization.error }, { status: authorization.status });
-  }
-
-  const isAdmin = authorization.currentAdmin.roles.some((role) => ["admin", "superadmin"].includes(role));
-  if (!isAdmin && (await getConfiguredSubmissionWindow()).status !== "open") {
-    return Response.json({ error: "Moderation ist nur waehrend des Einreichungszeitraums moeglich." }, { status: 403 });
+  const access = await requireModerationAccess();
+  if (!access.ok) {
+    return access.response;
   }
 
   const params = new URL(request.url).searchParams;
@@ -49,7 +40,7 @@ export async function GET(request: Request) {
   }
 
   const supabase = createSupabaseAdminClient();
-  let query = supabase.from("repairs").select(columns).eq("status", status);
+  let query = supabase.from("repairs").select(moderationColumns).eq("status", status);
 
   if (category) query = query.eq("category", category);
   if (consent) query = query.eq("consent_publication", consent === "yes");
@@ -64,21 +55,15 @@ export async function GET(request: Request) {
     return Response.json({ error: "Einreichungen konnten nicht geladen werden." }, { status: 502 });
   }
 
-  const imagePaths = (repairs ?? []).filter((repair) => repair.image_path).map((repair) => repair.image_path as string);
-  const { data: signedUrls, error: urlError } = imagePaths.length
-    ? await supabase.storage.from("repair-images").createSignedUrls(imagePaths, 900)
-    : { data: [], error: null };
-
+  const { urls, error: urlError } = await signRepairImages(supabase, repairs ?? []);
   if (urlError) {
     return Response.json({ error: "Bilder konnten nicht geladen werden." }, { status: 502 });
   }
 
-  const urls = new Map((signedUrls ?? []).map((item) => [item.path, item.signedUrl]));
-
   // Moderator*innen sollen sich auf die einzelne Einreichung konzentrieren;
   // wie voll die Warteschlange ist, geht nur Admins etwas an (Issue #10).
   let counts: Record<string, number> | null = null;
-  if (isAdmin) {
+  if (access.isAdmin) {
     const [pending, approved, rejected] = await Promise.all(
       ["pending", "approved", "rejected"].map((value) =>
         supabase.from("repairs").select("id", { count: "exact", head: true }).eq("status", value),
@@ -88,10 +73,7 @@ export async function GET(request: Request) {
   }
 
   return Response.json({
-    repairs: (repairs ?? []).map((repair) => ({
-      ...repair,
-      imageUrl: repair.image_path ? (urls.get(repair.image_path) ?? null) : null,
-    })),
+    repairs: (repairs ?? []).map((repair) => toModerationRepair(repair, urls, access.currentAdmin.user.id)),
     counts,
     truncated: (repairs ?? []).length === limit,
   });

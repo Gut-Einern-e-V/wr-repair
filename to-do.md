@@ -42,6 +42,7 @@ Stand: 17. Juli 2026
 - [x] Bearbeiten von Metadaten umsetzen: Moderator*innen koennen Kategorie, Produktname, Beschreibung, Bildbeschreibung und Tags mit serverseitigen Grenzen bearbeiten.
 - [x] Oeffentliche Galerie ausschliesslich aus freigegebenen Einreichungen speisen. Die API fragt nur `approved` ab und liefert kurzlebige, signierte URLs aus dem privaten Bucket.
 - [x] CSV-Export fuer autorisierte Admins bereitstellen. Der Export ist auf `admin` und `superadmin` beschraenkt, wird nicht gecacht und neutralisiert Tabellenkalkulationsformeln in Textfeldern.
+- [x] Parallele Moderation ohne Doppelarbeit: Die Schnellpruefung holt genau eine Einreichung und beansprucht sie fuer fuenf Minuten, eine Entscheidung greift nur solange die Einreichung offen ist. Die Migration `202608270004_moderation_claims.sql` muss vor dem produktiven Einsatz mit `npx supabase@latest db push` ausgerollt werden.
 
 ## Statistik und Oeffentlichkeit
 

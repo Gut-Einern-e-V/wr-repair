@@ -1,0 +1,207 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
+import { useJsonResource } from "@/lib/use-json-resource";
+import { decideRepair, deleteRepair, saveRepairMetadata } from "./moderation-api";
+import RepairDetail from "./repair-detail";
+import {
+  buildQuery,
+  isUnderReview,
+  repairStatusLabels,
+  type MetadataDraft,
+  type ModerationFilters,
+  type ModerationRepair,
+  type RepairStatus,
+} from "./repair-types";
+
+type LoadResponse = { repairs: ModerationRepair[]; counts: Record<string, number> | null; truncated: boolean };
+
+const emptyFilters: ModerationFilters = { status: "pending", category: "", consent: "", search: "", sort: "oldest" };
+
+/**
+ * Listenpruefung: filterbare Uebersicht mit Vollansicht. Freigeben geht direkt
+ * aus der Zeile, ohne die Einreichung erst aufzuklappen (Issue #38); Ablehnen
+ * bleibt der Vollansicht vorbehalten, weil dabei das Bild geloescht wird.
+ */
+export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
+  const [filters, setFilters] = useState<ModerationFilters>(emptyFilters);
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [notice, setNotice] = useState("");
+  const [actionError, setActionError] = useState("");
+
+  // Die Suche laeuft erst nach einer Tippause los, damit jede Taste keine
+  // Abfrage ausloest.
+  useEffect(() => {
+    const timer = window.setTimeout(() => setFilters((current) => (current.search === search ? current : { ...current, search })), 300);
+    return () => window.clearTimeout(timer);
+  }, [search]);
+
+  const url = useMemo(() => `/api/moderation/repairs?${buildQuery(filters)}`, [filters]);
+  const { data, error: loadError, isLoading, reload, patch } = useJsonResource<LoadResponse>(url, "Einreichungen konnten nicht geladen werden.");
+  const repairs = data?.repairs ?? [];
+  const counts = data?.counts ?? null;
+  const error = actionError || loadError;
+
+  async function decide(repairId: string, status: "approved" | "rejected", comment: string) {
+    setBusyId(repairId);
+    setNotice("");
+    setActionError("");
+
+    try {
+      const result = await decideRepair(repairId, status, comment);
+
+      if (!result.ok && !result.conflict) {
+        setActionError(result.error);
+        return;
+      }
+
+      setNotice(result.ok
+        ? (status === "approved" ? "Einreichung wurde freigegeben." : "Einreichung wurde abgelehnt.")
+        : result.error);
+      if (result.ok && result.data.imageDeleted === false) {
+        setActionError("Die Einreichung wurde abgelehnt, aber das Bild muss noch manuell gelöscht werden.");
+      }
+
+      // Die entschiedene Zeile verschwindet sofort - auch bei 409, denn dann
+      // hat sie jemand anderes entschieden und sie gehoert nicht mehr hierher.
+      patch((current) => ({
+        ...current,
+        repairs: current.repairs.filter((repair) => repair.id !== repairId),
+        counts: current.counts && result.ok
+          ? { ...current.counts, pending: Math.max(current.counts.pending - 1, 0), [status]: (current.counts[status] ?? 0) + 1 }
+          : current.counts,
+      }));
+      setSelectedId((current) => (current === repairId ? null : current));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function saveMetadata(repairId: string, draft: MetadataDraft) {
+    setNotice("");
+    setActionError("");
+    const result = await saveRepairMetadata(repairId, draft);
+
+    if (!result.ok) {
+      setActionError(result.error);
+      return;
+    }
+
+    setNotice("Metadaten wurden aktualisiert.");
+    reload();
+  }
+
+  async function removeRepair(repairId: string) {
+    setNotice("");
+    setActionError("");
+    const result = await deleteRepair(repairId);
+
+    if (!result.ok) {
+      setActionError(result.error);
+      return;
+    }
+
+    setNotice("Einreichung wurde endgültig gelöscht.");
+    patch((current) => ({ ...current, repairs: current.repairs.filter((repair) => repair.id !== repairId) }));
+    setSelectedId(null);
+  }
+
+  const selected = repairs.find((repair) => repair.id === selectedId) ?? null;
+
+  return (
+    <>
+      <div className="moderation-filters">
+        <label className="filter-label">Status
+          <select value={filters.status} onChange={(event) => setFilters({ ...filters, status: event.target.value as RepairStatus })}>
+            {(Object.keys(repairStatusLabels) as RepairStatus[]).map((value) => <option key={value} value={value}>{repairStatusLabels[value]}</option>)}
+          </select>
+        </label>
+        <label className="filter-label">Kategorie
+          <select value={filters.category} onChange={(event) => setFilters({ ...filters, category: event.target.value })}>
+            <option value="">Alle</option>
+            {repairCategories.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+          </select>
+        </label>
+        <label className="filter-label">Zustimmung
+          <select value={filters.consent} onChange={(event) => setFilters({ ...filters, consent: event.target.value as ModerationFilters["consent"] })}>
+            <option value="">Alle</option>
+            <option value="yes">Liegt vor</option>
+            <option value="no">Fehlt</option>
+          </select>
+        </label>
+        <label className="filter-label">Reihenfolge
+          <select value={filters.sort} onChange={(event) => setFilters({ ...filters, sort: event.target.value as ModerationFilters["sort"] })}>
+            <option value="oldest">Älteste zuerst</option>
+            <option value="newest">Neueste zuerst</option>
+          </select>
+        </label>
+        <label className="filter-label filter-search">Suche in Marke und Geschichte
+          <input type="search" value={search} placeholder="z. B. Toaster" maxLength={120} onChange={(event) => setSearch(event.target.value)} />
+        </label>
+        <button className="text-button" type="button" onClick={() => { setSearch(""); setFilters(emptyFilters); }}>Filter zurücksetzen</button>
+      </div>
+
+      {isAdmin && counts && <p className="queue-counts">Offen: {counts.pending} · Freigegeben: {counts.approved} · Abgelehnt: {counts.rejected}</p>}
+      {notice && <p className="form-notice" role="status">{notice}</p>}
+      {error && <p className="form-error" role="alert">{error}</p>}
+
+      {isLoading ? <p className="queue-empty">Einreichungen werden geladen.</p> : repairs.length === 0 ? (
+        <p className="queue-empty">Keine Einreichungen für diese Filter.</p>
+      ) : (
+        <>
+          <div className="moderation-table-wrap">
+            <table className="moderation-table">
+              <thead>
+                <tr><th scope="col">Bild</th><th scope="col">Einreichung</th><th scope="col">Eingang</th><th scope="col">Region</th><th scope="col">Zustimmung</th><th scope="col">Status</th><th scope="col"><span className="sr-only">Aktionen</span></th></tr>
+              </thead>
+              <tbody>
+                {repairs.map((repair) => (
+                  <tr key={repair.id} className={repair.id === selectedId ? "is-selected" : ""}>
+                    <td>{repair.imageUrl
+                      // eslint-disable-next-line @next/next/no-img-element -- Signierte Storage-URL ohne feste Groesse.
+                      ? <img className="table-thumb" src={repair.imageUrl} alt="" />
+                      : <span className="table-thumb is-empty" aria-label="Kein Bild" />}</td>
+                    <td><strong>{repair.brand_model || "Marke/Modell unbekannt"}</strong><span className="table-sub">{repairCategoryLabel(repair.category)}</span></td>
+                    <td>{new Date(repair.entry_time ?? repair.created_at).toLocaleString("de-DE")}</td>
+                    <td>{repair.location_region ?? "–"}</td>
+                    <td>{repair.consent_publication ? "Ja" : "Nein"}</td>
+                    <td>
+                      <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span>
+                      {isUnderReview(repair) && <span className="status-chip is-claimed">In Prüfung</span>}
+                    </td>
+                    <td className="table-actions">
+                      {repair.status === "pending" && (
+                        <button
+                          className="quick-accept"
+                          type="button"
+                          disabled={!repair.consent_publication || busyId === repair.id}
+                          title={repair.consent_publication ? "Ohne Kommentar sofort freigeben" : "Ohne Veröffentlichungszustimmung nicht möglich"}
+                          onClick={() => void decide(repair.id, "approved", "")}
+                        >
+                          Freigeben
+                        </button>
+                      )}
+                      <button className="text-button" type="button" onClick={() => setSelectedId(repair.id === selectedId ? null : repair.id)}>{repair.id === selectedId ? "Schließen" : "Prüfen"}</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {data?.truncated && <p className="form-notice">Es werden höchstens 100 Einreichungen gleichzeitig angezeigt. Grenze die Filter weiter ein.</p>}
+          {selected && (
+            <RepairDetail
+              repair={selected}
+              onDecide={(repairId, status, comment) => decide(repairId, status, comment)}
+              onSaveMetadata={saveMetadata}
+              onDelete={removeRepair}
+            />
+          )}
+        </>
+      )}
+    </>
+  );
+}
