@@ -2,7 +2,6 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { getAppSettings } from "@/lib/app-settings";
 import { KREIS_MIN_FOR_LABEL, MAX_HIGHLIGHTS, type DashboardCell, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
-import { kreisForPoint, kreisTotals } from "@/lib/nrw-map";
 
 /**
  * Datenquelle des Buehnen-Dashboards.
@@ -49,8 +48,7 @@ type RepairRow = {
   image_alt_text: string | null;
   created_at: string | null;
   moderated_at: string | null;
-  location_lat: number | null;
-  location_lon: number | null;
+  kreis: string | null;
 };
 
 function toNumber(value: unknown): number {
@@ -84,20 +82,17 @@ function fillTimeline(rows: unknown): { date: string; total: number }[] {
 /**
  * Ortsangabe eines einzelnen Eintrags - oder `null`.
  *
- * Der Kreis wird nur genannt, wenn ihm mindestens `KREIS_MIN_FOR_LABEL`
- * freigegebene Reparaturen zugeordnet sind. `busyKreise` kommt aus denselben
- * anonymisierten Zellen, die auch die Karte fuellt, also aus Zellen mit jeweils
- * mindestens fuenf Reparaturen. Damit steht eine sichtbare Ortsangabe immer fuer
- * eine Gruppe und nie fuer eine einzelne Person. Die Rohkoordinate verlaesst den
- * Server ohnehin nie - sie ist bereits auf eine 5-km-Zelle gerundet gespeichert.
+ * Der Kreis steht bereits als Spalte auf der Zeile (einmalig bei der
+ * Einreichung aus der anonymisierten Zelle hergeleitet, siehe
+ * `app/api/repairs/route.ts`) und wird hier nur noch gegen die
+ * k-Anonymitaetsschwelle geprueft: Genannt wird er nur, wenn ihm mindestens
+ * `KREIS_MIN_FOR_LABEL` freigegebene Reparaturen zugeordnet sind. `busyKreise`
+ * kommt aus demselben Aggregat, das auch die Karte fuellt. Damit steht eine
+ * sichtbare Ortsangabe immer fuer eine Gruppe und nie fuer eine einzelne Person.
  */
 function toKreis(row: RepairRow, busyKreise: Record<string, number>): string | null {
-  if (row.location_lat === null || row.location_lon === null) return null;
-
-  const kreis = kreisForPoint({ lat: row.location_lat, lon: row.location_lon });
-  if (!kreis) return null;
-
-  return (busyKreise[kreis] ?? 0) >= KREIS_MIN_FOR_LABEL ? kreis : null;
+  if (!row.kreis) return null;
+  return (busyKreise[row.kreis] ?? 0) >= KREIS_MIN_FOR_LABEL ? row.kreis : null;
 }
 
 async function toHighlights(
@@ -126,10 +121,9 @@ async function toHighlights(
 
 // `created_at` ist der Einreichungszeitpunkt und damit die Angabe, die das
 // Laufband zeigt. `moderated_at` bleibt trotzdem dabei: Daran haengen die
-// Reihenfolge der Deltas und der Cursor. Die gerundete Koordinate dient nur der
-// Zuordnung zum Kreis in `toKreis` und wird selbst nie ausgeliefert.
+// Reihenfolge der Deltas und der Cursor.
 const highlightColumns =
-  "id, category, brand_model, image_path, image_alt_text, created_at, moderated_at, location_lat, location_lon";
+  "id, category, brand_model, image_path, image_alt_text, created_at, moderated_at, kreis";
 
 /**
  * Liest die Herkunftszellen aus dem Aggregat.
@@ -158,7 +152,7 @@ async function loadSnapshot(supabase: SupabaseAdmin, campaign: DashboardSnapshot
 
   const aggregate = data as Record<string, unknown>;
   const cells = toCells(aggregate.cells);
-  const busyKreise = kreisTotals(cells);
+  const busyKreise = toCounts(aggregate.kreise);
   lastKreisTotals = busyKreise;
 
   const { data: recent } = await supabase
@@ -179,6 +173,7 @@ async function loadSnapshot(supabase: SupabaseAdmin, campaign: DashboardSnapshot
     performedBy: toCounts(aggregate.performedBy),
     timeline: fillTimeline(aggregate.timeline),
     cells,
+    kreise: busyKreise,
     highlights: await toHighlights(supabase, (recent ?? []) as RepairRow[], busyKreise),
     campaign,
     cursor: typeof aggregate.cursor === "string" ? aggregate.cursor : null,

@@ -25,6 +25,7 @@ const snapshot: DashboardSnapshot = {
   performedBy: { alone: 10 },
   timeline: [{ date: "2026-10-01", total: 10 }],
   cells: [],
+  kreise: {},
   highlights: [highlight("a"), highlight("b")],
   campaign: { startAt: "2026-10-01T00:00:00.000Z", endAt: "2026-10-31T22:59:59.000Z" },
   cursor: "2026-10-01T10:00:00.000Z",

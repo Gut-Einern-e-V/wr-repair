@@ -1181,12 +1181,21 @@ export function positionForId(id: string, cells: OriginCell[]): { x: number; y: 
 
   // Streuradius etwa eine halbe Zellbreite (~2,5 km).
   const spread = 2.5 / 111.32;
-  const angle = random() * Math.PI * 2;
-  const distance = Math.sqrt(random()) * spread;
+  const kreis = kreisForPoint(chosen);
 
-  return projectToUnitSquare({
-    lat: chosen.lat + Math.sin(angle) * distance,
-    lon: chosen.lon + (Math.cos(angle) * distance) / latitudeScale,
-  });
+  // Bis zu 12 Versuche, damit die Streuung nicht ueber die Kreisgrenze der
+  // gewaehlten Zelle hinausschiesst - sonst wirkt ein Nachbarkreis auf der
+  // Karte besetzt, obwohl ihm keine Zelle zugeordnet ist.
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const angle = random() * Math.PI * 2;
+    const distance = Math.sqrt(random()) * spread;
+    const point = {
+      lat: chosen.lat + Math.sin(angle) * distance,
+      lon: chosen.lon + (Math.cos(angle) * distance) / latitudeScale,
+    };
+    if (kreisForPoint(point) === kreis) return projectToUnitSquare(point);
+  }
+
+  return projectToUnitSquare(chosen);
 }
 

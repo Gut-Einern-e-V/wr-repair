@@ -6,6 +6,7 @@ import { anonymizeRequestOrigin, isAnonymizedPoint } from "@/lib/geo-anonymize";
 import { rateLimit } from "@/lib/rate-limit";
 import { getAppSettings } from "@/lib/app-settings";
 import { repairCategoryValues } from "@/lib/repair-catalog";
+import { kreisForPoint } from "@/lib/nrw-map";
 
 export const runtime = "nodejs";
 
@@ -196,6 +197,9 @@ export async function POST(request: Request) {
   const parsedDuration = durationMinutes ? parseInt(String(durationMinutes), 10) : null;
   const parsedValue = itemValueEuros ? parseFloat(String(itemValueEuros)) : null;
   const origin = resolveAnonymizedOrigin(request, formData, settings.region);
+  // Einmalig aus der anonymisierten Zelle hergeleitet, statt bei jedem
+  // Dashboard-Aufruf per Punkt-in-Polygon-Test neu zu berechnen.
+  const kreis = origin ? kreisForPoint(origin) : null;
 
   const { error: insertError } = await supabase.from("repairs").insert({
     id: repairId,
@@ -211,6 +215,7 @@ export async function POST(request: Request) {
     location_region: locationRegion,
     location_lat: origin?.lat ?? null,
     location_lon: origin?.lon ?? null,
+    kreis,
     status: "pending",
   });
 

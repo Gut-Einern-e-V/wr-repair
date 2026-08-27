@@ -58,6 +58,12 @@ export type DashboardSnapshot = {
   performedBy: Record<string, number>;
   timeline: { date: string; total: number }[];
   cells: DashboardCell[];
+  /**
+   * Reparaturen je Kreis, direkt aus dem Aggregat - siehe `kreis`-Spalte in
+   * `public.repairs` und `dashboard_stats()`. Ersetzt die fruehere
+   * Neuberechnung ueber `kreisTotals(cells)` auf Server und Client.
+   */
+  kreise: Record<string, number>;
   highlights: DashboardHighlight[];
   /**
    * Das Einreichungsfenster, aus derselben Quelle wie die Zugangspruefung der
