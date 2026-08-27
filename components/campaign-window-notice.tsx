@@ -31,7 +31,7 @@ export function CampaignWindowNotice({ status, startAt }: CampaignWindowNoticePr
     </p>
     <p>
       {status === "after"
-        ? "Danke an alle Menschen, die Reparatur sichtbar gemacht haben. Die freigegebenen Geschichten bleiben Teil des Projekts."
+        ? "Danke an alle Menschen, die Reparatur sichtbar gemacht haben. Die veröffentlichten Geschichten bleiben Teil des Projekts."
         : hasStart
           ? <>Einreichungen öffnen am <time dateTime={startAt ?? undefined}>{dateFormat.format(new Date(startTime))} Uhr</time>. Bis dahin lohnt ein Blick hinter das Projekt.</>
           : "Der genaue Zeitraum wird gerade eingerichtet. Bis dahin kannst du das Projekt, die Partner und die ersten Reparaturgeschichten entdecken."}

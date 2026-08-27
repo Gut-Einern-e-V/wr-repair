@@ -182,12 +182,13 @@ export function HomeView({ stories }: HomeViewProps) {
       <section className="how-it-works" aria-labelledby="how-title">
         <div>
           <p className="section-index">Mitmachen</p>
-          <h2 id="how-title">Ein Foto. Ein paar Fragen. Ein Zeichen für Reparatur.</h2>
+          <h2 id="how-title">Wir in NRW schaffen die meisten reparierten Gegenstände in einem Monat.</h2>
+          <p className="how-it-works-lead">So einfach geht&rsquo;s:</p>
         </div>
         <ol className="steps">
-          <li><span className="step-number" aria-hidden="true">01</span><p>Foto deiner Reparatur aufnehmen.</p></li>
-          <li><span className="step-number" aria-hidden="true">02</span><p>Gerät und Reparatur kurz beschreiben.</p></li>
-          <li><span className="step-number" aria-hidden="true">03</span><p>Nach Prüfung wird dein Beitrag gezählt.</p></li>
+          <li><span className="step-number" aria-hidden="true">01</span><div><strong>Reparieren</strong><p>Es zählt alles, was vorher kaputt, d.&#8239;h. nur eingeschränkt oder nicht nutzbar war.</p></div></li>
+          <li><span className="step-number" aria-hidden="true">02</span><div><strong>Hochladen</strong><p>Ein Foto machen und ein paar Fragen beantworten.</p></div></li>
+          <li><span className="step-number" aria-hidden="true">03</span><div><strong>Weltrekordhalter:in werden!</strong><p>Nach Prüfung wird dein Beitrag gezählt.</p></div></li>
         </ol>
       </section>
 
@@ -218,14 +219,14 @@ export function HomeView({ stories }: HomeViewProps) {
         <div className="participation-heading"><p className="section-index">Dein Weg zur Reparatur</p><h2 id="participation-title">Mach aus einer Reparatur einen sichtbaren Beitrag.</h2><p>Du musst kein Profi sein. Wichtig ist nur: Die Reparatur ist echt, du beschreibst sie kurz und reichst sie während des Teilnahmezeitraums ein.</p></div>
         <div className="participation-options">
           <article><div className="participation-photo"><NextImage src={brandPhotos.secondLife.src} alt={brandPhotos.secondLife.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Einreichen</span></div><h3>Selbst repariert?</h3><p>Mach ein Foto, wähle die Kategorie und erzähle in wenigen Sätzen, was wieder funktioniert.</p><button className="text-button" type="button" onClick={() => startSubmission()}>Reparatur einreichen <span aria-hidden="true">&#8594;</span></button></article>
-          <article><div className="participation-photo"><NextImage src={brandPhotos.bicycle.src} alt={brandPhotos.bicycle.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Mitmachen</span></div><h3>Du brauchst Hilfe?</h3><p>In Repair Cafés und offenen Werkstätten findest du Menschen, Werkzeuge und Zeit für die nächste Reparatur.</p><a className="text-button" href="https://www.repaircafe.org/en/visit/" target="_blank" rel="noreferrer">Repair Café finden <span aria-hidden="true">&#8599;</span></a></article>
-          <article><div className="participation-photo"><NextImage src={brandPhotos.celebrate.src} alt={brandPhotos.celebrate.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Unterstützen</span></div><h3>Ihr seid eine Einrichtung?</h3><p>Werkstätten, Schulen, Vereine und Initiativen können ihre Reparaturen sichtbar machen und das Projekt unterstützen.</p><a className="text-button" href="mailto:mail@gut-einern.org?subject=Reparaturrekord%20NRW%20unterstuetzen">Kontakt aufnehmen <span aria-hidden="true">&#8594;</span></a></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.bicycle.src} alt={brandPhotos.bicycle.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Mitmachen</span></div><h3>Du brauchst Hilfe?</h3><p>In Repair Cafés und offenen Werkstätten findest du Menschen, Werkzeuge und Zeit für die nächste Reparatur &ndash; in ganz NRW und kostenlos.</p><Link className="text-button" href="/repair-cafes">Repair Café finden <span aria-hidden="true">&#8594;</span></Link></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.celebrate.src} alt={brandPhotos.celebrate.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Unterstützen</span></div><h3>Ihr seid eine Einrichtung?</h3><p>Werkstätten, Schulen, Vereine und Initiativen tragen sich in den Verteiler ein und bekommen Plakate, Kommunikationsmaterial und alle Infos zum Rekordmonat.</p><a className="text-button" href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">In den Verteiler eintragen <span aria-hidden="true">&#8599;</span></a></article>
         </div>
       </section>
 
       <section className="home-stats-preview" aria-labelledby="home-stats-title">
-        <div><p className="section-index">Live-Auswertung</p><h2 id="home-stats-title">Was gerade repariert wird.</h2><p>Die Auswertung zeigt ausschließlich freigegebene Einreichungen. Aus Datenschutzgründen werden keine Orte auf einer Karte dargestellt.</p><Link className="text-button" href="/stats">Alle Statistiken <span aria-hidden="true">&#8594;</span></Link></div>
-        <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? "Die Statistik wird während des Weltrekordversuchs freigeschaltet." : "Die ersten freigegebenen Reparaturen erscheinen hier."}</li>}</ol>
+        <div><p className="section-index">Live-Auswertung</p><h2 id="home-stats-title">Was gerade repariert wird.</h2><p>Gezählt wird, was die Moderation geprüft hat. Aus Datenschutzgründen werden keine Orte auf einer Karte dargestellt.</p><Link className="text-button" href="/stats">Alle Statistiken <span aria-hidden="true">&#8594;</span></Link></div>
+        <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? "Die Statistik wird während des Weltrekordversuchs freigeschaltet." : "Die ersten Reparaturen erscheinen hier."}</li>}</ol>
       </section>
 
       <section className="category-section" aria-labelledby="category-title">
@@ -233,7 +234,7 @@ export function HomeView({ stories }: HomeViewProps) {
           <div>
             <p className="section-index">Reparatur eintragen</p>
             <h2 id="category-title">Kategorie wählen und Reparatur eintragen.</h2>
-            <p className="section-lead">Ein Klick auf eine Kategorie öffnet direkt das Einreichungsformular &ndash; die Kategorie ist dann schon ausgewählt. Die Zahl darunter zeigt, wie viele freigegebene Reparaturen es dort bisher gibt.</p>
+            <p className="section-lead">Ein Klick auf eine Kategorie öffnet direkt das Einreichungsformular &ndash; die Kategorie ist dann schon ausgewählt. Die Zahl darunter zeigt, wie viele Reparaturen dort bisher gezählt wurden.</p>
           </div>
           <button className="text-button" type="button" onClick={() => startSubmission()}>{campaign.status === "open" ? "Ohne Kategorie starten" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span></button>
         </div>
@@ -247,7 +248,7 @@ export function HomeView({ stories }: HomeViewProps) {
               aria-label={`Reparatur in der Kategorie ${item.label} eintragen`}
             >
               <strong>{item.label}</strong>
-              <span className="category-card-count">{(repairStats?.categories[item.value] ?? 0).toLocaleString("de-DE")} freigegeben</span>
+              <span className="category-card-count">{(repairStats?.categories[item.value] ?? 0).toLocaleString("de-DE")} Reparaturen</span>
               <span className="category-card-action"><i aria-hidden="true">+</i>Eintragen</span>
             </button>
           ))}
