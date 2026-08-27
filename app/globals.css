@@ -1006,14 +1006,19 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .cafe-directories .text-button { margin-top: auto; }
 
 .cafe-city-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin: 0; padding: 0; list-style: none; }
+/* Die Kachelfarbe sitzt auf dem <li>, der Hover-Zustand auf dem <a>. Sonst
+   gewinnen die :nth-child-Regeln durch ihre hoehere Spezifitaet gegen den
+   Hover: Der Hintergrund bliebe hell, nur die Schrift wuerde weiss - auf den
+   hellen Kacheln also unsichtbar. */
+.cafe-city-grid li { display: flex; background: var(--mint-soft); }
+.cafe-city-grid li:nth-child(4n + 2) { background: var(--mint); }
+.cafe-city-grid li:nth-child(4n + 3) { background: var(--paper); }
+.cafe-city-grid li:nth-child(4n) { background: var(--yellow); }
 .cafe-city-grid a {
-  display: flex; min-height: 104px; flex-direction: column; justify-content: space-between; gap: 10px;
-  padding: 16px 17px; background: var(--mint-soft); color: var(--ink); text-decoration: none;
-  transition: background-color 120ms ease;
+  display: flex; flex: 1; min-height: 104px; min-width: 0; flex-direction: column; justify-content: space-between; gap: 10px;
+  padding: 16px 17px; background: transparent; color: var(--ink); text-decoration: none;
+  transition: background-color 120ms ease, color 120ms ease;
 }
-.cafe-city-grid li:nth-child(4n + 2) a { background: var(--mint); }
-.cafe-city-grid li:nth-child(4n + 3) a { background: var(--paper); }
-.cafe-city-grid li:nth-child(4n) a { background: var(--yellow); }
 /* Lange Ortsnamen wie Moenchengladbach passen in der schmalen Kachel nicht in
    eine Zeile. `hyphens: auto` trennt sie mit Bindestrich (html lang="de")
    statt sie mitten im Wort umzubrechen. */
