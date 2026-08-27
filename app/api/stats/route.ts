@@ -1,6 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
+import { getAppSettings } from "@/lib/app-settings";
 
 const PAGE_SIZE = 1_000;
 const TIMELINE_DAYS = 30;
@@ -79,8 +80,10 @@ export async function GET(request: Request) {
     }
   }
 
+  const { recordGoal } = await getAppSettings();
+
   return Response.json(
-    { total, categories, timeline: [...timeline].map(([date, dayTotal]) => ({ date, total: dayTotal })) },
+    { total, goal: recordGoal, categories, timeline: [...timeline].map(([date, dayTotal]) => ({ date, total: dayTotal })) },
     { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" } },
   );
 }

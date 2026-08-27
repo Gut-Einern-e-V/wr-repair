@@ -21,6 +21,7 @@ type GalleryRepair = {
 
 type RepairStats = {
   total: number;
+  goal: number;
   categories: Record<string, number>;
 };
 
@@ -180,10 +181,10 @@ export default function Home() {
                 <p className="counter-label">Reparaturen in Nordrhein-Westfalen</p>
                 <p className={`counter-number ${animatedRepairCount === null ? "is-loading" : ""}`} aria-live="polite" aria-label={animatedRepairCount === null ? "Reparaturen werden geladen" : `${animatedRepairCount} Reparaturen`}>{animatedRepairCount === null ? "..." : animatedRepairCount.toLocaleString("de-DE")}</p>
                 <div className="counter-meta">
-                  <span>Unser Ziel: 10.000</span>
-                  <span>{((repairCount ?? 0) / 10_000 * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
+                  <span>Unser Ziel: {(repairStats?.goal ?? 10_000).toLocaleString("de-DE")}</span>
+                  <span>{((repairCount ?? 0) / (repairStats?.goal ?? 10_000) * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
                 </div>
-                <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / 100, 100)}%` }} /></div>
+                <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / (repairStats?.goal ?? 10_000) * 100, 100)}%` }} /></div>
                 <p className="counter-note">{statsState === "unavailable" ? "Der Live-Stand ist gerade nicht verfügbar." : statsUpdatedAt ? `Aktualisiert um ${statsUpdatedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.` : "Live-Stand wird geladen."}</p>
               </div>
               <div className="hero-qr">
