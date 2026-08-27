@@ -554,6 +554,12 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .repair-form .upload-field { border: var(--line); background: var(--bg); padding: 14px; }
 .repair-form .upload-field input[type="file"] { display: block; width: 100%; margin: 12px 0 8px; font-size: 14px; }
 .repair-form .upload-field small { display: block; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .01em; text-transform: none; }
+.repair-form .location-picker { margin: 20px 0; padding: 14px; border: var(--line); background: var(--bg); }
+.repair-form .location-picker-label { margin: 0 0 10px; font-family: var(--sans); font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.repair-form .location-picker-label small { display: inline-block; margin-left: 6px; font-weight: 600; letter-spacing: .01em; text-transform: none; }
+.repair-form .location-picker-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.repair-form .location-picker-actions .button { margin: 0; }
+.repair-form .location-picker-actions select { flex: 1; min-width: 180px; margin: 0; }
 .repair-form .geo-notice { margin: 20px 0; padding: 12px 14px; border-left: 6px solid var(--yellow); background: rgba(255, 196, 50, .16); font-size: 14px; line-height: 1.4; }
 .repair-form .form-submit { width: 100%; margin-top: 8px; }
 
