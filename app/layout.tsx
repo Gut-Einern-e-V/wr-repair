@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getSiteUrl } from "@/lib/share";
+import { ScrollReveal } from "@/components/scroll-reveal";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
     <html lang="de">
       <body>
         {children}
+        <ScrollReveal />
         <Analytics />
       </body>
     </html>
