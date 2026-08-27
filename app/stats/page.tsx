@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
 import { goalLaps, mergeDashboardDelta, type DashboardDelta, type DashboardSnapshot } from "@/lib/dashboard";
-import { kreisTotals, rankKreise } from "@/lib/nrw-map";
+import { rankKreise } from "@/lib/nrw-map";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { RepairCloud } from "./repair-cloud";
 import { RecordCounter } from "./record-counter";
@@ -29,6 +29,7 @@ const SPOTLIGHT_CYCLE_MS = 20_000;
 const SPOTLIGHT_HOLD_MS = 5_000;
 const CELEBRATION_MS = 14_000;
 const TOP_KREISE = 20;
+const EMPTY_KREIS_COUNTS: Record<string, number> = {};
 
 type Status = "loading" | "ready" | "closed" | "error";
 
@@ -88,10 +89,9 @@ export default function LiveDashboardPage() {
       celebratedLapRef.current = Math.max(celebratedLapRef.current, goalLaps(data.total, data.goal));
 
       // Bezugsstand fuer den Zuwachs: der erste Snapshot, der ueberhaupt
-      // Herkunftszellen enthaelt. Ein leerer Stand als Bezug wuerde spaeter jede
+      // Kreis-Summen enthaelt. Ein leerer Stand als Bezug wuerde spaeter jede
       // Reparatur als neu ausweisen.
-      const totals = kreisTotals(data.cells);
-      if (Object.keys(totals).length > 0) setKreisBaseline((current) => current ?? totals);
+      if (Object.keys(data.kreise).length > 0) setKreisBaseline((current) => current ?? data.kreise);
 
       setSnapshot(data);
       setStatus("ready");
@@ -197,10 +197,9 @@ export default function LiveDashboardPage() {
 
   const featured = showSpotlight && spotlight !== null ? snapshot?.highlights[spotlight] ?? null : null;
 
-  // Reparaturen je Kreis. Stabil gehalten, weil die Karte daraus ihre
-  // Fuellfarben baut und das nicht in jedem Frame passieren soll.
-  const cells = snapshot?.cells;
-  const kreisCounts = useMemo(() => kreisTotals(cells ?? []), [cells]);
+  // Reparaturen je Kreis - kommt bereits fertig aggregiert vom Server statt
+  // hier aus den Herkunftszellen neu berechnet zu werden.
+  const kreisCounts = snapshot?.kreise ?? EMPTY_KREIS_COUNTS;
   const kreisRanking = useMemo(
     () => rankKreise(kreisCounts, kreisBaseline ?? {}, TOP_KREISE),
     [kreisCounts, kreisBaseline],
