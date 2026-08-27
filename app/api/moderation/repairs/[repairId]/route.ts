@@ -5,15 +5,31 @@ import { repairCategoryValues } from "@/lib/repair-catalog";
 
 const statuses = new Set(["approved", "rejected"]);
 const categoriesSet = new Set(repairCategoryValues as string[]);
+const validPerformedBy = new Set(["alone", "with_support", "by_someone"]);
 
 type Metadata = {
   category?: string;
   imageAltText?: string;
   tags?: string[];
+  brandModel?: string;
+  durationMinutes?: string;
+  itemValueEuros?: string;
+  performedBy?: string;
+  story?: string;
+  repairSucceeded?: boolean;
 };
 
 function isOptionalString(value: unknown, maxLength: number, allowEmpty = true) {
   return value === undefined || (typeof value === "string" && value.trim().length <= maxLength && (allowEmpty || Boolean(value.trim())));
+}
+
+/** Optionales numerisches Freitextfeld, wie es aus einem `<input type="number">` kommt. */
+function isOptionalNumericString(value: unknown, min: number, max: number) {
+  if (value === undefined) return true;
+  if (typeof value !== "string") return false;
+  if (value.trim() === "") return true;
+  const parsed = Number.parseFloat(value);
+  return Number.isFinite(parsed) && parsed >= min && parsed <= max;
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ repairId: string }> }) {
@@ -82,6 +98,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     (metadata.category !== undefined && (typeof metadata.category !== "string" || !categoriesSet.has(metadata.category)))
     || !isOptionalString(metadata.imageAltText, 250)
     || (metadata.tags !== undefined && (!Array.isArray(metadata.tags) || metadata.tags.length > 12 || metadata.tags.some((tag) => typeof tag !== "string" || !tag.trim() || tag.trim().length > 40)))
+    || !isOptionalString(metadata.brandModel, 200)
+    || !isOptionalNumericString(metadata.durationMinutes, 1, 9999)
+    || !isOptionalNumericString(metadata.itemValueEuros, 0, 999_999)
+    || (metadata.performedBy !== undefined && (typeof metadata.performedBy !== "string" || (metadata.performedBy !== "" && !validPerformedBy.has(metadata.performedBy))))
+    || !isOptionalString(metadata.story, 2000)
+    || (metadata.repairSucceeded !== undefined && typeof metadata.repairSucceeded !== "boolean")
   )) {
     return Response.json({ error: "Ungueltige Metadaten." }, { status: 400 });
   }
@@ -108,6 +130,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
         ...(metadata.category !== undefined ? { category: metadata.category } : {}),
         ...(metadata.imageAltText !== undefined ? { image_alt_text: metadata.imageAltText.trim() || null } : {}),
         ...(metadata.tags !== undefined ? { tags: metadata.tags.map((tag) => tag.trim()).filter(Boolean) } : {}),
+        ...(metadata.brandModel !== undefined ? { brand_model: metadata.brandModel.trim() || null } : {}),
+        ...(metadata.durationMinutes !== undefined
+          ? { duration_minutes: metadata.durationMinutes.trim() ? Number.parseFloat(metadata.durationMinutes) : null }
+          : {}),
+        ...(metadata.itemValueEuros !== undefined
+          ? { item_value_euros: metadata.itemValueEuros.trim() ? Number.parseFloat(metadata.itemValueEuros) : null }
+          : {}),
+        ...(metadata.performedBy !== undefined ? { performed_by: metadata.performedBy || null } : {}),
+        ...(metadata.story !== undefined ? { story: metadata.story.trim() || null } : {}),
+        ...(metadata.repairSucceeded !== undefined ? { repair_succeeded: metadata.repairSucceeded } : {}),
       })
       .eq("id", repairId);
 

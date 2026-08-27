@@ -4,6 +4,8 @@ export type ModerationRepair = {
   id: string;
   category: string;
   brand_model: string | null;
+  duration_minutes: number | null;
+  item_value_euros: number | null;
   performed_by: string | null;
   story: string | null;
   image_alt_text: string | null;

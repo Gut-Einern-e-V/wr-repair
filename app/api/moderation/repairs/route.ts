@@ -8,7 +8,7 @@ const categoriesSet = new Set(repairCategoryValues as string[]);
 const MAX_LIMIT = 200;
 
 const columns =
-  "id, category, brand_model, performed_by, story, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time";
+  "id, category, brand_model, duration_minutes, item_value_euros, performed_by, story, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time";
 
 /** PostgREST-Filter brauchen maskierte Sonderzeichen im `ilike`-Muster. */
 function escapeLike(value: string) {
