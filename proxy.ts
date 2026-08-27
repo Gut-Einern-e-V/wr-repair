@@ -24,7 +24,8 @@ export async function proxy(request: NextRequest) {
   });
 
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user && request.nextUrl.pathname.startsWith("/moderator")) {
+  const isBackend = request.nextUrl.pathname.startsWith("/moderator") || request.nextUrl.pathname.startsWith("/admin");
+  if (!user && isBackend) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
@@ -34,5 +35,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/moderator/:path*"],
+  matcher: ["/moderator/:path*", "/admin/:path*"],
 };

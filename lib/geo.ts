@@ -1,4 +1,4 @@
-import { getRegionConfig } from "./region-config";
+import { getRegionConfig, type RegionConfig } from "./region-config";
 
 export type GeoCheckResult =
   | { allowed: true; region: string | null }
@@ -7,9 +7,12 @@ export type GeoCheckResult =
 /**
  * Returns true when the given coordinates fall within the configured
  * geographic bounding box. Returns false when no bounding box is configured.
+ *
+ * Pass `config` to check against the region the admin backend stored; without
+ * it the environment configuration applies.
  */
-export function isWithinRegion(lat: number, lon: number): boolean {
-  const { bounds } = getRegionConfig();
+export function isWithinRegion(lat: number, lon: number, config: RegionConfig = getRegionConfig()): boolean {
+  const { bounds } = config;
   if (!bounds) return false;
   return (
     lat >= bounds.latMin &&
@@ -22,8 +25,8 @@ export function isWithinRegion(lat: number, lon: number): boolean {
 /** @deprecated Use {@link isWithinRegion} instead. */
 export const isWithinNrw = isWithinRegion;
 
-export function verifyRegion(request: Request): GeoCheckResult {
-  const { enabled, label, ipCountry, ipRegion } = getRegionConfig();
+export function verifyRegion(request: Request, config: RegionConfig = getRegionConfig()): GeoCheckResult {
+  const { enabled, label, ipCountry, ipRegion } = config;
 
   if (!enabled) {
     return { allowed: true, region: null };

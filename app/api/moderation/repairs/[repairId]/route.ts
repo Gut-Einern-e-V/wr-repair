@@ -22,7 +22,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ repa
     return Response.json({ error: authorization.error }, { status: authorization.status });
   }
 
-  if (!authorization.currentAdmin.roles.includes("superadmin") && (await getConfiguredSubmissionWindow()).status !== "open") {
+  if (!authorization.currentAdmin.roles.some((role) => ["admin", "superadmin"].includes(role)) && (await getConfiguredSubmissionWindow()).status !== "open") {
     return Response.json({ error: "Moderation ist nur waehrend des Einreichungszeitraums moeglich." }, { status: 403 });
   }
 
@@ -57,7 +57,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     return Response.json({ error: authorization.error }, { status: authorization.status });
   }
 
-  if (!authorization.currentAdmin.roles.includes("superadmin") && (await getConfiguredSubmissionWindow()).status !== "open") {
+  if (!authorization.currentAdmin.roles.some((role) => ["admin", "superadmin"].includes(role)) && (await getConfiguredSubmissionWindow()).status !== "open") {
     return Response.json({ error: "Moderation ist nur waehrend des Einreichungszeitraums moeglich." }, { status: 403 });
   }
 
