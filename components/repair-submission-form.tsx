@@ -6,6 +6,7 @@ import { FriendlyCaptcha } from "@/components/friendly-captcha";
 import { RepairCategorySelect } from "@/components/repair-form-fields";
 import { repairCategories, type RepairCategory } from "@/lib/repair-catalog";
 import { anonymizeCoordinates, type AnonymizedPoint } from "@/lib/geo-anonymize";
+import { nrwKreiseList } from "@/lib/nrw-kreise-list";
 
 const MAX_IMAGE_BYTES = 200 * 1024;
 const compressibleImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -121,6 +122,15 @@ export function RepairSubmissionForm({
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [anonymizedOrigin, setAnonymizedOrigin] = useState<AnonymizedPoint | null>(null);
+  /**
+   * Woher der aktuelle Standort stammt. Ein Foto ohne GPS darf eine bewusste
+   * GPS-/Kreis-Wahl nicht stillschweigend loeschen - nur ein weiteres Foto
+   * (oder gar keine Wahl bisher) darf den Standort wieder auf "keiner" setzen.
+   */
+  const [locationSource, setLocationSource] = useState<"photo" | "gps" | "manual" | null>(null);
+  const [selectedKreis, setSelectedKreis] = useState("");
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationStatus, setLocationStatus] = useState("");
   const [compressionMessage, setCompressionMessage] = useState("");
   const [isCompressing, setIsCompressing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -164,7 +174,14 @@ export function RepairSubmissionForm({
       // rastern, danach komprimieren. Das Komprimat enthaelt kein EXIF mehr.
       const origin = await readAnonymizedOrigin(file);
       const compressedFile = await createCompressedImage(file);
-      setAnonymizedOrigin(origin);
+      if (origin) {
+        setAnonymizedOrigin(origin);
+        setLocationSource("photo");
+        setSelectedKreis("");
+      } else if (locationSource === "photo" || locationSource === null) {
+        setAnonymizedOrigin(null);
+        setLocationSource(null);
+      }
       setUploadFile(compressedFile);
       setPreviewUrl(URL.createObjectURL(compressedFile));
       setCompressionMessage(
@@ -183,6 +200,80 @@ export function RepairSubmissionForm({
     } finally {
       setIsCompressing(false);
     }
+  }
+
+  /**
+   * Standort per Browser-Geolocation-API. Deutlich praeziser als der IP-Fallback
+   * und unabhaengig davon, ob ueberhaupt ein Foto mit GPS-Daten existiert. Wird
+   * genau wie die Foto-Herkunft direkt im Browser gerastert, bevor irgendetwas
+   * an den Server geht - die rohe Koordinate verlaesst das Geraet nie.
+   */
+  function requestBrowserLocation() {
+    setLocationStatus("");
+
+    if (!("geolocation" in navigator)) {
+      setLocationStatus("Dein Browser unterstützt keine Standortabfrage.");
+      return;
+    }
+
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setIsLocating(false);
+        const anonymized = anonymizeCoordinates(position.coords.latitude, position.coords.longitude);
+        if (!anonymized) {
+          setLocationStatus("Der Standort konnte nicht verarbeitet werden.");
+          return;
+        }
+        setAnonymizedOrigin(anonymized);
+        setLocationSource("gps");
+        setSelectedKreis("");
+        setLocationStatus("Standort erkannt. Für die Karte wird nur ein auf rund 5 km gerundeter Bereich übertragen.");
+      },
+      (error) => {
+        setIsLocating(false);
+        setLocationStatus(
+          error.code === error.PERMISSION_DENIED
+            ? "Standortzugriff wurde nicht erlaubt."
+            : "Der Standort konnte nicht ermittelt werden.",
+        );
+      },
+      { enableHighAccuracy: true, timeout: 10_000 },
+    );
+  }
+
+  /** Manuelle Kreis-Wahl fuer alle, die keinen Standortzugriff erlauben moechten. */
+  function handleKreisSelect(event: ChangeEvent<HTMLSelectElement>) {
+    const name = event.target.value;
+    setSelectedKreis(name);
+    setLocationStatus("");
+
+    if (!name) {
+      if (locationSource === "manual") {
+        setAnonymizedOrigin(null);
+        setLocationSource(null);
+      }
+      return;
+    }
+
+    const kreis = nrwKreiseList.find((item) => item.name === name);
+    if (!kreis) return;
+
+    // Zufaelliger Versatz um den Kreis-Referenzpunkt, damit nicht jede manuelle
+    // Wahl desselben Kreises auf exakt derselben Rasterzelle landet - die Karte
+    // wirkt sonst bei mehreren Eintraegen im selben Kreis unnatuerlich gleichfoermig.
+    // radiusKm ist je Kreis so gewaehlt, dass die Streuung nie in einen
+    // Nachbarkreis rutscht (siehe lib/nrw-kreise-list.ts).
+    const angle = Math.random() * Math.PI * 2;
+    const distance = Math.sqrt(Math.random()) * kreis.radiusKm;
+    const jitteredLat = kreis.lat + (Math.sin(angle) * distance) / 111.32;
+    const jitteredLon = kreis.lon + (Math.cos(angle) * distance) / (111.32 * Math.cos((kreis.lat * Math.PI) / 180));
+    const anonymized = anonymizeCoordinates(jitteredLat, jitteredLon);
+    if (!anonymized) return;
+
+    setAnonymizedOrigin(anonymized);
+    setLocationSource("manual");
+    setLocationStatus(`"${name}" ausgewählt. Für die Karte wird nur ein auf rund 5 km gerundeter Bereich übertragen.`);
   }
 
   function submitRepair(event: FormEvent<HTMLFormElement>) {
@@ -307,6 +398,20 @@ export function RepairSubmissionForm({
       )}
       {compressionMessage && <p className="form-notice" role="status">{compressionMessage}</p>}
       {fileError && <p className="form-error" role="alert">{fileError}</p>}
+
+      <div className="location-picker">
+        <p className="location-picker-label">Standort <small>(optional, hilft der Karte bei der Zuordnung)</small></p>
+        <div className="location-picker-actions">
+          <button className="button button-secondary" type="button" onClick={requestBrowserLocation} disabled={isLocating}>
+            {isLocating ? "Standort wird ermittelt …" : "Standort verwenden"}
+          </button>
+          <select value={selectedKreis} onChange={handleKreisSelect} aria-label="Kreis manuell auswählen">
+            <option value="">Kreis manuell wählen</option>
+            {nrwKreiseList.map((kreis) => <option key={kreis.name} value={kreis.name}>{kreis.name}</option>)}
+          </select>
+        </div>
+        {locationStatus && <p className="form-notice" role="status">{locationStatus}</p>}
+      </div>
 
       <label className="choice repair-outcome"><input name="repair_succeeded" type="checkbox" value="false" /> <span><strong>Die Reparatur ist leider nicht gelungen.</strong> Super, dass du es versucht hast! Du kannst trotzdem am Gewinnspiel teilnehmen!</span></label>
 
