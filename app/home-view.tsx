@@ -153,7 +153,7 @@ export function HomeView({ stories }: HomeViewProps) {
             </p>
             <div className="hero-actions">
               <button className="button button-primary" type="button" onClick={() => startSubmission()}>
-                {campaign.status === "open" ? "Reparatur einreichen" : campaign.status === "before" ? "Countdown ansehen" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span>
+                {campaign.status === "open" ? "Reparatur einreichen" : "Mehr zum Rekordversuch"} <span aria-hidden="true">&#8594;</span>
               </button>
               <Link className="button button-secondary" href="/stats">Live-Stand <span aria-hidden="true">&#8594;</span></Link>
             </div>
@@ -259,7 +259,7 @@ export function HomeView({ stories }: HomeViewProps) {
           <div>
             <p className="section-index">Reparaturgeschichten</p>
             <h2 id="stories-title">Gegenstände mit zweitem Kapitel.</h2>
-            <p className="section-lead">Ausgewählte Reparaturen erzählen wir ausführlich. Jede Geschichte füllt eine weitere Kachel im Mosaik.</p>
+            <p className="section-lead">Ausgewählte Reparaturen erzählen wir ausführlich &ndash; mit Foto, Ursache und dem, was am Ende wieder funktioniert.</p>
           </div>
           <Link className="text-button" href="/stories">Alle Geschichten <span aria-hidden="true">&#8594;</span></Link>
         </div>
