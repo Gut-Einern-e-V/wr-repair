@@ -11,6 +11,7 @@
  */
 
 import { hashString, seededRandom } from "./hash";
+import { nrwKreiseList } from "./nrw-kreise-list";
 
 
 export type LatLon = { lat: number; lon: number };
@@ -1197,5 +1198,46 @@ export function positionForId(id: string, cells: OriginCell[]): { x: number; y: 
   }
 
   return projectToUnitSquare(chosen);
+}
+
+/**
+ * Zufaelliger Punkt innerhalb eines konkreten Kreises, deterministisch aus der
+ * Reparatur-ID - fuer die Landeposition eines einzelnen Neuzugangs, dessen
+ * Kreis bereits bekannt ist (siehe `DashboardHighlight.mapKreis`).
+ *
+ * Anders als `positionForId()` (das eine beliebige, nach Haeufigkeit
+ * gewichtete Zelle aus dem gesamten Zellen-Aggregat zieht, weil dieses keine
+ * Einzelzuordnung mehr enthaelt) landet dieser Punkt garantiert im genannten
+ * Kreis, weil sein Umriss direkt bekannt ist. Zufallspunkte im
+ * Begrenzungsrechteck, verworfen bis einer im Umriss liegt; nach 24 Versuchen
+ * faellt es auf den Flaechenschwerpunkt der Stuetzpunkte zurueck - der liegt
+ * bei fast allen Kreisen ohnehin innen (siehe lib/nrw-kreise-list.ts).
+ */
+export function randomPointInKreis(id: string, kreisName: string): { x: number; y: number } | null {
+  const kreis = nrwKreise.find((candidate) => candidate.name === kreisName);
+  if (!kreis) return null;
+
+  const ring = kreis.outline;
+  const latMin = Math.min(...ring.map((point) => point.lat));
+  const latMax = Math.max(...ring.map((point) => point.lat));
+  const lonMin = Math.min(...ring.map((point) => point.lon));
+  const lonMax = Math.max(...ring.map((point) => point.lon));
+
+  const random = seededRandom(hashString(`${id}:kreis-spot`));
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    const point = {
+      lat: latMin + random() * (latMax - latMin),
+      lon: lonMin + random() * (lonMax - lonMin),
+    };
+    if (pointInRing(point, ring)) return projectToUnitSquare(point);
+  }
+
+  // Bei ausgefallenen Umrissen (z.B. Kreis Unna oder Rhein-Sieg-Kreis, die je
+  // eine kreisfreie Stadt umschliessen) liegt der einfache Stuetzpunkt-
+  // Mittelwert manchmal in der eingeschlossenen Stadt statt im Kreis selbst.
+  // Der vorab gegen genau diesen Fall gepruefte Referenzpunkt ist der
+  // verlaessliche Rueckfall (siehe lib/nrw-kreise-list.ts).
+  const fallback = nrwKreiseList.find((candidate) => candidate.name === kreisName);
+  return projectToUnitSquare(fallback ?? kreis.outline[0]);
 }
 

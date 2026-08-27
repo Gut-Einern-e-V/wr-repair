@@ -33,6 +33,14 @@ export type DashboardHighlight = {
    * eine einzelne Person. Feiner als der Kreis wird es nirgends.
    */
   kreis: string | null;
+  /**
+   * Derselbe Kreis, aber ohne die `KREIS_MIN_FOR_LABEL`-Schwelle - fuer die
+   * Landeposition der Punktwolke, nie als sichtbarer Text. Karte und
+   * Kreis-Rangliste zeigen bereits ab der ersten Reparatur etwas an (siehe
+   * `dashboard_stats()`); die Landung eines einzelnen Punktes soll dazu
+   * passen, nicht auf eine zufaellige, unbeteiligte Zelle ausweichen.
+   */
+  mapKreis: string | null;
 };
 
 /** Ab so vielen Reparaturen je Kreis darf sein Name am Eintrag stehen. */
@@ -145,12 +153,23 @@ export function mergeDashboardDelta(snapshot: DashboardSnapshot, delta: Dashboar
   const known = new Set(snapshot.highlights.map((item) => item.id));
   const added = delta.added.filter((item) => !known.has(item.id));
 
+  // Karte und Kreis-Rangliste sonst erst mit dem naechsten vollen Snapshot
+  // (alle 5 Minuten) aktualisiert - mit den Kreisen aus dem Delta selbst
+  // stehen sie stattdessen im Delta-Takt (alle 15 Sekunden) aktuell.
+  const kreise = { ...snapshot.kreise };
+  if (added.length === delta.added.length) {
+    for (const item of added) {
+      if (item.mapKreis) kreise[item.mapKreis] = (kreise[item.mapKreis] ?? 0) + 1;
+    }
+  }
+
   return {
     ...snapshot,
     total: Math.max(snapshot.total, delta.total),
     categories: added.length === delta.added.length
       ? mergeCounts(snapshot.categories, delta.categories)
       : snapshot.categories,
+    kreise,
     highlights: [...added, ...snapshot.highlights].slice(0, MAX_HIGHLIGHTS),
     cursor: delta.cursor ?? snapshot.cursor,
     generatedAt: delta.generatedAt,
