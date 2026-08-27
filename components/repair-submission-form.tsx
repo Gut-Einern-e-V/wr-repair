@@ -296,7 +296,7 @@ export function RepairSubmissionForm({
       </fieldset>
 
       <label className="upload-field">Foto hinzufügen <small>(optional)</small>
-        <input name="image" type="file" accept="image/jpeg,image/png,image/webp" onChange={handleImageChange} />
+        <input name="image" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleImageChange} />
         <small>Lade gerne ein Bild von deinem Erfolgserlebnis und gerne auch von dir hoch. JPG, PNG oder WebP · maximal 200 KB · Bild- und Standortdaten werden vor dem Upload entfernt.</small>
       </label>
       {isCompressing && <p className="form-notice" aria-live="polite">Bild wird komprimiert ...</p>}
