@@ -32,7 +32,7 @@ export function CampaignWindowNotice({ status, startAt }: CampaignWindowNoticePr
     return <section className="campaign-window" id="campaign-window" aria-labelledby="campaign-window-title">
       <p className="section-index">Weltrekordversuch NRW</p>
       <h2 id="campaign-window-title">Der Rekord startet bald.</h2>
-      <p>Einreichungen oeffnen am <time dateTime={startAt ?? undefined}>{new Intl.DateTimeFormat("de-DE", { dateStyle: "full", timeStyle: "short" }).format(new Date(startTime))} Uhr</time>.</p>
+      <p>Einreichungen öffnen am <time dateTime={startAt ?? undefined}>{new Intl.DateTimeFormat("de-DE", { dateStyle: "full", timeStyle: "short" }).format(new Date(startTime))} Uhr</time>.</p>
       <div className="countdown" aria-label={`Noch ${days} Tage, ${hours} Stunden, ${minutes} Minuten und ${seconds} Sekunden bis zum Start`}>
         <span><strong>{days}</strong>Tage</span><span><strong>{hours}</strong>Stunden</span><span><strong>{minutes}</strong>Minuten</span><span><strong>{seconds}</strong>Sekunden</span>
       </div>

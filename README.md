@@ -44,7 +44,9 @@ Opening paragraph.
 Further text.
 ```
 
-Stories are statically generated at `/stories/[slug]` during the production build. Add a new `.md` file, then run `npm run build` to verify its route.
+Stories are statically generated at `/stories/[slug]` during the production build, and the home page mosaic reads the same files at build time, so a page view triggers no extra request. Add a new `.md` file, then run `npm run build` to verify its route. Files named `README.md` or starting with an underscore are ignored, so drafts can stay in the repository.
+
+`content/stories/README.md` is the German step-by-step guide for the editorial team on adding a new blog entry.
 
 ## Reuse this project
 

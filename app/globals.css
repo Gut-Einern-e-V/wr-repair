@@ -858,3 +858,122 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
   .quick-actions { flex-direction: column; }
   .user-row-actions { width: 100%; }
 }
+
+/* --- Startseite: Foerderleiste, Countdown, Kategorien, Blog-Mosaik --------- */
+
+/* Der offizielle Foerderabbinder liegt nur mit dunkler Schrift vor. Die Leiste
+   ist deshalb hell statt tintenfarben, sonst verschwinden Logos und Text
+   (Issue #2). Die frueheren weissen Kaesten hinter den Negativ-SVGs entfallen. */
+.funding-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  padding-top: 32px;
+  padding-bottom: 32px;
+  border-top: var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+.funding-strip p {
+  max-width: 108ch;
+  margin: 0;
+  color: var(--ink);
+  font: 600 13px/1.55 var(--sans);
+  letter-spacing: 0;
+  text-transform: none;
+}
+.funding-logos { display: flex; flex-wrap: wrap; align-items: center; gap: 22px 44px; }
+.funding-logos a, .funding-logos span { display: inline-flex; align-items: center; min-height: 0; padding: 0; background: transparent; }
+.funding-logos img { width: auto; max-width: 100%; height: auto; object-fit: contain; }
+.funding-logos .is-fab { height: 56px; }
+.funding-logos .is-eu { height: 44px; }
+.funding-logos .is-nrw { height: 44px; }
+.funding-logos .is-efre { height: 19px; }
+
+/* Countdown im Hero-Kasten anstelle des QR-Codes. */
+.hero-countdown-label { margin: 0 0 10px; font: 800 11px/1.3 var(--sans); letter-spacing: .09em; text-transform: uppercase; }
+.hero-countdown-clock { display: flex; gap: 8px; }
+.hero-countdown-clock span { display: grid; justify-items: center; gap: 3px; min-width: 56px; padding: 9px 6px 7px; border: var(--line); background: var(--paper); }
+.hero-countdown-clock strong { font: 900 27px/1 var(--sans); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.hero-countdown-clock small { font: 800 10px/1 var(--sans); letter-spacing: .07em; text-transform: uppercase; }
+.hero-countdown-note { margin: 11px 0 0; font-size: 12px; line-height: 1.45; text-transform: none; }
+.hero-countdown.is-quiet .hero-countdown-note { margin-top: 0; }
+
+/* Kategorien fuehren ins Formular, nicht auf eine Erklaerseite. Die Karten
+   sagen das jetzt selbst, statt es mit einem Verweis-Pfeil anzudeuten. */
+.section-heading .section-lead { max-width: 640px; margin: 14px 0 0; font-size: 16px; line-height: 1.5; text-transform: none; }
+.category-card { justify-content: flex-start; gap: 7px; }
+.category-card strong { margin-top: 0; }
+.category-card .category-card-count { color: var(--muted); font: 700 11px/1.3 var(--sans); letter-spacing: .05em; text-transform: uppercase; }
+.category-card .category-card-action {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: auto; padding: 6px 10px 7px;
+  border: var(--line); background: var(--paper);
+  font: 800 11px/1 var(--sans); letter-spacing: .07em; text-transform: uppercase;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.category-card .category-card-action i { font: 900 14px/1 var(--sans); font-style: normal; }
+.category-card:hover .category-card-action, .category-card:focus-visible .category-card-action { background: var(--ink); color: var(--paper); }
+
+/* Blog-Mosaik: feste Rasterform, offene Kacheln bleiben sichtbar. */
+.story-mosaic { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 208px; gap: 4px; }
+.story-mosaic > :nth-child(6n+1) { grid-column: span 2; grid-row: span 2; }
+.story-mosaic > :nth-child(6n+4), .story-mosaic > :nth-child(6n+5), .story-mosaic > :nth-child(6n+6) { grid-column: span 2; }
+.story-tile {
+  position: relative; display: flex; min-width: 0; flex-direction: column; justify-content: flex-end;
+  padding: 18px; overflow: hidden; background: var(--ink); color: var(--paper); text-decoration: none;
+}
+.story-tile img { transition: transform 400ms ease; object-fit: cover; }
+.story-tile::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(16, 22, 38, .15) 0%, rgba(16, 22, 38, .58) 46%, rgba(16, 22, 38, .93) 100%);
+}
+.story-tile:hover img, .story-tile:focus-visible img { transform: scale(1.04); }
+.story-tile:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; }
+.story-tile-tag {
+  position: absolute; z-index: 1; top: 14px; left: 14px; padding: 5px 9px 6px;
+  background: var(--yellow); color: var(--ink); font: 800 10px/1 var(--sans); letter-spacing: .09em; text-transform: uppercase;
+}
+.story-tile-body { position: relative; z-index: 1; display: grid; gap: 8px; }
+.story-tile-meta { margin: 0; font: 800 10px/1.3 var(--sans); letter-spacing: .08em; text-transform: uppercase; opacity: .85; }
+.story-tile h3 { margin: 0; font-size: clamp(1.15rem, 1.7vw, 1.7rem); line-height: 1.04; letter-spacing: -.01em; text-transform: none; }
+.story-tile-summary { display: none; margin: 0; font-size: 14px; line-height: 1.45; text-transform: none; }
+.story-mosaic > :nth-child(6n+1) .story-tile-summary { display: block; }
+.story-tile-more { font: 800 11px/1 var(--sans); letter-spacing: .07em; text-transform: uppercase; }
+.story-tile-more i { font-style: normal; }
+.story-tile.is-open {
+  display: grid; place-content: center; justify-items: center; gap: 10px; padding: 18px 22px;
+  background: repeating-linear-gradient(135deg, transparent 0 10px, rgba(16, 22, 38, .06) 10px 20px), var(--bg);
+  box-shadow: inset 0 0 0 2px rgba(16, 22, 38, .16); color: var(--muted); text-align: center;
+}
+.story-tile.is-open::after { display: none; }
+.story-tile.is-open > span { color: rgba(16, 22, 38, .26); font: 900 34px/1 var(--sans); }
+.story-tile.is-open p { max-width: 190px; margin: 0; font-size: 13px; line-height: 1.4; }
+.story-mosaic-progress { margin: 18px 0 0; color: var(--muted); font: 800 11px/1.4 var(--sans); letter-spacing: .07em; text-transform: uppercase; }
+
+@media (max-width: 1100px) {
+  .story-mosaic { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 200px; }
+  .story-mosaic > :nth-child(6n+1) { grid-column: span 2; grid-row: span 1; }
+  .story-mosaic > :nth-child(6n+4), .story-mosaic > :nth-child(6n+5), .story-mosaic > :nth-child(6n+6) { grid-column: span 1; }
+}
+
+@media (max-width: 720px) {
+  .funding-strip { padding-top: 26px; padding-bottom: 26px; gap: 18px; }
+  .funding-logos { gap: 18px 30px; }
+  .funding-logos .is-fab { height: 46px; }
+  .funding-logos .is-eu, .funding-logos .is-nrw { height: 36px; }
+  .funding-logos .is-efre { height: 16px; }
+  .hero-countdown-clock { gap: 6px; }
+  .hero-countdown-clock span { min-width: 0; flex: 1; padding: 8px 4px 6px; }
+  .hero-countdown-clock strong { font-size: 22px; }
+  .story-mosaic { grid-template-columns: minmax(0, 1fr); grid-auto-rows: 196px; }
+  .story-mosaic > :nth-child(6n+1), .story-mosaic > :nth-child(6n+4), .story-mosaic > :nth-child(6n+5), .story-mosaic > :nth-child(6n+6) { grid-column: span 1; grid-row: span 1; }
+  .story-tile-summary, .story-mosaic > :nth-child(6n+1) .story-tile-summary { display: none; }
+}
+
+/* Foerderlogos im Seiteninhalt (/supporters). Die Logos haben einen weissen
+   Bildhintergrund und brauchen deshalb eine weisse Karte, nicht die gelbe Flaeche. */
+.funding-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px; margin: 30px 0 26px; }
+.funding-card { display: grid; align-content: space-between; gap: 20px; min-height: 168px; padding: 22px; border: var(--line); background: #fff; text-decoration: none; transition: box-shadow 120ms ease; }
+.funding-card img { justify-self: start; width: auto; max-width: 100%; height: auto; max-height: 54px; object-fit: contain; }
+.funding-card span { color: var(--muted); font: 700 11px/1.4 var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.funding-card:hover, .funding-card:focus-visible { box-shadow: inset 0 0 0 4px var(--ink); }
