@@ -326,7 +326,7 @@ export function RepairSubmissionForm({
           <label>E-Mail
             <input name="lottery_email" type="email" required maxLength={254} placeholder="deine@email.de" />
           </label>
-          <label className="choice consent"><input name="lottery_privacy" type="checkbox" required /> <span>Ich habe die <Link href="/privacy" target="_blank">Datenschutzerklärung</Link> gelesen und stimme der Verarbeitung meiner Daten für die Verlosung zu.</span></label>
+          <label className="choice consent"><input name="lottery_privacy" type="checkbox" value="true" required /> <span>Ich habe die <Link href="/privacy" target="_blank">Datenschutzerklärung</Link> gelesen und stimme der Verarbeitung meiner Daten für die Verlosung zu.</span></label>
         </fieldset>
       )}
 
