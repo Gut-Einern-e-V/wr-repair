@@ -1,10 +1,10 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { verifyRegion, isWithinRegion } from "@/lib/geo";
-import { getRegionConfig } from "@/lib/region-config";
+import { type RegionConfig } from "@/lib/region-config";
 import { extractExif } from "@/lib/exif";
 import { anonymizeRequestOrigin, isAnonymizedPoint } from "@/lib/geo-anonymize";
 import { rateLimit } from "@/lib/rate-limit";
-import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
+import { getAppSettings } from "@/lib/app-settings";
 import { repairCategoryValues } from "@/lib/repair-catalog";
 
 export const runtime = "nodejs";
@@ -59,12 +59,12 @@ async function verifyCaptcha(token: string) {
  * Ohne brauchbaren Client-Wert dient der Vercel-Geo-Header als Rueckfall. Er
  * ist ohnehin nur stadtgenau und wird durch dasselbe Raster geschickt.
  */
-function resolveAnonymizedOrigin(request: Request, formData: FormData) {
+function resolveAnonymizedOrigin(request: Request, formData: FormData, region: RegionConfig) {
   // Ohne konfigurierte Bounds gibt es keine Regionspruefung; dann darf die
   // Herkunft nicht still wegfallen, weil isWithinRegion() in dem Fall immer
   // false liefert.
-  const hasBounds = getRegionConfig().bounds !== null;
-  const inRegion = (lat: number, lon: number) => !hasBounds || isWithinRegion(lat, lon);
+  const hasBounds = region.bounds !== null;
+  const inRegion = (lat: number, lon: number) => !hasBounds || isWithinRegion(lat, lon, region);
 
   const rawLat = Number.parseFloat(String(formData.get("origin_lat") ?? ""));
   const rawLon = Number.parseFloat(String(formData.get("origin_lon") ?? ""));
@@ -82,11 +82,13 @@ function resolveAnonymizedOrigin(request: Request, formData: FormData) {
 }
 
 export async function POST(request: Request) {
-  if ((await getConfiguredSubmissionWindow()).status !== "open") {
+  const settings = await getAppSettings();
+
+  if (settings.submissionWindow.status !== "open") {
     return errorResponse("Einreichungen sind derzeit nicht geoeffnet.", 403);
   }
 
-  const geoCheck = verifyRegion(request);
+  const geoCheck = verifyRegion(request, settings.region);
 
   const limit = rateLimit(request, "repair-submission", { limit: 3, windowMs: 15 * 60 * 1_000 });
   if (!limit.allowed) {
@@ -175,8 +177,8 @@ export async function POST(request: Request) {
     if (!geoCheck.allowed && image.type === "image/jpeg") {
       const buffer = await image.arrayBuffer();
       const exif = await extractExif(buffer);
-      if (exif.latitude !== null && exif.longitude !== null && isWithinRegion(exif.latitude, exif.longitude)) {
-        locationRegion = getRegionConfig().label;
+      if (exif.latitude !== null && exif.longitude !== null && isWithinRegion(exif.latitude, exif.longitude, settings.region)) {
+        locationRegion = settings.region.label;
       }
       // Re-create the file from the buffer so we can still upload the original bytes.
       image = new File([buffer], image.name, { type: image.type });
@@ -193,7 +195,7 @@ export async function POST(request: Request) {
 
   const parsedDuration = durationMinutes ? parseInt(String(durationMinutes), 10) : null;
   const parsedValue = itemValueEuros ? parseFloat(String(itemValueEuros)) : null;
-  const origin = resolveAnonymizedOrigin(request, formData);
+  const origin = resolveAnonymizedOrigin(request, formData, settings.region);
 
   const { error: insertError } = await supabase.from("repairs").insert({
     id: repairId,

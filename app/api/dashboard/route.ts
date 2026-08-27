@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
-import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
-import { getRecordGoal, KREIS_MIN_FOR_LABEL, MAX_HIGHLIGHTS, type DashboardCell, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
+import { getAppSettings } from "@/lib/app-settings";
+import { KREIS_MIN_FOR_LABEL, MAX_HIGHLIGHTS, type DashboardCell, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
 import { kreisForPoint, kreisTotals } from "@/lib/nrw-map";
 
 /**
@@ -152,7 +152,7 @@ function toCells(value: unknown): DashboardCell[] {
   });
 }
 
-async function loadSnapshot(supabase: SupabaseAdmin, campaign: DashboardSnapshot["campaign"]): Promise<DashboardSnapshot | null> {
+async function loadSnapshot(supabase: SupabaseAdmin, campaign: DashboardSnapshot["campaign"], goal: number): Promise<DashboardSnapshot | null> {
   const { data, error } = await supabase.rpc("dashboard_stats");
   if (error || !data) return null;
 
@@ -170,7 +170,7 @@ async function loadSnapshot(supabase: SupabaseAdmin, campaign: DashboardSnapshot
 
   return {
     total: toNumber(aggregate.total),
-    goal: getRecordGoal(),
+    goal,
     succeeded: toNumber(aggregate.succeeded),
     withStory: toNumber(aggregate.withStory),
     minutesSaved: toNumber(aggregate.minutesSaved),
@@ -222,7 +222,8 @@ async function loadDelta(supabase: SupabaseAdmin, since: string): Promise<Dashbo
 }
 
 export async function GET(request: Request) {
-  const campaign = await getConfiguredSubmissionWindow();
+  const settings = await getAppSettings();
+  const campaign = settings.submissionWindow;
   if (campaign.status !== "open") {
     return Response.json(
       { error: "Das Live-Dashboard ist nur waehrend des Weltrekordversuchs verfuegbar.", code: "outside-campaign-window" },
@@ -277,7 +278,7 @@ export async function GET(request: Request) {
   const snapshot = await loadSnapshot(supabase, {
     startAt: campaign.startAt?.toISOString() ?? null,
     endAt: campaign.endAt?.toISOString() ?? null,
-  });
+  }, settings.recordGoal);
   if (!snapshot) {
     return Response.json({ error: "Die Live-Daten konnten nicht geladen werden." }, { status: 502 });
   }

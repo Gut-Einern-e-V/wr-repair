@@ -1,4 +1,4 @@
-import { type AppRole, requireSuperadmin } from "@/lib/admin-auth";
+import { type AppRole, requireAdmin, requireSuperadmin } from "@/lib/admin-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const roles = new Set<AppRole>(["moderator", "admin", "superadmin"]);
@@ -7,8 +7,13 @@ function errorResponse(error: string, status: number) {
   return Response.json({ error }, { status });
 }
 
+async function loadRoles(supabase: ReturnType<typeof createSupabaseAdminClient>, userId: string) {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  return (data ?? []).map((row) => row.role as AppRole);
+}
+
 export async function GET() {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return errorResponse(authorization.error, authorization.status);
   }
@@ -33,22 +38,27 @@ export async function GET() {
   }
 
   return Response.json({
+    currentUserId: authorization.currentAdmin.user.id,
+    // Admins invite moderators; handing out admin rights stays with superadmins.
+    canManageAdmins: authorization.currentAdmin.roles.includes("superadmin"),
     users: (authData.users ?? []).map((user) => ({
       id: user.id,
       email: user.email ?? "",
       displayName: names.get(user.id) ?? null,
       roles: assignedRoles.get(user.id) ?? [],
       createdAt: user.created_at,
+      lastSignInAt: user.last_sign_in_at ?? null,
     })),
   });
 }
 
 export async function POST(request: Request) {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return errorResponse(authorization.error, authorization.status);
   }
 
+  const isSuperadmin = authorization.currentAdmin.roles.includes("superadmin");
   const formData = await request.formData();
   const email = String(formData.get("email") ?? "").trim().toLowerCase();
   const password = String(formData.get("password") ?? "");
@@ -57,6 +67,10 @@ export async function POST(request: Request) {
 
   if (!email || password.length < 12 || !roles.has(role)) {
     return errorResponse("Bitte gib eine E-Mail, ein Passwort mit mindestens 12 Zeichen und eine Rolle an.", 400);
+  }
+
+  if (!isSuperadmin && role !== "moderator") {
+    return errorResponse("Nur Superadmins duerfen Admin- oder Superadmin-Konten anlegen.", 403);
   }
 
   const supabase = createSupabaseAdminClient();
@@ -78,11 +92,12 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return errorResponse(authorization.error, authorization.status);
   }
 
+  const isSuperadmin = authorization.currentAdmin.roles.includes("superadmin");
   const body = await request.json() as { userId?: string; role?: AppRole };
   if (!body.userId || !body.role || !roles.has(body.role)) {
     return errorResponse("Ungueltige Benutzer- oder Rollenangabe.", 400);
@@ -93,11 +108,45 @@ export async function PATCH(request: Request) {
   }
 
   const supabase = createSupabaseAdminClient();
+
+  if (!isSuperadmin) {
+    // Admins may only move moderators around; they can neither grant nor revoke
+    // admin rights, which would otherwise be a way to escalate their own.
+    const currentRoles = await loadRoles(supabase, body.userId);
+    if (body.role !== "moderator" || currentRoles.some((role) => role !== "moderator")) {
+      return errorResponse("Nur Superadmins duerfen Admin-Rollen vergeben oder entziehen.", 403);
+    }
+  }
+
   const { error: deleteError } = await supabase.from("user_roles").delete().eq("user_id", body.userId);
   const { error: insertError } = await supabase.from("user_roles").insert({ user_id: body.userId, role: body.role });
 
   if (deleteError || insertError) {
     return errorResponse("Die Rolle konnte nicht geaendert werden.", 502);
+  }
+
+  return Response.json({ ok: true });
+}
+
+export async function DELETE(request: Request) {
+  const authorization = await requireSuperadmin();
+  if (!authorization.authorized) {
+    return errorResponse(authorization.error, authorization.status);
+  }
+
+  const userId = new URL(request.url).searchParams.get("id");
+  if (!userId) {
+    return errorResponse("Benutzer fehlt.", 400);
+  }
+
+  if (userId === authorization.currentAdmin.user.id) {
+    return errorResponse("Das eigene Konto kann hier nicht geloescht werden.", 400);
+  }
+
+  const supabase = createSupabaseAdminClient();
+  const { error } = await supabase.auth.admin.deleteUser(userId);
+  if (error) {
+    return errorResponse("Das Konto konnte nicht geloescht werden.", 502);
   }
 
   return Response.json({ ok: true });

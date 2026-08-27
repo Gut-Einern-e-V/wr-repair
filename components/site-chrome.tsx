@@ -1,12 +1,18 @@
 import Link from "next/link";
 import { getMessages } from "@/lib/i18n";
+import { getSiteLogoUrl } from "@/lib/site-logo";
 import { MobileNavigation } from "@/components/mobile-navigation";
 
 const messages = getMessages();
 
-export function SiteHeader() {
+export async function SiteHeader() {
+  const logoUrl = await getSiteLogoUrl();
+
   return <header className="site-header">
-    <Link className="brand" href="/" aria-label="Reparaturrekord NRW Startseite"><span className="brand-mark">R</span><span>Reparaturrekord<br />NRW</span></Link>
+    <Link className="brand" href="/" aria-label="Reparaturrekord NRW Startseite">{logoUrl
+      // eslint-disable-next-line @next/next/no-img-element -- Logo aus Supabase Storage ohne bekannte Groesse.
+      ? <img className="brand-logo" src={logoUrl} alt="" />
+      : <span className="brand-mark">R</span>}<span>Reparaturrekord<br />NRW</span></Link>
     <nav aria-label="Hauptnavigation"><Link href="/stories">{messages.navigation.stories}</Link><Link href="/about">{messages.navigation.project}</Link><Link href="/supporters">{messages.navigation.supporters}</Link><Link href="/mitmachen">{messages.navigation.submit}</Link></nav>
     <Link className="header-link" href="/stats">{messages.navigation.live}</Link>
     <MobileNavigation />
