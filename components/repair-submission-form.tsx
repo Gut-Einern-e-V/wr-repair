@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { FriendlyCaptcha } from "@/components/friendly-captcha";
 import { RepairCategorySelect } from "@/components/repair-form-fields";
@@ -126,8 +126,17 @@ export function RepairSubmissionForm({
    * Woher der aktuelle Standort stammt. Ein Foto ohne GPS darf eine bewusste
    * GPS-/Kreis-Wahl nicht stillschweigend loeschen - nur ein weiteres Foto
    * (oder gar keine Wahl bisher) darf den Standort wieder auf "keiner" setzen.
+   *
+   * "ip-suggestion" ist ein automatisch vorausgefuellter, aber unbestaetigter
+   * Vorschlag aus der IP-Herkunft - deutlich unsicherer als Foto/GPS/manuelle
+   * Wahl, siehe requestIpSuggestion(). Jede der anderen drei Quellen ersetzt
+   * ihn kommentarlos.
    */
-  const [locationSource, setLocationSource] = useState<"photo" | "gps" | "manual" | null>(null);
+  const [locationSource, setLocationSource] = useState<"photo" | "gps" | "manual" | "ip-suggestion" | null>(null);
+  const locationSourceRef = useRef(locationSource);
+  useEffect(() => {
+    locationSourceRef.current = locationSource;
+  }, [locationSource]);
   const [selectedKreis, setSelectedKreis] = useState("");
   const [isLocating, setIsLocating] = useState(false);
   const [locationStatus, setLocationStatus] = useState("");
@@ -144,6 +153,48 @@ export function RepairSubmissionForm({
       URL.revokeObjectURL(previewUrl);
     }
   }, [previewUrl]);
+
+  /**
+   * Unbestaetigter Kreis-Vorschlag aus der IP-Herkunft, direkt beim Oeffnen
+   * des Formulars geladen - sichtbar im Dropdown statt fuer die einreichende
+   * Person unsichtbar erst beim Absenden zu greifen. Foto-EXIF oder die
+   * Standortabfrage sind praeziser und ersetzen den Vorschlag, sobald sie
+   * etwas finden; eine manuelle Wahl tut es sowieso.
+   */
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch("/api/geo/kreis")
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { kreis: string | null; lat: number | null; lon: number | null } | null) => {
+        if (cancelled || !data?.kreis || data.lat === null || data.lon === null) return;
+        if (locationSourceRef.current !== null) return;
+
+        setAnonymizedOrigin({ lat: data.lat, lon: data.lon });
+        setLocationSource("ip-suggestion");
+        setSelectedKreis(data.kreis);
+        setLocationStatus(`Vorschlag anhand deiner Internetverbindung: "${data.kreis}". Bitte bestätigen oder unten korrigieren.`);
+      })
+      .catch(() => {
+        // Ohne Vorschlag bleibt das Feld leer - kein Beinbruch, nur weniger komfortabel.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Fragt den erkannten Kreis fuer einen bereits anonymisierten Punkt ab, rein zur Anzeige im Dropdown. */
+  async function resolveKreisLabel(point: AnonymizedPoint): Promise<string | null> {
+    try {
+      const response = await fetch(`/api/geo/kreis?lat=${point.lat}&lon=${point.lon}`);
+      if (!response.ok) return null;
+      const data = await response.json() as { kreis: string | null };
+      return data.kreis;
+    } catch {
+      return null;
+    }
+  }
 
   async function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -178,6 +229,9 @@ export function RepairSubmissionForm({
         setAnonymizedOrigin(origin);
         setLocationSource("photo");
         setSelectedKreis("");
+        void resolveKreisLabel(origin).then((kreis) => {
+          if (kreis) setSelectedKreis(kreis);
+        });
       } else if (locationSource === "photo" || locationSource === null) {
         setAnonymizedOrigin(null);
         setLocationSource(null);
@@ -229,6 +283,9 @@ export function RepairSubmissionForm({
         setLocationSource("gps");
         setSelectedKreis("");
         setLocationStatus("Standort erkannt. Für die Karte wird nur ein auf rund 5 km gerundeter Bereich übertragen.");
+        void resolveKreisLabel(anonymized).then((kreis) => {
+          if (kreis) setSelectedKreis(kreis);
+        });
       },
       (error) => {
         setIsLocating(false);
@@ -249,7 +306,7 @@ export function RepairSubmissionForm({
     setLocationStatus("");
 
     if (!name) {
-      if (locationSource === "manual") {
+      if (locationSource === "manual" || locationSource === "ip-suggestion") {
         setAnonymizedOrigin(null);
         setLocationSource(null);
       }
@@ -405,12 +462,21 @@ export function RepairSubmissionForm({
           <button className="button button-secondary" type="button" onClick={requestBrowserLocation} disabled={isLocating}>
             {isLocating ? "Standort wird ermittelt …" : "Standort verwenden"}
           </button>
-          <select value={selectedKreis} onChange={handleKreisSelect} aria-label="Kreis manuell auswählen">
+          <select
+            value={selectedKreis}
+            onChange={handleKreisSelect}
+            aria-label="Kreis manuell auswählen"
+            className={locationSource === "ip-suggestion" ? "is-suggestion" : undefined}
+          >
             <option value="">Kreis manuell wählen</option>
             {nrwKreiseList.map((kreis) => <option key={kreis.name} value={kreis.name}>{kreis.name}</option>)}
           </select>
         </div>
-        {locationStatus && <p className="form-notice" role="status">{locationStatus}</p>}
+        {locationStatus && (
+          <p className={locationSource === "ip-suggestion" ? "geo-notice" : "form-notice"} role="status">
+            {locationStatus}
+          </p>
+        )}
       </div>
 
       <label className="choice repair-outcome"><input name="repair_succeeded" type="checkbox" value="false" /> <span><strong>Die Reparatur ist leider nicht gelungen.</strong> Super, dass du es versucht hast! Du kannst trotzdem am Gewinnspiel teilnehmen!</span></label>

@@ -560,6 +560,7 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .repair-form .location-picker-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 .repair-form .location-picker-actions .button { margin: 0; }
 .repair-form .location-picker-actions select { flex: 1; min-width: 180px; margin: 0; }
+.repair-form .location-picker-actions select.is-suggestion { border-style: dashed; border-color: var(--yellow); background-color: rgba(255, 196, 50, .12); }
 .repair-form .geo-notice { margin: 20px 0; padding: 12px 14px; border-left: 6px solid var(--yellow); background: rgba(255, 196, 50, .16); font-size: 14px; line-height: 1.4; }
 .repair-form .form-submit { width: 100%; margin-top: 8px; }
 
