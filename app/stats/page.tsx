@@ -36,7 +36,7 @@ type Status = "loading" | "ready" | "closed" | "error";
 export default function LiveDashboardPage() {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [status, setStatus] = useState<Status>("loading");
-  const [arrivals, setArrivals] = useState<string[]>([]);
+  const [arrivals, setArrivals] = useState<{ id: string; kreis: string | null }[]>([]);
   const [spotlight, setSpotlight] = useState<number | null>(null);
   const [celebrating, setCelebrating] = useState(false);
   const [clock, setClock] = useState("");
@@ -126,7 +126,7 @@ export default function LiveDashboardPage() {
 
         cursorRef.current = delta.cursor;
         if (delta.added.length > 0) {
-          setArrivals(delta.added.map((item) => item.id));
+          setArrivals(delta.added.map((item) => ({ id: item.id, kreis: item.mapKreis })));
         }
         setSnapshot((current) => (current ? mergeDashboardDelta(current, delta) : current));
       } catch {

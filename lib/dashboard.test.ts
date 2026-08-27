@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, isFreshlyApproved, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
 
-function highlight(id: string, category = "tools") {
+function highlight(id: string, category = "tools", mapKreis: string | null = null) {
   return {
     id,
     category,
@@ -11,6 +11,7 @@ function highlight(id: string, category = "tools") {
     submittedAt: "2026-10-01T09:00:00.000Z",
     approvedAt: "2026-10-01T10:00:00.000Z",
     kreis: null,
+    mapKreis,
   };
 }
 
@@ -60,6 +61,23 @@ describe("mergeDashboardDelta", () => {
 
   it("laesst die Gesamtzahl nie sinken", () => {
     expect(mergeDashboardDelta(snapshot, { ...delta, total: 3, added: [] }).total).toBe(10);
+  });
+
+  it("zaehlt neue Eintraege mit mapKreis in die Kreis-Summen", () => {
+    const withKreise: DashboardDelta = {
+      ...delta,
+      added: [highlight("c", "tools", "Remscheid"), highlight("d", "bicycle", "Remscheid"), highlight("e", "tools", null)],
+    };
+    const merged = mergeDashboardDelta({ ...snapshot, kreise: { Remscheid: 2 } }, withKreise);
+
+    expect(merged.kreise).toEqual({ Remscheid: 4 });
+  });
+
+  it("laesst die Kreis-Summen unveraendert, wenn Eintraege schon bekannt sind", () => {
+    const repeated: DashboardDelta = { ...delta, added: [highlight("a", "tools", "Remscheid")] };
+    const merged = mergeDashboardDelta({ ...snapshot, kreise: { Remscheid: 2 } }, repeated);
+
+    expect(merged.kreise).toEqual({ Remscheid: 2 });
   });
 
   it("begrenzt die Anzahl vorgehaltener Highlights", () => {

@@ -80,15 +80,17 @@ function fillTimeline(rows: unknown): { date: string; total: number }[] {
 }
 
 /**
- * Ortsangabe eines einzelnen Eintrags - oder `null`.
+ * Ortsangabe eines einzelnen Eintrags als sichtbarer Text - oder `null`.
  *
  * Der Kreis steht bereits als Spalte auf der Zeile (einmalig bei der
  * Einreichung aus der anonymisierten Zelle hergeleitet, siehe
  * `app/api/repairs/route.ts`) und wird hier nur noch gegen die
  * k-Anonymitaetsschwelle geprueft: Genannt wird er nur, wenn ihm mindestens
- * `KREIS_MIN_FOR_LABEL` freigegebene Reparaturen zugeordnet sind. `busyKreise`
- * kommt aus demselben Aggregat, das auch die Karte fuellt. Damit steht eine
- * sichtbare Ortsangabe immer fuer eine Gruppe und nie fuer eine einzelne Person.
+ * `KREIS_MIN_FOR_LABEL` freigegebene Reparaturen zugeordnet sind - ein
+ * benannter Einzeleintrag mit Kategorie und Zeitstempel ist identifizierender
+ * als eine aggregierte Kartenzahl, die diese Schwelle nicht mehr hat (siehe
+ * `dashboard_stats()`). Fuer die Landeposition der Punktwolke gilt diese
+ * Schwelle nicht - siehe `mapKreis` in `toHighlights()`.
  */
 function toKreis(row: RepairRow, busyKreise: Record<string, number>): string | null {
   if (!row.kreis) return null;
@@ -116,6 +118,7 @@ async function toHighlights(
     submittedAt: row.created_at,
     approvedAt: row.moderated_at,
     kreis: toKreis(row, busyKreise),
+    mapKreis: row.kreis,
   }));
 }
 

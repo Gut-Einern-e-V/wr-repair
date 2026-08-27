@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hashString, isInsideNrw, kreisForPoint, kreisTotals, nrwBounds, nrwHubs, nrwKreise, nrwOutline, positionForId, projectToUnitSquare, rankKreise, rhineCourse, seededRandom, symbolicPosition, unprojectFromUnitSquare } from "./nrw-map";
+import { hashString, isInsideNrw, kreisForPoint, kreisTotals, nrwBounds, nrwHubs, nrwKreise, nrwOutline, positionForId, projectToUnitSquare, randomPointInKreis, rankKreise, rhineCourse, seededRandom, symbolicPosition, unprojectFromUnitSquare } from "./nrw-map";
 
 describe("projectToUnitSquare", () => {
   it("bildet die gesamte Kontur in das Einheitsquadrat ab", () => {
@@ -220,5 +220,32 @@ describe("positionForId", () => {
 
     expect(nearKoeln).toBeGreaterThan(280);
     expect(nearKoeln).toBeLessThan(400);
+  });
+});
+
+describe("randomPointInKreis", () => {
+  it("liefert null fuer einen unbekannten Kreisnamen", () => {
+    expect(randomPointInKreis("repair-1", "Nicht-existierender Kreis")).toBeNull();
+  });
+
+  it("ist deterministisch pro ID", () => {
+    expect(randomPointInKreis("repair-1", "Remscheid")).toEqual(randomPointInKreis("repair-1", "Remscheid"));
+  });
+
+  it("landet weit ueberwiegend im angegebenen Kreis", () => {
+    // Der Rueckweg ueber unprojectFromUnitSquare rundet minimal, wodurch ein
+    // Punkt exakt auf einer Grenze in seltenen Faellen dem Nachbarn zufaellt -
+    // das ist ein Artefakt dieses Tests, keine Fehlfunktion in der Anwendung
+    // (die arbeitet nur im projizierten Raum weiter). Deshalb Fehlerquote statt
+    // 100 %-Anspruch.
+    for (const kreis of nrwKreise) {
+      let hits = 0;
+      const samples = 20;
+      for (let index = 0; index < samples; index += 1) {
+        const point = randomPointInKreis(`${kreis.name}:${index}`, kreis.name);
+        if (point && kreisForPoint(unprojectFromUnitSquare(point)) === kreis.name) hits += 1;
+      }
+      expect(hits).toBeGreaterThanOrEqual(Math.ceil(samples * 0.9));
+    }
   });
 });

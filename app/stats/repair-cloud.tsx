@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { hashString, nrwHubs, nrwKreise, nrwOutline, positionForId, projectToUnitSquare, rhineCourse, seededRandom, type OriginCell } from "@/lib/nrw-map";
+import { hashString, nrwHubs, nrwKreise, nrwOutline, positionForId, projectToUnitSquare, randomPointInKreis, rhineCourse, seededRandom, type OriginCell } from "@/lib/nrw-map";
 
 /**
  * Punktwolke aller Reparaturen ueber der Karte von Nordrhein-Westfalen.
@@ -30,8 +30,12 @@ export type KreisHover = { name: string; x: number; y: number } | null;
 type Props = {
   /** Gesamtzahl der Reparaturen (bestimmt die Punktdichte). */
   total: number;
-  /** IDs, die seit dem letzten Render neu hinzugekommen sind. */
-  arrivals: string[];
+  /**
+   * Neu hinzugekommene Reparaturen seit dem letzten Render, mit Kreis, wenn
+   * bekannt (siehe `DashboardHighlight.mapKreis`) - damit landet der Punkt
+   * dort, statt aus dem Zellen-Aggregat eine beliebige Zelle zu erben.
+   */
+  arrivals: { id: string; kreis: string | null }[];
   /** Punkt, auf den die Kamera zoomen soll. */
   focusId: string | null;
   /** Zielerreichung: loest einen Konfetti-Ausbruch aus. */
@@ -131,13 +135,13 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
   }, [cells]);
 
   // Neuzugaenge werden nur einmal eingespielt, deshalb ueber eine Queue.
-  const queueRef = useRef<string[]>([]);
+  const queueRef = useRef<{ id: string; kreis: string | null }[]>([]);
   const seenRef = useRef(new Set<string>());
   useEffect(() => {
-    for (const id of arrivals) {
-      if (!seenRef.current.has(id)) {
-        seenRef.current.add(id);
-        queueRef.current.push(id);
+    for (const arrival of arrivals) {
+      if (!seenRef.current.has(arrival.id)) {
+        seenRef.current.add(arrival.id);
+        queueRef.current.push(arrival);
       }
     }
   }, [arrivals]);
@@ -192,6 +196,13 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
     let styledCounts: Record<string, number> | null = null;
     let kreisFill: string[] = [];
 
+    /**
+     * Kurzes Aufleuchten eines Kreises, wenn dort gerade eine Reparatur
+     * eintrifft - Wert 1 beim Start, klingt jeden Frame ab. Eigene Map statt
+     * React-State: das ist reine Canvas-Optik, kein Rerender noetig.
+     */
+    const kreisFlash = new Map<string, number>();
+
     function refreshKreisFills() {
       const counts = countsRef.current;
       if (counts === styledCounts) return;
@@ -230,9 +241,12 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
     const fromY = new Float32Array(MAX_PARTICLES);
     const indexById = new Map<string, number>();
 
-    function addParticle(id: string, isNew: boolean) {
+    function addParticle(id: string, isNew: boolean, kreis: string | null = null) {
       if (count >= MAX_PARTICLES) return;
-      const point = positionForId(id, cellsRef.current);
+      // Ist der Kreis dieser konkreten Reparatur bekannt, landet sie darin -
+      // statt aus dem Zellen-Aggregat eine beliebige, nach Haeufigkeit
+      // gewichtete Zelle zu erben, die mit dieser Reparatur nichts zu tun hat.
+      const point = (kreis && randomPointInKreis(id, kreis)) || positionForId(id, cellsRef.current);
       const random = seededRandom(hashString(`${id}:wobble`));
       const index = count;
       baseX[index] = point.x;
@@ -350,7 +364,10 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
 
       let pending = queueRef.current.shift();
       while (pending) {
-        if (!indexById.has(pending)) addParticle(pending, true);
+        if (!indexById.has(pending.id)) {
+          addParticle(pending.id, true, pending.kreis);
+          if (pending.kreis) kreisFlash.set(pending.kreis, 1);
+        }
         pending = queueRef.current.shift();
       }
 
@@ -390,11 +407,26 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
       kreiseUnit.forEach((kreis, index) => {
         tracePath(kreis.ring, true);
         const isHovered = kreis.name === hoveredKreis;
-        context.fillStyle = isHovered ? "rgba(255, 196, 50, 0.3)" : kreisFill[index];
+        // Kurzes Aufleuchten, wenn dort gerade eine Reparatur eingetroffen ist -
+        // dieselbe Goldfarbe wie Landering und Anflug-Schweif, damit "hier ist
+        // etwas passiert" ueberall gleich aussieht.
+        const flash = kreisFlash.get(kreis.name) ?? 0;
+        if (isHovered) {
+          context.fillStyle = "rgba(255, 196, 50, 0.3)";
+        } else if (flash > 0) {
+          context.fillStyle = `rgba(255, 196, 50, ${(0.12 + flash * 0.35).toFixed(3)})`;
+        } else {
+          context.fillStyle = kreisFill[index];
+        }
         context.fill();
-        context.lineWidth = isHovered ? Math.max(1.4, kreisLine * 3) : kreisLine;
-        context.strokeStyle = isHovered ? "rgba(255, 196, 50, 0.95)" : "rgba(149, 212, 187, 0.22)";
+        context.lineWidth = isHovered ? Math.max(1.4, kreisLine * 3) : flash > 0 ? Math.max(1, kreisLine * (1 + flash * 2)) : kreisLine;
+        context.strokeStyle = isHovered
+          ? "rgba(255, 196, 50, 0.95)"
+          : flash > 0
+            ? `rgba(255, 196, 50, ${(0.4 + flash * 0.55).toFixed(3)})`
+            : "rgba(149, 212, 187, 0.22)";
         context.stroke();
+        if (flash > 0) kreisFlash.set(kreis.name, Math.max(0, flash - 0.012));
       });
 
       // Landesgrenze zweimal: breit und weich als Schein, darueber schmal und klar.
