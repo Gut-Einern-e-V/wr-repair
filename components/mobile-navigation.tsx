@@ -5,6 +5,7 @@ import { useState } from "react";
 
 const links = [
   ["/stories", "Geschichten"],
+  ["/repair-cafes", "Repair Cafés"],
   ["/about", "Projekt"],
   ["/supporters", "Unterstützer"],
   ["/stats", "Live-Stand"],

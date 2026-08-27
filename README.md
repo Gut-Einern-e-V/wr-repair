@@ -24,6 +24,10 @@ Configure the Supabase and Friendly Captcha values described in `.env.example` b
 
 After a submission the confirmation screen links to `/reparatur/<id>`. That page shows the moderation state and only offers the native share dialog (Web Share API, clipboard fallback) once the entry is approved, so nothing unmoderated can be shared. Approved entries also get a branded Open Graph image at `/reparatur/<id>/opengraph-image`.
 
+## Finding a repair cafe
+
+`/repair-cafes` answers "where do I get help?" without maintaining a second event database. It deep-links into the two directories that already keep their own listings: `reparatur-initiativen.de/termine?provinceId=10` for all North Rhine-Westphalia dates, plus one `?keyword=<city>` link per major city, and `repaircafe.org/de/besuchen/` for the international map. The city list and both directory URLs live in `lib/repair-cafes.ts` — the parameters were verified against the live sites, so change them only after re-checking.
+
 ## Content
 
 Repair stories are versioned Markdown files in `content/stories/`. Each story requires this frontmatter:
