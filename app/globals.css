@@ -1,7 +1,9 @@
 /* Marken-Tokens aus Weltrekord_Styleguide/WR_Styleguide_v1.
    Nunito ist die offizielle Projektschrift. FreightDisp Pro liegt bei Adobe Fonts;
-   solange kein Adobe-Kit eingebunden ist, greift Playfair Display als Ersatz. */
-@import url("https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,700&family=Playfair+Display:ital,wght@0,600;0,800;1,600&display=swap");
+   solange kein Adobe-Kit eingebunden ist, greift Playfair Display als Ersatz.
+   Beide Schriften kommen ueber `next/font` in app/layout.tsx von der eigenen
+   Domain - hier stand vorher ein `@import` von fonts.googleapis.com, den der
+   Bundler verworfen hat, sodass gar keine Schrift geladen wurde. */
 
 :root {
   /* Hauptfarben */
@@ -25,9 +27,9 @@
   --line: 2px solid var(--ink);
   --hairline: 1px solid rgba(16, 22, 38, 0.22);
 
-  --sans: "Nunito", "Segoe UI", system-ui, sans-serif;
-  --display: "FreightDisp Pro", "Playfair Display", Georgia, serif;
-  --mono: "Nunito", "Segoe UI", system-ui, sans-serif;
+  --sans: var(--font-sans), "Segoe UI", system-ui, sans-serif;
+  --display: "FreightDisp Pro", var(--font-display), Georgia, serif;
+  --mono: var(--font-sans), "Segoe UI", system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -1042,4 +1044,51 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
   .cafe-city-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .cafe-city-grid a { min-height: 92px; }
   .cafe-city-grid strong { font-size: 17px; }
+}
+
+/* --- Einwilligung (Issue #24) ------------------------------ */
+
+/* Fixierte Leiste am unteren Rand, kein Overlay: Die Seite bleibt lesbar und
+   bedienbar. Es gibt kein Schliesskreuz - stattdessen zwei gleich gewichtete
+   Knoepfe, damit Ablehnen genauso leicht ist wie Annehmen. */
+.consent-banner {
+  position: fixed; z-index: 40; right: 0; bottom: 0; left: 0;
+  background: var(--ink); color: var(--paper);
+  box-shadow: 0 -18px 40px rgba(16, 22, 38, .22);
+}
+.consent-banner-inner { display: grid; gap: 18px; max-width: 1240px; margin: 0 auto; padding: 22px var(--gutter, 24px) 24px; }
+.consent-banner-copy { display: grid; gap: 8px; }
+.consent-banner h2 { margin: 0; font-size: clamp(1.3rem, 2.4vw, 1.9rem); line-height: 1.05; letter-spacing: -.01em; }
+.consent-banner h2:focus-visible { outline: 3px solid var(--yellow); outline-offset: 4px; }
+.consent-banner p { max-width: 78ch; margin: 0; font-size: 15px; line-height: 1.5; }
+
+.consent-categories { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.consent-categories li { background: rgba(247, 245, 240, .07); }
+.consent-categories label { display: flex; gap: 13px; align-items: start; padding: 15px 16px; cursor: pointer; }
+.consent-categories label:has(input:disabled) { cursor: default; }
+.consent-categories input { width: 20px; height: 20px; flex: none; margin: 1px 0 0; accent-color: var(--yellow); }
+.consent-categories span { display: grid; gap: 5px; font-size: 14px; line-height: 1.5; }
+.consent-categories strong { font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; }
+
+.consent-actions { display: flex; flex-wrap: wrap; gap: 12px 18px; align-items: center; }
+/* Alle Entscheidungsknoepfe tragen dieselbe Optik. Ein hervorgehobenes
+   "Akzeptieren" neben einem blassen "Ablehnen" waere ein Dark Pattern. */
+.consent-banner .consent-button { margin: 0; border-color: var(--paper); background: var(--paper); color: var(--ink); }
+.consent-banner .consent-button:hover { background: var(--yellow); border-color: var(--yellow); color: var(--ink); }
+.consent-banner .text-button { color: var(--paper); border-bottom-color: var(--yellow); }
+
+/* Der Widerrufs-Link steht zwischen den Footer-Links und sieht aus wie sie. */
+.consent-settings-link { padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+
+@media (max-width: 720px) {
+  .consent-banner { max-height: 82vh; overflow-y: auto; }
+  .consent-banner-inner { gap: 15px; padding: 18px 16px 20px; }
+  .consent-banner p { font-size: 14px; }
+  .consent-categories label { padding: 13px 14px; }
+  /* Zwei Spalten statt gestapelter Knoepfe: Der eingeklappte Hinweis bleibt so
+     deutlich flacher und die beiden Entscheidungen liegen gleichberechtigt
+     nebeneinander. */
+  .consent-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; align-items: stretch; }
+  .consent-actions .consent-button { width: auto; padding: 10px 8px; text-align: center; }
+  .consent-actions .text-button { justify-self: start; align-self: center; }
 }

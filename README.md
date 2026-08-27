@@ -24,6 +24,16 @@ Configure the Supabase and Friendly Captcha values described in `.env.example` b
 
 After a submission the confirmation screen links to `/reparatur/<id>`. That page shows the moderation state and only offers the native share dialog (Web Share API, clipboard fallback) once the entry is approved, so nothing unmoderated can be shared. Approved entries also get a branded Open Graph image at `/reparatur/<id>/opengraph-image`.
 
+## Consent
+
+The public pages load exactly one non-essential third party: `va.vercel-scripts.com` for Vercel Web Analytics. There is no advertising, no cross-site tracking and no social media embed, so the banner has one real thing to gate.
+
+Without a decision, rejection applies: `components/consent-analytics.tsx` does not render `<Analytics />` at all, so the provider's script is never fetched. A `beforeSend` filter would be too late — the connection would already exist. The model lives in `lib/consent.ts`, browser access in `lib/consent-store.ts`, and the decision is stored under `reparaturrekord.consent` in `localStorage` rather than a cookie, because only the browser needs it.
+
+Adding a category means raising `CONSENT_VERSION`; stored decisions from an older version are treated as undecided so visitors are asked again. Accept and reject are styled identically and the banner has no close button — rejecting must not be harder than accepting. Visitors change or withdraw the decision through "Cookie-Einstellungen" in every footer.
+
+Nunito and Playfair Display are self-hosted through `next/font`, so no request reaches Google. The previous `@import` from `fonts.googleapis.com` in `app/globals.css` was silently dropped by the bundler, which meant no web font was delivered at all.
+
 ## Finding a repair cafe
 
 `/repair-cafes` answers "where do I get help?" without maintaining a second event database. It deep-links into the two directories that already keep their own listings: `reparatur-initiativen.de/termine?provinceId=10` for all North Rhine-Westphalia dates, plus one `?keyword=<city>` link per major city, and `repaircafe.org/de/besuchen/` for the international map. The city list and both directory URLs live in `lib/repair-cafes.ts` — the parameters were verified against the live sites, so change them only after re-checking.

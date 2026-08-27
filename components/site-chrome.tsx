@@ -3,6 +3,7 @@ import { getMessages } from "@/lib/i18n";
 import { getSiteLogoUrl } from "@/lib/site-logo";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { FundingStrip } from "@/components/funding-strip";
+import { ConsentSettingsLink } from "@/components/consent-settings-link";
 
 const messages = getMessages();
 
@@ -29,7 +30,7 @@ export function SiteFooter({ funding = true }: { funding?: boolean } = {}) {
     {funding && <FundingStrip />}
     <footer className="site-footer">
       <p><strong>Reparaturrekord NRW</strong><br />Ein Projekt der FAB Region Bergisches Land.</p>
-      <div><Link href="/privacy">{messages.footer.privacy}</Link><Link href="/imprint">{messages.footer.imprint}</Link><Link href="/accessibility">{messages.footer.accessibility}</Link></div>
+      <div><Link href="/privacy">{messages.footer.privacy}</Link><Link href="/imprint">{messages.footer.imprint}</Link><Link href="/accessibility">{messages.footer.accessibility}</Link><ConsentSettingsLink /></div>
       <p>Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
     </footer>
   </>;

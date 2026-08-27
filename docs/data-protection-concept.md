@@ -67,6 +67,38 @@ Vor dem oeffentlichen Start muss die verantwortliche Organisation verbindlich en
 
 Bis diese Entscheidungen als automatisierbare Regeln vorliegen, muss eine autorisierte Person Loeschanfragen im Moderationsbereich und im Supabase-Storage nachvollziehbar manuell bearbeiten.
 
+## Cookies, Browserspeicher und Einwilligung
+
+Eine Bestandsaufnahme am 27.08.2026 hat ergeben: Die oeffentlichen Seiten laden genau
+einen nicht notwendigen Drittanbieter, `va.vercel-scripts.com` fuer Vercel Web
+Analytics. Werbe- oder Trackingdienste gibt es nicht, ebenso keine Einbettungen von
+Social-Media-Anbietern.
+
+| Zweck | Was gespeichert bzw. geladen wird | Einwilligung |
+| --- | --- | --- |
+| Anmeldung Moderation/Verwaltung | Supabase-Sitzungscookies, nur nach Login | Nicht erforderlich (technisch notwendig) |
+| Spam-Schutz des Formulars | Friendly-Captcha-Widget, nur auf den Formularseiten | Nicht erforderlich (technisch notwendig) |
+| Einwilligungsentscheidung | `reparaturrekord.consent` im localStorage der Besucherin | Nicht erforderlich (speichert die Entscheidung selbst) |
+| Reichweitenmessung | Vercel Web Analytics, cookiefrei | **Opt-in ueber den Einwilligungsbanner** |
+
+Umsetzung: `lib/consent.ts` haelt das Modell, `lib/consent-store.ts` den Zugriff auf den
+Browserspeicher, `components/consent-banner.tsx` den Hinweis. Ohne Entscheidung gilt
+Ablehnung - `components/consent-analytics.tsx` rendert `<Analytics />` dann gar nicht,
+sodass das Skript des Anbieters nicht geladen und keine Verbindung dorthin aufgebaut
+wird. Ein `beforeSend`-Filter waere dafuer zu spaet.
+
+Der Banner blockiert die Seite nicht, hat kein Schliesskreuz und zeigt Annehmen und
+Ablehnen mit identischer Optik. Die Entscheidung ist ueber "Cookie-Einstellungen" im
+Fussbereich jeder Seite aenderbar und widerrufbar. Kommt eine Kategorie dazu, muss
+`CONSENT_VERSION` steigen; dann gilt eine alte Entscheidung nicht mehr und es wird
+erneut gefragt.
+
+Die Schriften Nunito und Playfair Display liegen ueber `next/font` auf der eigenen
+Domain. Zuvor stand in `app/globals.css` ein `@import` von `fonts.googleapis.com` - der
+wurde vom Bundler still verworfen, sodass weder eine Schrift ausgeliefert noch eine
+Anfrage an Google gestellt wurde. Mit der Selbsthostung bleibt es dabei, dass keine
+Daten an ein Schriftennetzwerk gehen.
+
 ## Beteiligte Dienste
 
 | Dienst | Technische Rolle | Vor dem Start pruefen |
@@ -74,6 +106,7 @@ Bis diese Entscheidungen als automatisierbare Regeln vorliegen, muss eine autori
 | Vercel | Hosting, serverseitige Routen, Regionenheader | Vertragliche Grundlage, Regionen, Logs, Deployment Protection und WAF/Rate Limits. |
 | Supabase | Authentifizierung, Postgres-Datenbank, privater Storage | Projektregion, AVV, Backups, RLS und Zugriff auf Service-Role-Secret. |
 | Friendly Captcha | Bot-Erkennung beim Upload | Rechtsgrundlage, Anbieterinformationen, erlaubte Domains, CDN-Code und Datenschutztext. |
+| Vercel Web Analytics | Cookiefreie Reichweitenmessung, nur nach Einwilligung | Auftragsverarbeitung, Aufbewahrung der Messdaten und Wortlaut im Datenschutztext. |
 
 ## Verbindliche Vorab-Checkliste
 
@@ -83,3 +116,4 @@ Bis diese Entscheidungen als automatisierbare Regeln vorliegen, muss eine autori
 - [ ] AVV, Regionen und Sicherheitsdokumentation von Vercel, Supabase und Friendly Captcha pruefen.
 - [ ] Vercel-Produktionsvariablen sowie Friendly-Captcha-Domains konfigurieren.
 - [ ] Globales WAF- oder Redis-basiertes Rate Limit zusaetzlich zum prozesslokalen Limit aktivieren.
+- [ ] Einwilligungstexte im Banner und auf der Datenschutzseite rechtlich freigeben und die Kategorien gegen die dann tatsaechlich eingebundenen Dienste pruefen.

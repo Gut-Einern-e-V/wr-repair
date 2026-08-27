@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
 import { CampaignWindowNotice } from "@/components/campaign-window-notice";
+import { ConsentSettingsLink } from "@/components/consent-settings-link";
 import { FundingStrip } from "@/components/funding-strip";
 import { HeroCountdown } from "@/components/hero-countdown";
 import { MobileNavigation } from "@/components/mobile-navigation";
@@ -295,7 +296,7 @@ export function HomeView({ stories }: HomeViewProps) {
 
       <footer className="site-footer">
         <p><strong>Reparaturrekord NRW</strong><br />Ein Projekt der FAB Region Bergisches Land.</p>
-        <div><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link></div>
+        <div><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link><ConsentSettingsLink /></div>
         <p>Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
       </footer>
 
