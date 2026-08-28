@@ -12,6 +12,10 @@ import { hashString, nrwHubs, nrwKreise, nrwOutline, positionForId, projectToUni
  * Ring, und alle 20 Sekunden zoomt die Kamera auf einen Punkt, waehrend darueber
  * der Spotlight das zugehoerige Bild zeigt.
  *
+ * Beim Oeffnen faellt die ganze Wolke einmal als Sternschnuppenregen ein, statt
+ * fertig dazustehen. Danach bleibt jeder Punkt, wo und wie er ist - Position,
+ * Groesse und Farbe haengen allein an der Kennung der Reparatur.
+ *
  * Unter der Wolke liegen die 53 Kreise. Ihre Fuellung richtet sich nach der Zahl
  * der Reparaturen darin - die Karte ist damit selbst eine Auswertung. Zeigt die
  * Maus auf einen Kreis, meldet die Komponente das nach oben; die Zahlen dazu
@@ -58,8 +62,25 @@ type Props = {
   beamer: boolean;
 };
 
-/** CI-Palette; die Punkte wandern langsam durch diese Farben. */
+/**
+ * CI-Palette. Jeder Punkt behaelt seine Farbe, solange die Seite offen ist: Sie
+ * haengt allein an der Kennung der Reparatur, wird also aus dem Datensatz
+ * abgeleitet und weder gespeichert noch nachgeladen. Frueher schob die
+ * Zeichenschleife zusaetzlich die ganze Palette alle sechs Sekunden um eine
+ * Farbe weiter - aus zehn Metern sah das aus, als blinke die Karte.
+ */
 const palette = ["#ffc432", "#95d4bb", "#00b072", "#ec424c", "#465eab", "#f7f5f0"];
+
+/**
+ * Wie haeufig eine Farbe vorkommt. Gleichverteilt ueber alle sechs ergibt die
+ * Wolke einen Weihnachtsbaum; so tragen Mint, Gruen und Creme die Flaeche, und
+ * Gold, Rot und Blau sitzen als Akzente darin.
+ */
+const toneWeights = [2, 4, 3, 1, 1, 3];
+const toneBag = toneWeights.flatMap((weight, index) => Array<number>(weight).fill(index));
+
+/** Bilder, ueber die sich der Eroeffnungsregen verteilt - rund zwei Sekunden. */
+const INTRO_FRAMES = 120;
 
 /** Mehr Punkte bringen optisch nichts, kosten aber Rechenzeit. */
 const MAX_PARTICLES = 9_000;
@@ -76,8 +97,12 @@ const kreiseUnit = nrwKreise.map((kreis) => ({ name: kreis.name, ring: kreis.out
  *
  * Der Reihe nach die groessten, aber nur solange sie genug Abstand zu einer schon
  * gesetzten Beschriftung haben. Ohne diese Sperre ueberlagern sich im Ruhrgebiet
- * ein Dutzend Namen zu einem unlesbaren Block. Alle uebrigen Orte bekommen einen
- * Punkt ohne Namen - das ergibt ein dichtes Ortsnetz, das trotzdem lesbar ist.
+ * ein Dutzend Namen zu einem unlesbaren Block.
+ *
+ * Alle uebrigen Orte hatten frueher einen Punkt ohne Namen. Neben tausenden
+ * Reparaturpunkten war der nicht mehr als Ort zu erkennen - er sah aus wie eine
+ * Reparatur, die keine ist. Deshalb ist er weg: Jeder Punkt auf der Karte steht
+ * fuer genau eine Reparatur, Orte gibt es nur noch mit Namen.
  */
 const cityPoints = [...nrwHubs]
   .sort((left, right) => right.weight - left.weight)
@@ -88,9 +113,6 @@ const labelledCities = cityPoints.reduce<{ name: string; x: number; y: number }[
   if (!crowded && placed.length < 26) placed.push(city);
   return placed;
 }, []);
-
-const labelledNames = new Set(labelledCities.map((city) => city.name));
-const plainCities = cityPoints.filter((city) => !labelledNames.has(city.name));
 
 /** Strahlverfahren im projizierten Raum - fuer das Zeigen auf die Karte. */
 function ringContains(point: { x: number; y: number }, ring: { x: number; y: number }[]) {
@@ -221,6 +243,8 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
 
     // --- Partikelspeicher -------------------------------------------------
     let count = 0;
+    /** Der Eroeffnungsregen laeuft genau einmal, direkt nach dem Oeffnen. */
+    let introDone = reduceMotion;
     const baseX = new Float32Array(MAX_PARTICLES);
     const baseY = new Float32Array(MAX_PARTICLES);
     const phase = new Float32Array(MAX_PARTICLES);
@@ -239,9 +263,20 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
     const flight = new Float32Array(MAX_PARTICLES);
     const fromX = new Float32Array(MAX_PARTICLES);
     const fromY = new Float32Array(MAX_PARTICLES);
+    /**
+     * Punkte des Eroeffnungsregens. Sie fliegen wie Neuzugaenge herein, bekommen
+     * aber weder Landering noch gezeichneten Schweif: Bei tausenden gleichzeitig
+     * waere die Karte sonst eine weisse Flaeche - und die Nachleuchtspur der
+     * Canvas zieht den Schweif ohnehin von selbst.
+     */
+    const introFlight = new Uint8Array(MAX_PARTICLES);
     const indexById = new Map<string, number>();
 
-    function addParticle(id: string, isNew: boolean, kreis: string | null = null) {
+    /**
+     * `still` erscheint ohne Bewegung, `arrival` fliegt mit Ring und Schweif
+     * ein, `intro` gehoert zum Eroeffnungsregen.
+     */
+    function addParticle(id: string, entry: "still" | "arrival" | "intro", kreis: string | null = null) {
       if (count >= MAX_PARTICLES) return;
       // Ist der Kreis dieser konkreten Reparatur bekannt, landet sie darin -
       // statt aus dem Zellen-Aggregat eine beliebige, nach Haeufigkeit
@@ -254,18 +289,23 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
       phase[index] = random() * Math.PI * 2;
       drift[index] = 0.15 + random() * 0.85;
       size[index] = 0.9 + random() * 1.5;
-      tone[index] = Math.floor(random() * palette.length);
+      tone[index] = toneBag[Math.floor(random() * toneBag.length)];
 
       // Der Ring kommt erst beim Aufschlag; waehrend des Flugs waere er nur ein
       // Kreis, der ueber die Karte wandert.
       landing[index] = 0;
-      flight[index] = isNew && !reduceMotion ? 1 : 0;
-      if (flight[index] > 0) {
+      const flies = entry !== "still" && !reduceMotion;
+      flight[index] = flies ? 1 : 0;
+      introFlight[index] = entry === "intro" ? 1 : 0;
+      if (flies) {
         // Start weit ausserhalb des Kartenquadrats, Richtung zufaellig.
         const angle = random() * Math.PI * 2;
         fromX[index] = 0.5 + Math.cos(angle) * 1.25;
         fromY[index] = 0.5 + Math.sin(angle) * 1.25;
-      } else if (isNew) {
+        // Werte ueber 1 sind Wartezeit am Startpunkt: Ohne sie zoege der Regen
+        // in sauberen Reihen herein, weil die Punkte je Bild gebuendelt starten.
+        if (entry === "intro") flight[index] = 1 + random() * 0.55;
+      } else if (entry === "arrival") {
         landing[index] = 1;
       }
 
@@ -347,6 +387,52 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
       if (close) context.closePath();
     }
 
+    /**
+     * Ortsnamen ueber der Wolke.
+     *
+     * Sie lagen frueher unter den Punkten und waren neben tausenden davon nicht
+     * mehr zu lesen. Jetzt kommen sie zuletzt - und statt eines Balkens
+     * bekommt jeder Name einen dunklen Saum. Der Balken haette die Karte genau
+     * dort zugedeckt, wo die meisten Reparaturen liegen; der Saum kostet nur
+     * die Punkte, die den Buchstaben ohnehin im Weg stehen.
+     */
+    function drawPlaces(alpha: number) {
+      if (alpha <= 0.02) return;
+
+      const labelSize = Math.max(9, Math.min(19, scale / 68));
+      const ground = stateRef.current.beamer ? "0, 0, 0" : "8, 11, 20";
+      const gap = labelSize * 0.55;
+      const dot = Math.max(1.8, labelSize / 6);
+
+      context.font = `600 ${labelSize}px "Nunito", "Segoe UI", system-ui, sans-serif`;
+      context.textAlign = "left";
+      context.textBaseline = "middle";
+      context.lineJoin = "round";
+      // Ohne das Deckeln ziehen spitze Winkel - das V in Leverkusen etwa - lange
+      // Zacken aus dem Saum heraus.
+      context.miterLimit = 2;
+
+      for (const city of labelledCities) {
+        const screen = project(city.x, city.y);
+
+        context.globalAlpha = alpha * 0.92;
+        context.strokeStyle = `rgba(${ground}, 0.92)`;
+        context.lineWidth = Math.max(3, labelSize / 3.2);
+        context.beginPath();
+        context.arc(screen.x, screen.y, dot, 0, Math.PI * 2);
+        context.stroke();
+        context.strokeText(city.name, screen.x + gap, screen.y);
+
+        context.globalAlpha = alpha * 0.82;
+        context.fillStyle = "#f7f5f0";
+        context.beginPath();
+        context.arc(screen.x, screen.y, dot, 0, Math.PI * 2);
+        context.fill();
+        context.fillText(city.name, screen.x + gap, screen.y);
+      }
+      context.globalAlpha = 1;
+    }
+
     function draw(now: number) {
       const time = (now - start) / 1000;
       // Auf einem Handydisplay waeren 9.000 Punkte nur noch Rauschen und kosten
@@ -356,16 +442,22 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
 
       // Fehlende Punkte auffuellen: fuer noch unbekannte Einreichungen wird ein
       // stabiler Ersatz-Seed benutzt, damit die Wolke die Gesamtzahl abbildet.
-      let budget = 60;
+      //
+      // Der erste Schwung ist der Eroeffnungsregen: Alle Punkte fliegen einmal
+      // von aussen ein. Die Rate richtet sich nach der Punktzahl, damit der
+      // Regen immer rund zwei Sekunden dauert - mit festen 60 je Bild waere er
+      // auf einer kleinen Buehne nach einem Wimpernschlag vorbei.
+      let budget = introDone ? 60 : Math.max(8, Math.ceil(desired / INTRO_FRAMES));
       while (count < desired && budget > 0) {
-        addParticle(`fill:${count}`, false);
+        addParticle(`fill:${count}`, introDone ? "still" : "intro");
         budget -= 1;
       }
+      if (count >= desired) introDone = true;
 
       let pending = queueRef.current.shift();
       while (pending) {
         if (!indexById.has(pending.id)) {
-          addParticle(pending.id, true, pending.kreis);
+          addParticle(pending.id, "arrival", pending.kreis);
           if (pending.kreis) kreisFlash.set(pending.kreis, 1);
         }
         pending = queueRef.current.shift();
@@ -444,43 +536,18 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
       context.strokeStyle = "rgba(120, 205, 220, 0.5)";
       context.stroke();
 
-      // Orte. Beim Zoom auf ein Bild verschwinden sie, damit der Spotlight nicht
-      // auf beschrifteten Punkten liegt.
+      // Beim Zoom auf ein Bild blenden die Ortsnamen aus, damit der Spotlight
+      // nicht auf beschrifteten Punkten liegt. Gezeichnet werden sie erst nach
+      // der Wolke, siehe drawPlaces().
       const labelAlpha = Math.max(0, 1 - (camera.zoom - 1) * 1.4);
-      if (labelAlpha > 0.02) {
-        const labelSize = Math.max(9, Math.min(19, scale / 68));
-
-        context.globalAlpha = labelAlpha * 0.32;
-        context.fillStyle = "#f7f5f0";
-        for (const city of plainCities) {
-          const screen = project(city.x, city.y);
-          context.fillRect(screen.x - 1, screen.y - 1, 2.2, 2.2);
-        }
-
-        context.font = `500 ${labelSize}px "Nunito", "Segoe UI", system-ui, sans-serif`;
-        context.textAlign = "left";
-        context.textBaseline = "middle";
-        for (const city of labelledCities) {
-          const screen = project(city.x, city.y);
-          context.globalAlpha = labelAlpha * 0.55;
-          context.fillStyle = "#f7f5f0";
-          context.beginPath();
-          context.arc(screen.x, screen.y, Math.max(1.5, labelSize / 7), 0, Math.PI * 2);
-          context.fill();
-          context.globalAlpha = labelAlpha * 0.46;
-          context.fillText(city.name, screen.x + labelSize * 0.5, screen.y);
-        }
-        context.globalAlpha = 1;
-      }
 
       // Punkte, nach Farbe gruppiert, damit fillStyle selten wechselt.
-      const shift = Math.floor(time / 6);
       const wobble = reduceMotion ? 0 : 1;
       // Ohne diese Skalierung waeren die Punkte auf einer 4K-Wand halb so gross
       // wie auf 1080p und die Wolke wirkte ausgeduennt.
       const pointScale = Math.max(0.75, Math.min(frame.width, frame.height) / 760);
       for (let group = 0; group < palette.length; group += 1) {
-        context.fillStyle = palette[(group + shift) % palette.length];
+        context.fillStyle = palette[group];
         for (let index = 0; index < count; index += 1) {
           if (tone[index] !== group) continue;
 
@@ -494,9 +561,11 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
           if (incoming > 0) {
             const next = Math.max(0, incoming - FLIGHT_STEP);
             flight[index] = next;
-            if (next === 0) landing[index] = 1;
+            if (next === 0 && introFlight[index] === 0) landing[index] = 1;
 
-            const eased = next * next * next;
+            // Ueber 1 wartet der Punkt am Startpunkt, also deckeln.
+            const held = Math.min(1, next);
+            const eased = held * held * held;
             unitX += (fromX[index] - baseX[index]) * eased;
             unitY += (fromY[index] - baseY[index]) * eased;
           }
@@ -508,7 +577,7 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
           if (incoming > 0) {
             // Sichtbar groesser und heller als die ruhende Wolke - ein Punkt in
             // Bewegung muss aus zehn Metern auffallen.
-            radius += incoming * 7 * pointScale;
+            radius += Math.min(1, incoming) * 7 * pointScale;
             context.globalAlpha = 1;
           } else if (landing[index] > 0) {
             landing[index] = Math.max(0, landing[index] - 0.006);
@@ -528,7 +597,7 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
       context.lineCap = "round";
       for (let index = 0; index < count; index += 1) {
         const incoming = flight[index];
-        if (incoming <= 0) continue;
+        if (incoming <= 0 || introFlight[index] === 1) continue;
 
         const eased = incoming * incoming * incoming;
         const tail = 0.06;
@@ -560,6 +629,8 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
         context.strokeStyle = `rgba(255, 196, 50, ${landing[index] * 0.7})`;
         context.stroke();
       }
+
+      drawPlaces(labelAlpha);
 
       // Fokuspunkt hervorheben.
       const focusIndex = focus ? indexById.get(focus) : undefined;
