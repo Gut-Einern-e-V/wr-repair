@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { getAppSettings } from "@/lib/app-settings";
-import { KREIS_MIN_FOR_LABEL, MAX_HIGHLIGHTS, type DashboardCell, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
+import { KREIS_MIN_FOR_LABEL, MAX_HIGHLIGHTS, readCells, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
 
 /**
  * Datenquelle des Buehnen-Dashboards.
@@ -128,27 +128,6 @@ async function toHighlights(
 const highlightColumns =
   "id, category, brand_model, image_path, image_alt_text, created_at, moderated_at, kreis";
 
-/**
- * Liest die Herkunftszellen aus dem Aggregat.
- *
- * Die k-Anonymitaetsschwelle steckt bereits in `dashboard_stats()`; hier wird
- * nur noch auf Plausibilitaet geprueft, damit ein fehlerhafter Datensatz die
- * Kartenprojektion nicht sprengt.
- */
-function toCells(value: unknown): DashboardCell[] {
-  if (!Array.isArray(value)) return [];
-
-  return value.flatMap((entry) => {
-    if (!entry || typeof entry !== "object") return [];
-    const record = entry as Record<string, unknown>;
-    const lat = Number(record.lat);
-    const lon = Number(record.lon);
-    const count = Number(record.count);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(count)) return [];
-    return [{ lat, lon, count }];
-  });
-}
-
 /** Bester Tag aus dem Aggregat - fehlt er, hat die Aktion noch keinen. */
 function toBestDay(value: unknown): DashboardSnapshot["bestDay"] {
   if (!value || typeof value !== "object") return null;
@@ -170,7 +149,7 @@ async function loadSnapshot(
   if (error || !data) return null;
 
   const aggregate = data as Record<string, unknown>;
-  const cells = toCells(aggregate.cells);
+  const cells = readCells(aggregate.cells);
   const busyKreise = toCounts(aggregate.kreise);
   lastKreisTotals = busyKreise;
 

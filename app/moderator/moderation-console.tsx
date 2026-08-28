@@ -42,7 +42,7 @@ export default function ModerationConsole({ email, roles, logoUrl }: { email: st
       </div>
 
       <section className={`repair-queue${view === "quick" ? " is-quick" : ""}`} aria-label={view === "quick" ? "Schnellprüfung" : "Einreichungen"}>
-        {view === "quick" ? <QuickReview showProgress={isAdmin} /> : <RepairTable isAdmin={isAdmin} />}
+        {view === "quick" ? <QuickReview showProgress={isAdmin} onOpenTable={() => setView("table")} /> : <RepairTable isAdmin={isAdmin} />}
       </section>
     </main>
   );

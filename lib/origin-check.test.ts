@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { anonymizeCoordinates } from "./geo-anonymize";
-import { decideOrigin, hasOriginMismatch, locateInRegion } from "./origin-check";
+import { decideOrigin, expectedIpRegionTag, hasOriginMismatch, locateInRegion } from "./origin-check";
 import { getRegionConfig } from "./region-config";
 
 const nrw = getRegionConfig();
@@ -137,5 +137,28 @@ describe("Widerspruch zwischen Verbindung und Ortsangabe", () => {
     expect(hasOriginMismatch(null, "Wuppertal", nrw)).toBe(false);
     expect(hasOriginMismatch("DE-BY", null, nrw)).toBe(false);
     expect(hasOriginMismatch("DE-BY", "Wuppertal", { ...nrw, enabled: false })).toBe(false);
+  });
+});
+
+describe("expectedIpRegionTag", () => {
+  // Denselben Wert bekommt `claim_next_repair()` als Parameter, damit die
+  // Schnellpruefung genau die Einreichungen ueberspringt, die die Konsole als
+  // "Verbindung woanders" kennzeichnet.
+  it("setzt Land und Unterregion zusammen", () => {
+    expect(expectedIpRegionTag({ ...nrw, ipCountry: "DE", ipRegion: "NW" })).toBe("DE-NW");
+  });
+
+  it("nimmt ohne Unterregion nur das Land", () => {
+    expect(expectedIpRegionTag({ ...nrw, ipCountry: "DE", ipRegion: "" })).toBe("DE");
+  });
+
+  it("prueft nicht, wenn die Gebietsbeschraenkung aus ist", () => {
+    expect(expectedIpRegionTag({ ...nrw, enabled: false })).toBeNull();
+  });
+
+  it("passt zu hasOriginMismatch", () => {
+    const tag = expectedIpRegionTag(nrw)!;
+    expect(hasOriginMismatch(tag, "Wuppertal", nrw)).toBe(false);
+    expect(hasOriginMismatch(`${tag}-anders`, "Wuppertal", nrw)).toBe(true);
   });
 });

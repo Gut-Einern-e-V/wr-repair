@@ -7,6 +7,8 @@
  * bewusst frei von Seiteneffekten, damit sie testbar bleibt.
  */
 
+import { isInsideNrw } from "./nrw-map";
+
 export type DashboardHighlight = {
   id: string;
   category: string;
@@ -54,6 +56,36 @@ export const KREIS_MIN_FOR_LABEL = 5;
  * nicht mehr unterscheidbar.
  */
 export type DashboardCell = { lat: number; lon: number; count: number };
+
+/**
+ * Liest die Herkunftszellen aus dem Aggregat von `dashboard_stats()`.
+ *
+ * Zwei Filter: Unbrauchbare Zahlen fliegen raus, damit ein kaputter Datensatz
+ * die Kartenprojektion nicht sprengt - und Zellen ausserhalb von NRW, weil sie
+ * sonst neben dem Land landen.
+ *
+ * Solche Zellen entstehen im normalen Betrieb: Die IP-Herkunft von Vercel ist
+ * nur stadtgenau und liegt bei manchen Providern weit daneben, und fehlen die
+ * Geo-Header ganz (lokal, manche Netze), laesst die Herkunftspruefung die
+ * Einreichung als "unbekannt" durch (siehe decideOrigin in lib/origin-check.ts).
+ * Die Kreis-Summen kennen das Problem nicht, weil `kreise` schon in SQL auf
+ * Eintraege mit Kreis begrenzt ist - erst mit diesem Filter zeigen Punktwolke
+ * und Kreisfaerbung wieder dieselbe Menge.
+ */
+export function readCells(value: unknown): DashboardCell[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object") return [];
+    const record = entry as Record<string, unknown>;
+    const lat = Number(record.lat);
+    const lon = Number(record.lon);
+    const count = Number(record.count);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || !Number.isFinite(count)) return [];
+    if (!isInsideNrw({ lat, lon })) return [];
+    return [{ lat, lon, count }];
+  });
+}
 
 export type DashboardSnapshot = {
   total: number;

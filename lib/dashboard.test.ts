@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, dayRecordState, formatDayLabel, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, isFreshlyApproved, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
+import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, dayRecordState, formatDayLabel, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, readCells, isFreshlyApproved, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
 
 function highlight(id: string, category = "tools", mapKreis: string | null = null) {
   return {
@@ -436,5 +436,32 @@ describe("formatDayLabel", () => {
   it("bleibt bei fehlendem oder unlesbarem Datum leer", () => {
     expect(formatDayLabel(null)).toBe("");
     expect(formatDayLabel("kein Datum")).toBe("");
+  });
+});
+
+describe("readCells", () => {
+  // Koordinaten aus einem echten Export: Die Herkunft aus der IP lag bei
+  // mehreren Einreichungen weit ausserhalb von NRW.
+  const koeln = { lat: 50.938, lon: 6.960, count: 4 };
+  const hannover = { lat: 52.400, lon: 9.758, count: 6 };
+  const nuernberg = { lat: 49.422, lon: 11.099, count: 3 };
+  const muenchen = { lat: 48.261, lon: 11.632, count: 1 };
+
+  it("laesst Zellen aus NRW durch", () => {
+    expect(readCells([koeln])).toEqual([koeln]);
+  });
+
+  it("wirft Zellen ausserhalb von NRW weg, statt sie neben das Land zu malen", () => {
+    expect(readCells([koeln, hannover, nuernberg, muenchen])).toEqual([koeln]);
+  });
+
+  it("wirft unbrauchbare Zahlen weg", () => {
+    expect(readCells([{ lat: "x", lon: 6.96, count: 2 }, { lat: 50.938, lon: "x", count: 2 }])).toEqual([]);
+  });
+
+  it("kommt mit fehlendem Aggregat klar", () => {
+    expect(readCells(null)).toEqual([]);
+    expect(readCells({})).toEqual([]);
+    expect(readCells([null, 7, "x"])).toEqual([]);
   });
 });
