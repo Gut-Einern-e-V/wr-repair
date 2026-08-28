@@ -31,6 +31,7 @@ export default async function AdminPage() {
     endAt: settings.submissionWindow.endAt?.toISOString() ?? null,
     windowStatus: settings.submissionWindow.status,
     recordGoal: settings.recordGoal,
+    dayRecord: settings.dayRecord,
     region: {
       enabled: settings.region.enabled,
       label: settings.region.label,
@@ -46,6 +47,7 @@ export default async function AdminPage() {
     stored: {
       window: Boolean(row?.submission_start_at && row?.submission_end_at),
       recordGoal: row?.record_goal != null,
+      dayRecord: row?.day_record != null,
       region: row?.region_label != null,
       logo: Boolean(row?.logo_path),
     },

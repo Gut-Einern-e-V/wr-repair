@@ -9,7 +9,7 @@ import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { RepairCloud } from "./repair-cloud";
 import { RecordCounter } from "./record-counter";
 import { LiveTicker } from "./live-ticker";
-import { CategoryTreemap, DeadlineCountdown, KreisTop, MetricTiles, categoryColor } from "./panels";
+import { CategoryTreemap, DayRecord, DeadlineCountdown, KreisTop, MetricTiles, categoryColor } from "./panels";
 import { StageSettings } from "./stage-settings";
 import { SubmitQr } from "./submit-qr";
 
@@ -289,7 +289,7 @@ export default function LiveDashboardPage() {
             Text ueber der Karte, und der Umriss von NRW reicht dort bis unten. */}
         <p className="stage-note">
           {snapshot.cells.length > 0
-            ? "Jeder Punkt steht fuer eine Reparatur. Die Herkunft ist auf rund 5 km gerundet."
+            ? "Jeder Punkt steht fuer eine Reparatur."
             : "Jeder Punkt steht fuer eine Reparatur. Die Standorte sind aus Datenschutzgruenden stilisiert."}
           <span className="stage-credit">Kartendaten © OpenStreetMap-Mitwirkende</span>
         </p>
@@ -299,6 +299,7 @@ export default function LiveDashboardPage() {
           <CategoryTreemap categories={snapshot.categories} />
           <p className="panel-label">Noch Zeit bis zum Ende</p>
           <DeadlineCountdown campaign={snapshot.campaign} goal={snapshot.goal} nowMs={nowMs} total={snapshot.total} />
+          <DayRecord snapshot={snapshot} />
           <SubmitQr />
         </section>
 

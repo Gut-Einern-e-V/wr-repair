@@ -65,6 +65,20 @@ export type DashboardSnapshot = {
   categories: Record<string, number>;
   performedBy: Record<string, number>;
   timeline: { date: string; total: number }[];
+  /** Einreichungen des laufenden Tages, in Berliner Zeit gezaehlt. */
+  today: number;
+  /**
+   * Bester Tag *vor* dem heutigen - der eigene Bestwert der laufenden Aktion.
+   * Der laufende Tag bleibt aussen vor, sonst waere er immer schon sein eigener
+   * Rekord.
+   */
+  bestDay: { date: string; total: number } | null;
+  /**
+   * Der bisher hoechste Tagesstand aus der Tabellenkalkulation, im Backend
+   * hinterlegt. `null` heisst: nicht eingetragen - dann zaehlt allein der eigene
+   * Bestwert.
+   */
+  dayRecord: number | null;
   cells: DashboardCell[];
   /**
    * Reparaturen je Kreis, direkt aus dem Aggregat - siehe `kreis`-Spalte in
@@ -87,6 +101,11 @@ export type DashboardSnapshot = {
 
 export type DashboardDelta = {
   total: number;
+  /**
+   * Tagesstand, damit der Tagesrekord im Delta-Takt mitlaeuft. `null` heisst:
+   * gerade nicht zu ermitteln - dann bleibt der bisherige Stand stehen.
+   */
+  today: number | null;
   added: DashboardHighlight[];
   categories: Record<string, number>;
   cursor: string | null;
@@ -166,6 +185,9 @@ export function mergeDashboardDelta(snapshot: DashboardSnapshot, delta: Dashboar
   return {
     ...snapshot,
     total: Math.max(snapshot.total, delta.total),
+    // Anders als `total` keine Untergrenze: Der Tagesstand faellt um Mitternacht
+    // absichtlich auf null zurueck.
+    today: delta.today ?? snapshot.today,
     categories: added.length === delta.added.length
       ? mergeCounts(snapshot.categories, delta.categories)
       : snapshot.categories,
@@ -359,6 +381,68 @@ export function requiredPerHour(total: number, goal: number, remainingMs: number
   if (missing <= 0 || remainingMs <= 0) return null;
 
   return missing / (remainingMs / 3_600_000);
+}
+
+/**
+ * Der heutige Stand im Verhaeltnis zum bisherigen Tagesrekord.
+ *
+ * Zwei Quellen kommen dafuer in Frage: der im Backend hinterlegte Bestwert aus
+ * der Tabellenkalkulation und der beste Tag dieser Aktion. Es gilt der hoehere
+ * von beiden - ein selbst aufgestellter Rekord loest den alten ab, ohne dass
+ * jemand die Zahl im Backend nachtragen muss.
+ *
+ * Ist keiner von beiden bekannt, steht `record` auf 0 und die Anzeige nennt nur
+ * den heutigen Stand, statt gegen eine erfundene Marke zu laufen.
+ */
+export type DayRecordState = {
+  /** Der zu schlagende Stand; 0 heisst: Es gibt noch keinen. */
+  record: number;
+  /** Herkunft des Rekords - fuer die Beschriftung. */
+  source: "logged" | "own" | "none";
+  /** Tag des Rekords, sofern er aus dieser Aktion stammt. */
+  date: string | null;
+  /** Was bis zum Rekord fehlt; 0, sobald er eingeholt ist. */
+  missing: number;
+  /** Vorsprung, sobald der Rekord ueberboten ist. */
+  lead: number;
+  /** Steht der Rekord bereits, oder ist er nur eingeholt? */
+  broken: boolean;
+  /** Anteil am Rekord in Prozent, auf 100 gedeckelt - fuer die Balkenbreite. */
+  progress: number;
+};
+
+export function dayRecordState(
+  today: number,
+  bestDay: { date: string; total: number } | null,
+  logged: number | null,
+): DayRecordState {
+  const own = bestDay && bestDay.total > 0 ? bestDay : null;
+  const loggedRecord = logged && logged > 0 ? logged : 0;
+  const record = Math.max(loggedRecord, own?.total ?? 0);
+
+  // Bei Gleichstand steht der eingetragene Wert vorn: Er ist die aeltere Marke,
+  // und "eingeholt" liest sich richtiger als "selbst aufgestellt".
+  const source = record === 0 ? "none" : loggedRecord >= record ? "logged" : "own";
+
+  return {
+    record,
+    source,
+    date: source === "own" ? own?.date ?? null : null,
+    missing: Math.max(0, record - today),
+    lead: Math.max(0, today - record),
+    broken: record > 0 && today > record,
+    progress: record > 0 ? Math.min(100, (today / record) * 100) : today > 0 ? 100 : 0,
+  };
+}
+
+/** Tagesdatum kurz, z. B. "12.09." - fuer die Herkunft des Bestwerts. */
+export function formatDayLabel(date: string | null): string {
+  if (!date) return "";
+
+  const parsed = new Date(`${date}T12:00:00Z`);
+  if (Number.isNaN(parsed.valueOf())) return "";
+
+  return parsed.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
 }
 
 /** Menschenlesbare Dauer aus Minuten, z. B. "1.204 h". */

@@ -18,10 +18,12 @@ export type AdminSettings = {
   endAt: string | null;
   windowStatus: "before" | "open" | "after" | "invalid";
   recordGoal: number;
+  /** Bisher hoechster Tagesstand; null heisst: nicht hinterlegt. */
+  dayRecord: number | null;
   region: RegionSettings;
   logoUrl: string | null;
   persisted: boolean;
-  stored: { window: boolean; recordGoal: boolean; region: boolean; logo: boolean };
+  stored: { window: boolean; recordGoal: boolean; dayRecord: boolean; region: boolean; logo: boolean };
 };
 
 const windowStatusLabels = { before: "Noch nicht gestartet", open: "Laeuft", after: "Beendet", invalid: "Nicht konfiguriert" } as const;
@@ -57,6 +59,7 @@ export default function CampaignPanel({
   const [startAt, setStartAt] = useState(toLocalInput(settings.startAt));
   const [endAt, setEndAt] = useState(toLocalInput(settings.endAt));
   const [goal, setGoal] = useState(String(settings.recordGoal));
+  const [dayRecord, setDayRecord] = useState(settings.dayRecord?.toString() ?? "");
   const [region, setRegion] = useState(settings.region);
   const [box, setBox] = useState({
     latMin: settings.region.latMin?.toString() ?? "",
@@ -113,6 +116,27 @@ export default function CampaignPanel({
 
     const ok = await save("goal", { recordGoal: parsed }, `Das neue Ziel sind ${parsed.toLocaleString("de-DE")} Reparaturen.`);
     if (ok) onSaved({ recordGoal: parsed, stored: { ...settings.stored, recordGoal: true } });
+  }
+
+  async function saveDayRecord(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = dayRecord.trim();
+
+    // Ein leeres Feld ist eine gueltige Angabe: Es loescht den hinterlegten Wert.
+    if (!trimmed) {
+      const cleared = await save("dayRecord", { dayRecord: null }, "Der Tagesrekord wurde entfernt. Es zaehlt der beste eigene Tag.");
+      if (cleared) onSaved({ dayRecord: null, stored: { ...settings.stored, dayRecord: false } });
+      return;
+    }
+
+    const parsed = Number.parseInt(trimmed, 10);
+    if (!Number.isFinite(parsed) || parsed < 1) {
+      onError("Der Tagesrekord muss eine ganze Zahl ab 1 sein.");
+      return;
+    }
+
+    const ok = await save("dayRecord", { dayRecord: parsed }, `Der Tagesrekord steht bei ${parsed.toLocaleString("de-DE")} Reparaturen.`);
+    if (ok) onSaved({ dayRecord: parsed, stored: { ...settings.stored, dayRecord: true } });
   }
 
   async function saveRegion(event: FormEvent<HTMLFormElement>) {
@@ -195,6 +219,16 @@ export default function CampaignPanel({
           <button className="button button-primary" type="submit" disabled={isSaving === "goal"}>{isSaving === "goal" ? "Speichert ..." : "Ziel speichern"}</button>
         </form>
         {!settings.stored.recordGoal && <p className="quota-note">Aktuell gilt der Wert aus <code>NEXT_PUBLIC_RECORD_GOAL</code>.</p>}
+      </section>
+
+      <section className="admin-card" aria-labelledby="day-record-heading">
+        <div className="admin-card-head"><h3 id="day-record-heading">Tagesrekord</h3><span className="section-index">{settings.dayRecord ? `${settings.dayRecord.toLocaleString("de-DE")} an einem Tag` : "Nicht hinterlegt"}</span></div>
+        <p>Die bisher hoechste Zahl an Reparaturen an einem einzigen Tag - der Wert aus der Tabellenkalkulation. Das Buehnen-Dashboard laesst den heutigen Tag dagegen laufen. Gezaehlt wird nach Einreichungstag, nicht nach Freigabe. Ueberbietet ein Tag dieser Aktion den Wert, gilt automatisch der neue.</p>
+        <form className="campaign-form" onSubmit={saveDayRecord}>
+          <label>Bisheriger Tagesrekord<input name="dayRecord" type="number" min={1} step={1} value={dayRecord} placeholder="leer lassen" onChange={(event) => setDayRecord(event.target.value)} /></label>
+          <button className="button button-primary" type="submit" disabled={isSaving === "dayRecord"}>{isSaving === "dayRecord" ? "Speichert ..." : "Tagesrekord speichern"}</button>
+        </form>
+        {!settings.stored.dayRecord && <p className="quota-note">Ohne Wert zeigt die Buehne allein den besten Tag dieser Aktion.</p>}
       </section>
 
       <section className="admin-card" aria-labelledby="region-heading">

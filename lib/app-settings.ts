@@ -12,6 +12,12 @@ import { getSubmissionWindow, type SubmissionWindow } from "./submission-window"
 export type AppSettings = {
   submissionWindow: SubmissionWindow;
   recordGoal: number;
+  /**
+   * Bisher hoechster Tagesstand, aus der Tabellenkalkulation uebernommen. Null
+   * heisst: nicht eingetragen - dann zaehlt auf der Buehne allein der beste Tag
+   * dieser Aktion.
+   */
+  dayRecord: number | null;
   region: RegionConfig;
   logoUrl: string | null;
   logoPath: string | null;
@@ -25,6 +31,7 @@ export type SettingsRow = {
   submission_start_at: string | null;
   submission_end_at: string | null;
   record_goal: number | null;
+  day_record: number | null;
   logo_path: string | null;
   region_enabled: boolean | null;
   region_label: string | null;
@@ -37,7 +44,7 @@ export type SettingsRow = {
 };
 
 const settingsColumns =
-  "submission_start_at, submission_end_at, record_goal, logo_path, region_enabled, region_label, region_ip_country, region_ip_region, region_lat_min, region_lat_max, region_lon_min, region_lon_max";
+  "submission_start_at, submission_end_at, record_goal, day_record, logo_path, region_enabled, region_label, region_ip_country, region_ip_region, region_lat_min, region_lat_max, region_lon_min, region_lon_max";
 
 export function parseWindow(startAt: string | null, endAt: string | null): SubmissionWindow | null {
   const start = new Date(startAt ?? "");
@@ -108,6 +115,7 @@ export const getAppSettings = cache(async (): Promise<AppSettings> => {
   return {
     submissionWindow: storedWindow ?? getSubmissionWindow(),
     recordGoal: row?.record_goal && row.record_goal > 0 ? row.record_goal : getRecordGoal(),
+    dayRecord: row?.day_record && row.day_record > 0 ? row.day_record : null,
     region: mergeRegion(getRegionConfig(), row),
     logoPath: row?.logo_path ?? null,
     logoUrl: publicLogoUrl(row?.logo_path ?? null),

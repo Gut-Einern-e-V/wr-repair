@@ -7,6 +7,7 @@ function row(overrides: Partial<SettingsRow> = {}): SettingsRow {
     submission_start_at: null,
     submission_end_at: null,
     record_goal: null,
+    day_record: null,
     logo_path: null,
     region_enabled: null,
     region_label: null,
