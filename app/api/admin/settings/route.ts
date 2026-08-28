@@ -6,6 +6,7 @@ type Body = {
   startAt?: unknown;
   endAt?: unknown;
   recordGoal?: unknown;
+  dayRecord?: unknown;
   region?: {
     enabled?: unknown;
     label?: unknown;
@@ -43,6 +44,7 @@ export async function GET() {
     endAt: settings.submissionWindow.endAt?.toISOString() ?? null,
     windowStatus: settings.submissionWindow.status,
     recordGoal: settings.recordGoal,
+    dayRecord: settings.dayRecord,
     region: {
       enabled: settings.region.enabled,
       label: settings.region.label,
@@ -60,6 +62,7 @@ export async function GET() {
     stored: {
       window: Boolean(row?.submission_start_at && row?.submission_end_at),
       recordGoal: row?.record_goal != null,
+      dayRecord: row?.day_record != null,
       region: row?.region_label != null,
       logo: Boolean(row?.logo_path),
     },
@@ -89,6 +92,20 @@ export async function PUT(request: Request) {
       return Response.json({ error: "Das Ziel muss eine ganze Zahl ab 1 sein." }, { status: 400 });
     }
     update.record_goal = goal;
+  }
+
+  // Der bisherige Tagesrekord aus der Tabellenkalkulation. Null loescht ihn -
+  // dann zaehlt auf der Buehne allein der beste Tag dieser Aktion.
+  if (body.dayRecord !== undefined) {
+    if (body.dayRecord === null) {
+      update.day_record = null;
+    } else {
+      const record = Number(body.dayRecord);
+      if (!Number.isInteger(record) || record < 1 || record > 100_000_000) {
+        return Response.json({ error: "Der Tagesrekord muss eine ganze Zahl ab 1 sein." }, { status: 400 });
+      }
+      update.day_record = record;
+    }
   }
 
   if (body.region !== undefined) {

@@ -417,6 +417,30 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
 .stage-countdown-line b { color: rgba(238, 241, 247, .72); font-weight: 700; font-variant-numeric: tabular-nums; }
 .stage-countdown-note { margin: 0; color: rgba(238, 241, 247, .34); font: 500 10px/1.5 var(--mono); letter-spacing: .06em; }
 
+/* Tagesrekord -----------------------------------------------------------
+   Sitzt unter dem Countdown und beantwortet dieselbe Frage fuer den einzelnen
+   Tag. Bewusst schmal: Der Block darf dem QR-Code am Fuss des Panels keinen
+   Platz nehmen. */
+.stage-dayrecord { display: grid; gap: 6px; }
+.stage-dayrecord-head { display: flex; align-items: baseline; gap: 8px; margin: 0; }
+.stage-dayrecord-head strong {
+  color: #eef1f7;
+  font: 800 clamp(1.2rem, 1.6vw, 2.2rem)/1 var(--sans);
+  font-variant-numeric: tabular-nums;
+}
+.stage-dayrecord-head span { color: var(--stage-dim); font: 500 10px var(--mono); letter-spacing: .1em; text-transform: uppercase; }
+.stage-dayrecord-bar { height: 8px; background: rgba(238, 241, 247, .08); }
+.stage-dayrecord-bar i { display: block; height: 100%; background: var(--stage-mint); transition: width 1.2s cubic-bezier(.2, .8, .3, 1); }
+.stage-dayrecord-line { margin: 0; color: rgba(238, 241, 247, .38); font: 500 clamp(10px, .72vw, 14px)/1.45 var(--mono); }
+.stage-dayrecord-line b { color: rgba(238, 241, 247, .72); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Steht der Rekord, traegt der Block die Signalfarbe des Hauses - dieselbe,
+   in der auch die Restzeit steht. */
+.stage-dayrecord.is-record .stage-dayrecord-head strong { color: var(--stage-yellow); }
+.stage-dayrecord.is-record .stage-dayrecord-bar i { background: var(--stage-yellow); }
+.stage-dayrecord.is-record .stage-dayrecord-line { color: rgba(255, 196, 50, .8); }
+.stage-dayrecord.is-record .stage-dayrecord-line b { color: var(--stage-yellow); }
+
 /* Buehne ----------------------------------------------------------------
    Die Buehne selbst nimmt die Zeigerereignisse fuer die Kreiskarte an, deshalb
    duerfen ihre Kinder sie nicht abfangen. */
@@ -587,6 +611,10 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   .stage-countdown-bar { height: 5px; }
   .stage-countdown-verdict { font-size: 9px; }
   .stage-countdown-line { font-size: 8px; }
+  .stage-dayrecord-head strong { font-size: .95rem; }
+  .stage-dayrecord-head span { font-size: 7px; }
+  .stage-dayrecord-bar { height: 5px; }
+  .stage-dayrecord-line { font-size: 8px; }
   .dashboard-stage { padding: 9px; }
   .spotlight { max-width: 42%; border-width: 1px; }
   .spotlight img { max-height: 40vmin; }

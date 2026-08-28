@@ -149,7 +149,23 @@ function toCells(value: unknown): DashboardCell[] {
   });
 }
 
-async function loadSnapshot(supabase: SupabaseAdmin, campaign: DashboardSnapshot["campaign"], goal: number): Promise<DashboardSnapshot | null> {
+/** Bester Tag aus dem Aggregat - fehlt er, hat die Aktion noch keinen. */
+function toBestDay(value: unknown): DashboardSnapshot["bestDay"] {
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  const total = toNumber(record.total);
+  if (typeof record.date !== "string" || total <= 0) return null;
+
+  return { date: record.date, total };
+}
+
+async function loadSnapshot(
+  supabase: SupabaseAdmin,
+  campaign: DashboardSnapshot["campaign"],
+  goal: number,
+  dayRecord: number | null,
+): Promise<DashboardSnapshot | null> {
   const { data, error } = await supabase.rpc("dashboard_stats");
   if (error || !data) return null;
 
@@ -175,6 +191,9 @@ async function loadSnapshot(supabase: SupabaseAdmin, campaign: DashboardSnapshot
     categories: toCounts(aggregate.categories),
     performedBy: toCounts(aggregate.performedBy),
     timeline: fillTimeline(aggregate.timeline),
+    today: toNumber(aggregate.today),
+    bestDay: toBestDay(aggregate.bestDay),
+    dayRecord,
     cells,
     kreise: busyKreise,
     highlights: await toHighlights(supabase, (recent ?? []) as RepairRow[], busyKreise),
@@ -191,6 +210,12 @@ async function loadDelta(supabase: SupabaseAdmin, since: string): Promise<Dashbo
     .eq("status", "approved");
 
   if (countError) return null;
+
+  // Der Tagesstand kommt aus der Datenbank statt aus einer Berechnung hier:
+  // Die Grenze des Berliner Kalendertages haengt an der Zeitzone, und die kennt
+  // Postgres verlaesslicher als ein Node-Prozess in UTC (siehe
+  // `dashboard_today()`).
+  const { data: todayCount, error: todayError } = await supabase.rpc("dashboard_today");
 
   const { data, error } = await supabase
     .from("repairs")
@@ -212,6 +237,9 @@ async function loadDelta(supabase: SupabaseAdmin, since: string): Promise<Dashbo
 
   return {
     total: count ?? 0,
+    // Null statt 0, wenn der Tagesstand nicht zu holen war: Der Client behaelt
+    // dann seinen letzten Wert, statt den Tageszaehler auf null zu ziehen.
+    today: todayError ? null : toNumber(todayCount),
     added: [...highlights].reverse(),
     categories,
     cursor: rows.at(-1)?.moderated_at ?? since,
@@ -276,7 +304,7 @@ export async function GET(request: Request) {
   const snapshot = await loadSnapshot(supabase, {
     startAt: campaign.startAt?.toISOString() ?? null,
     endAt: campaign.endAt?.toISOString() ?? null,
-  }, settings.recordGoal);
+  }, settings.recordGoal, settings.dayRecord);
   if (!snapshot) {
     return Response.json({ error: "Die Live-Daten konnten nicht geladen werden." }, { status: 502 });
   }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, isFreshlyApproved, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
+import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, dayRecordState, formatDayLabel, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, isFreshlyApproved, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
 
 function highlight(id: string, category = "tools", mapKreis: string | null = null) {
   return {
@@ -25,6 +25,9 @@ const snapshot: DashboardSnapshot = {
   categories: { tools: 6, bicycle: 4 },
   performedBy: { alone: 10 },
   timeline: [{ date: "2026-10-01", total: 10 }],
+  today: 4,
+  bestDay: { date: "2026-09-28", total: 7 },
+  dayRecord: null,
   cells: [],
   kreise: {},
   highlights: [highlight("a"), highlight("b")],
@@ -36,6 +39,7 @@ const snapshot: DashboardSnapshot = {
 describe("mergeDashboardDelta", () => {
   const delta: DashboardDelta = {
     total: 12,
+    today: 6,
     added: [highlight("c"), highlight("d", "bicycle")],
     categories: { tools: 1, bicycle: 1 },
     cursor: "2026-10-01T10:05:00.000Z",
@@ -49,6 +53,11 @@ describe("mergeDashboardDelta", () => {
     expect(merged.highlights.map((item) => item.id)).toEqual(["c", "d", "a", "b"]);
     expect(merged.categories).toEqual({ tools: 7, bicycle: 5 });
     expect(merged.cursor).toBe("2026-10-01T10:05:00.000Z");
+  });
+
+  it("uebernimmt den Tagesstand aus dem Delta und haelt ihn ohne Angabe fest", () => {
+    expect(mergeDashboardDelta(snapshot, delta).today).toBe(6);
+    expect(mergeDashboardDelta(snapshot, { ...delta, today: null }).today).toBe(4);
   });
 
   it("ignoriert bereits bekannte Eintraege und laesst die Kategorien unveraendert", () => {
@@ -373,5 +382,59 @@ describe("formatMinutes", () => {
   it("wechselt ab einer Stunde auf Stundenangaben", () => {
     expect(formatMinutes(45)).toBe("45 min");
     expect(formatMinutes(7_200)).toBe("120 h");
+  });
+});
+
+describe("dayRecordState", () => {
+  it("nimmt den hinterlegten Wert, solange kein eigener Tag ihn schlaegt", () => {
+    const state = dayRecordState(80, { date: "2026-09-28", total: 90 }, 120);
+
+    expect(state.record).toBe(120);
+    expect(state.source).toBe("logged");
+    expect(state.date).toBeNull();
+    expect(state.missing).toBe(40);
+    expect(state.broken).toBe(false);
+  });
+
+  it("nimmt den eigenen Bestwert, sobald er hoeher liegt, und nennt seinen Tag", () => {
+    const state = dayRecordState(80, { date: "2026-09-28", total: 140 }, 120);
+
+    expect(state.record).toBe(140);
+    expect(state.source).toBe("own");
+    expect(state.date).toBe("2026-09-28");
+  });
+
+  it("meldet den Rekord erst, wenn er ueberboten ist - nicht bei Gleichstand", () => {
+    expect(dayRecordState(120, null, 120).broken).toBe(false);
+    expect(dayRecordState(120, null, 120).missing).toBe(0);
+
+    const broken = dayRecordState(131, null, 120);
+    expect(broken.broken).toBe(true);
+    expect(broken.lead).toBe(11);
+  });
+
+  it("kommt ohne jeden Rekord aus", () => {
+    const state = dayRecordState(12, null, null);
+
+    expect(state.record).toBe(0);
+    expect(state.source).toBe("none");
+    expect(state.missing).toBe(0);
+    expect(state.broken).toBe(false);
+  });
+
+  it("deckelt die Balkenbreite bei hundert Prozent", () => {
+    expect(dayRecordState(240, null, 120).progress).toBe(100);
+    expect(dayRecordState(60, null, 120).progress).toBe(50);
+  });
+});
+
+describe("formatDayLabel", () => {
+  it("schreibt Tag und Monat", () => {
+    expect(formatDayLabel("2026-09-28")).toBe("28.09.");
+  });
+
+  it("bleibt bei fehlendem oder unlesbarem Datum leer", () => {
+    expect(formatDayLabel(null)).toBe("");
+    expect(formatDayLabel("kein Datum")).toBe("");
   });
 });
