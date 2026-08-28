@@ -4,6 +4,8 @@ import { QuickSubmission } from "./quick-submission";
 export const metadata = {
   title: "Reparatur eintragen | Reparaturrekord NRW",
   description: "Trage deine Reparatur direkt ein – ohne Umwege, optimiert für das Smartphone.",
+  // Eigene installierbare App statt der Hauptseite (siehe lib/app-manifests.ts).
+  manifest: "/mitmachen/manifest.webmanifest",
 };
 
 export default function QuickSubmissionPage() {

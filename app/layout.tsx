@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Nunito, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { getSiteUrl } from "@/lib/share";
@@ -30,6 +30,13 @@ export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl() || "http://localhost:3000"),
   title: "Reparaturrekord NRW | FAB Region",
   description: "Gemeinsam reparieren wir den Weltrekord.",
+};
+
+/* Faerbt Adressleiste und Statusleiste. Ohne diesen Wert waehlt Chrome auf
+   Android selbst - im installierten Zustand wurde daraus ein dunkler Balken
+   ueber der hellen Seite. Gleicher Wert wie `theme_color` in app/manifest.ts. */
+export const viewport: Viewport = {
+  themeColor: "#efece5",
 };
 
 export default function RootLayout({
