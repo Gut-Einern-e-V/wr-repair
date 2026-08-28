@@ -155,7 +155,22 @@ export function decideOrigin(
  * Ortsangabe behauptet.
  */
 export function hasOriginMismatch(ipRegion: string | null, kreis: string | null, region: RegionConfig): boolean {
-  if (!ipRegion || !kreis || !region.enabled) return false;
-  const expected = region.ipRegion ? `${region.ipCountry}-${region.ipRegion}` : region.ipCountry;
-  return ipRegion !== expected;
+  if (!ipRegion || !kreis) return false;
+  const expected = expectedIpRegionTag(region);
+  return expected !== null && ipRegion !== expected;
+}
+
+/**
+ * Welchen Verbindungs-Tag eine Einreichung aus dem Gebiet tragen muesste, oder
+ * null, wenn gar nicht geprueft wird.
+ *
+ * Steht bewusst als eigene Funktion da: Dieselbe Antwort braucht auch
+ * `claim_next_repair()` in der Datenbank, damit die Schnellpruefung genau die
+ * Einreichungen ueberspringt, die die Konsole als "Verbindung woanders"
+ * kennzeichnet (siehe supabase/migrations/202608280004_quick_review_clear_origin.sql).
+ * Zwei getrennte Formeln waeren irgendwann auseinandergelaufen.
+ */
+export function expectedIpRegionTag(region: RegionConfig): string | null {
+  if (!region.enabled) return null;
+  return region.ipRegion ? `${region.ipCountry}-${region.ipRegion}` : region.ipCountry;
 }

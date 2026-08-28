@@ -96,6 +96,11 @@ function QuickCard({
           <p className="section-index">
             {repairCategoryLabel(repair.category)}
             {repair.origin?.kreis ? ` · ${repair.origin.kreis}` : repair.location_region ? ` · ${repair.location_region}` : ""}
+            {/* Sollte hier nicht mehr auftauchen: `claim_next_repair()` gibt nur
+                Einreichungen mit eindeutiger Herkunft aus. Der Hinweis bleibt
+                als Anzeige stehen, falls Datenbank und Konsole je verschiedener
+                Meinung sind - dann steht er auf der Karte, statt still
+                durchzulaufen. */}
             {originWarning(repair) && <span className="status-chip is-pending">{originWarning(repair)}</span>}
           </p>
           <h3>{repair.brand_model || "Marke/Modell unbekannt"}</h3>
@@ -141,8 +146,14 @@ function QuickCard({
  * fest, damit nicht zwei Moderator*innen dieselbe Karte bearbeiten (Issue #38).
  * Fuer Moderator*innen bleibt die Laenge der Warteschlange unsichtbar (Issue
  * #10) - sichtbar ist nur die naechste Karte.
+ *
+ * Einreichungen mit unklarer Herkunft kommen hier gar nicht an: Ueber die
+ * entscheidet man in der Tabelle, wo Karte, Quelle und Verbindung nebeneinander
+ * stehen. Ausgewaehlt wird das in `claim_next_repair()`. Deshalb darf der
+ * Leerlauf hier nicht "nichts mehr offen" behaupten - in der Tabelle kann noch
+ * einiges liegen.
  */
-export default function QuickReview({ showProgress }: { showProgress: boolean }) {
+export default function QuickReview({ showProgress, onOpenTable }: { showProgress: boolean; onOpenTable: () => void }) {
   const [queue, setQueue] = useState<Queue>({ state: "loading" });
   const [remaining, setRemaining] = useState<number | null>(null);
   const [isBusy, setIsBusy] = useState(false);
@@ -263,14 +274,23 @@ export default function QuickReview({ showProgress }: { showProgress: boolean })
 
       {queue.state === "loading" && <p className="queue-empty">Nächste Einreichung wird geholt.</p>}
       {queue.state === "error" && <p className="queue-empty">{queue.message}</p>}
-      {queue.state === "empty" && (queue.skipped ? (
+      {queue.state === "empty" && (
         <>
-          <p className="queue-empty">Außer den zurückgestellten Einreichungen ist nichts mehr offen. Danke für die Moderation.</p>
-          <button className="button button-secondary" type="button" onClick={() => void showPostponed()}>Zurückgestellte noch einmal zeigen</button>
+          <p className="queue-empty">
+            {queue.skipped
+              ? "Außer den zurückgestellten ist hier nichts mehr zu entscheiden."
+              : "Hier ist nichts mehr zu entscheiden. Danke für die Moderation."}
+          </p>
+          {queue.skipped > 0 && (
+            <button className="button button-secondary" type="button" onClick={() => void showPostponed()}>Zurückgestellte noch einmal zeigen</button>
+          )}
+          <p className="queue-empty">
+            Einreichungen, bei denen die Herkunft unklar ist, stehen nicht in der Schnellprüfung –
+            über die entscheidest du in der Tabelle, wo Karte, Quelle und Verbindung zu sehen sind.
+          </p>
+          <button className="button button-secondary" type="button" onClick={onOpenTable}>In der Tabelle nachsehen</button>
         </>
-      ) : (
-        <p className="queue-empty">Keine offenen Einreichungen. Danke für die Moderation.</p>
-      ))}
+      )}
 
       {queue.state === "ready" && (
         <QuickCard
@@ -285,7 +305,7 @@ export default function QuickReview({ showProgress }: { showProgress: boolean })
 
       <p className="quick-hint">
         Pfeil rechts gibt frei, Pfeil links lehnt ab, Pfeil runter stellt zurück. Wischen geht auch.
-        {showProgress && remaining !== null ? ` Noch ${remaining} offen.` : ""}
+        {showProgress && remaining !== null ? ` Noch ${remaining} in dieser Warteschlange.` : ""}
       </p>
     </div>
   );
