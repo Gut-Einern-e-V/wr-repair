@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { isPushConfigured, notifyModerators } from "./push";
+import { isPushConfigured, missingPushConfig, notifyModerators } from "./push";
 
 /* Die wichtigste Eigenschaft ist nicht, dass Push funktioniert, sondern dass
    sein Fehlen niemandem schadet: `notifyModerators` haengt in app/api/repairs
@@ -38,6 +38,29 @@ describe("push configuration", () => {
       VAPID_SUBJECT: "mailto:test@example.org",
     });
     expect(isPushConfigured()).toBe(true);
+  });
+});
+
+describe("missingPushConfig", () => {
+  it("names exactly the values that are absent", () => {
+    setKeys({});
+    expect(missingPushConfig()).toEqual([
+      "NEXT_PUBLIC_VAPID_PUBLIC_KEY",
+      "VAPID_PRIVATE_KEY",
+      "VAPID_SUBJECT",
+    ]);
+
+    /* Der Fall, an dem die erste Einrichtung haengen blieb: oeffentlicher
+       Schluessel gesetzt, Serverpaar nicht. Die Meldung muss beide nennen. */
+    setKeys({ NEXT_PUBLIC_VAPID_PUBLIC_KEY: "public" });
+    expect(missingPushConfig()).toEqual(["VAPID_PRIVATE_KEY", "VAPID_SUBJECT"]);
+
+    setKeys({
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: "public",
+      VAPID_PRIVATE_KEY: "private",
+      VAPID_SUBJECT: "mailto:test@example.org",
+    });
+    expect(missingPushConfig()).toEqual([]);
   });
 });
 

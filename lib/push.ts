@@ -27,6 +27,18 @@ export function isPushConfigured() {
   return readConfig() !== null;
 }
 
+/* Nennt die fehlenden Variablen beim Namen. Ohne das laesst sich aus der
+   Fehlmeldung nicht ableiten, welcher der drei Werte fehlt - genau daran ist die
+   erste Einrichtung haengen geblieben. Variablennamen sind keine Geheimnisse,
+   und der Endpunkt, der das ausliefert, verlangt Moderationsrolle. */
+export function missingPushConfig() {
+  const missing: string[] = [];
+  if (!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY) missing.push("NEXT_PUBLIC_VAPID_PUBLIC_KEY");
+  if (!process.env.VAPID_PRIVATE_KEY) missing.push("VAPID_PRIVATE_KEY");
+  if (!process.env.VAPID_SUBJECT) missing.push("VAPID_SUBJECT");
+  return missing;
+}
+
 /* Nachrichten bleiben inhaltslos: nur, dass etwas wartet, und wie viel. Kein
    Foto, kein Text aus der Einreichung, keine Kategorie. Der Transport ist zwar
    Ende-zu-Ende verschluesselt, aber es gibt keinen Grund, Einreichungsinhalte

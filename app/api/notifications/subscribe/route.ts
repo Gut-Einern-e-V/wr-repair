@@ -1,6 +1,6 @@
 import { requireModerator } from "@/lib/admin-auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { isPushConfigured } from "@/lib/push";
+import { isPushConfigured, missingPushConfig } from "@/lib/push";
 
 /* An- und Abmeldung fuer Push-Benachrichtigungen der Moderation (Issue #43).
  *
@@ -43,8 +43,10 @@ export async function GET() {
   const auth = await requireModerator();
   if (!auth.authorized) return errorResponse(auth.error, auth.status);
 
-  // Die Konsole fragt hiermit ab, ob der Umschalter ueberhaupt Sinn hat.
-  return Response.json({ configured: isPushConfigured() });
+  /* Die Konsole fragt hiermit ab, ob der Umschalter ueberhaupt Sinn hat.
+     `missing` ist die Einrichtungshilfe: Ein Blick auf diesen Endpunkt sagt,
+     welche Variable auf diesem Deployment fehlt. */
+  return Response.json({ configured: isPushConfigured(), missing: missingPushConfig() });
 }
 
 export async function POST(request: Request) {
@@ -52,7 +54,13 @@ export async function POST(request: Request) {
   if (!auth.authorized) return errorResponse(auth.error, auth.status);
 
   if (!isPushConfigured()) {
-    return errorResponse("Benachrichtigungen sind auf diesem Server nicht konfiguriert.", 503);
+    /* Ursache benennen statt "nicht konfiguriert": Vorher war diese Meldung
+       kaum von der des Clients zu unterscheiden, und beide haben verschiedene
+       Ursachen an verschiedenen Orten. */
+    return errorResponse(
+      `Serverseitige Einrichtung unvollstaendig. Es fehlt: ${missingPushConfig().join(", ")}.`,
+      503,
+    );
   }
 
   let body: unknown;

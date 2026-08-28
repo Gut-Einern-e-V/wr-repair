@@ -165,7 +165,9 @@ export default function PushToggle() {
   if (state === "unconfigured") {
     return (
       <p className="push-toggle is-note">
-        Benachrichtigungen sind auf diesem Server nicht eingerichtet.
+        Benachrichtigungen sind für diese Installation nicht eingerichtet: Der
+        öffentliche Schlüssel fehlt im Browser-Bundle. Er wird beim Bauen
+        eingesetzt, ein Deployment nach dem Setzen der Variable ist also nötig.
       </p>
     );
   }

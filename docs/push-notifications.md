@@ -36,9 +36,40 @@ In Vercel für Production und Preview, lokal in `.env.local`:
 | `VAPID_PRIVATE_KEY` | der private Schlüssel, **nur** Server, nie committen |
 | `VAPID_SUBJECT` | Kontaktadresse, `mailto:…` oder `https://…` |
 
+`VAPID_SUBJECT` muss ein **URI** sein, keine nackte Adresse — `web-push`
+akzeptiert nur `mailto:` und `https:`:
+
+| Wert | |
+| --- | --- |
+| `mailto:name@example.org` | ✅ |
+| `https://reparatur.fab-bergisch.org` | ✅ |
+| `name@example.org` | ❌ *not a valid URL* |
+| `reparatur.fab-bergisch.org` | ❌ *not a valid URL* |
+| `http://…` | ❌ *not an https: or mailto: URL* |
+
 Fehlt einer der drei Werte, bleibt die Funktion vollständig aus: Der Umschalter
 zeigt einen Hinweis statt eines toten Buttons, und Einreichungen laufen
 unverändert weiter. `lib/push.test.ts` sichert genau das ab.
+
+### Wenn der Umschalter meckert
+
+Die Meldung sagt, **wo** es fehlt:
+
+| Meldung | Ursache |
+| --- | --- |
+| „…für diese Installation nicht eingerichtet: Der öffentliche Schlüssel fehlt im Browser-Bundle" | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` fehlt **zum Zeitpunkt des Builds** |
+| „Serverseitige Einrichtung unvollständig. Es fehlt: …" | benennt die fehlenden Variablen direkt |
+| „Dieser Browser kann keine Benachrichtigungen…" | iOS-Safari ohne Installation, oder zu alter Browser |
+| „…im Browser blockiert" | Berechtigung abgelehnt, nur in den Browsereinstellungen umkehrbar |
+
+**Häufigste Falle:** `NEXT_PUBLIC_*`-Variablen werden beim **Bauen** in das
+Browser-Bundle eingesetzt, nicht zur Laufzeit gelesen. Nach dem Setzen in Vercel
+ist ein neues Deployment nötig, lokal ein Neustart von `npm run dev`. Die beiden
+Serverwerte (`VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`) gelten dagegen sofort.
+
+Welche Variable auf einem Deployment fehlt, sagt als angemeldete Moderation:
+
+    GET /api/notifications/subscribe   ->   { "configured": false, "missing": [...] }
 
 ### 3. Migration ausrollen
 
