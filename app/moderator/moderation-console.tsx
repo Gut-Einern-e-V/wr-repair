@@ -4,6 +4,7 @@ import { useState } from "react";
 import BackendHeader from "@/components/backend-header";
 import QuickReview from "./quick-review";
 import RepairTable from "./repair-table";
+import PushToggle from "./push-toggle";
 
 type Role = "moderator" | "admin" | "superadmin";
 
@@ -29,9 +30,14 @@ export default function ModerationConsole({ email, roles, logoUrl }: { email: st
           <p className="brand-kicker">Moderation</p>
           <h1>{view === "quick" ? "Schnellprüfung" : "Tabelle"}</h1>
         </div>
-        <div className="view-switch" role="group" aria-label="Ansicht wechseln">
-          <button className={`button ${view === "quick" ? "button-primary" : "button-secondary"}`} type="button" aria-pressed={view === "quick"} onClick={() => setView("quick")}>Schnellprüfung</button>
-          <button className={`button ${view === "table" ? "button-primary" : "button-secondary"}`} type="button" aria-pressed={view === "table"} onClick={() => setView("table")}>Tabelle</button>
+        <div className="moderator-bar-actions">
+          {/* Nur hier steht der Umschalter, und nur er fragt nach der
+              Benachrichtigungserlaubnis. Oeffentliche Seiten fragen nie. */}
+          <PushToggle />
+          <div className="view-switch" role="group" aria-label="Ansicht wechseln">
+            <button className={`button ${view === "quick" ? "button-primary" : "button-secondary"}`} type="button" aria-pressed={view === "quick"} onClick={() => setView("quick")}>Schnellprüfung</button>
+            <button className={`button ${view === "table" ? "button-primary" : "button-secondary"}`} type="button" aria-pressed={view === "table"} onClick={() => setView("table")}>Tabelle</button>
+          </div>
         </div>
       </div>
 

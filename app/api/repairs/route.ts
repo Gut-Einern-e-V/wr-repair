@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { notifyModerators } from "@/lib/push";
 import { verifyRegion, isWithinRegion } from "@/lib/geo";
 import { type RegionConfig } from "@/lib/region-config";
 import { extractExif } from "@/lib/exif";
@@ -233,6 +235,33 @@ export async function POST(request: Request) {
       email: (lotteryEmail as string).trim().toLowerCase(),
     });
   }
+
+  /* Moderation benachrichtigen - nach der Antwort, nicht davor (Issue #43).
+     `after` laeuft erst, wenn die Antwort raus ist: Wer eine Reparatur
+     eintraegt, wartet nicht darauf, dass drei Push-Dienste antworten, und eine
+     Einreichung scheitert nicht, weil einer davon streikt.
+
+     Mitgeschickt wird die Zahl der offenen Einreichungen, nicht diese eine. Alle
+     Nachrichten teilen im Service Worker denselben tag und ersetzen sich
+     gegenseitig, daher steht in der einen sichtbaren Benachrichtigung immer der
+     aktuelle Stand statt "1". */
+  after(async () => {
+    try {
+      const { count } = await supabase
+        .from("repairs")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending");
+
+      await notifyModerators({
+        title: "Neue Eintragung",
+        count: count ?? 1,
+        url: "/moderator",
+      });
+    } catch {
+      // Bewusst still: Die Einreichung ist gespeichert, das ist der Vertrag mit
+      // der eintragenden Person. Ein fehlgeschlagener Push aendert daran nichts.
+    }
+  });
 
   return Response.json({ id: repairId, status: "pending" }, { status: 201 });
 }
