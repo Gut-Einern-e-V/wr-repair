@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
 import { claimNextRepair, decideRepair, releaseRepairClaim, saveRepairMetadata } from "./moderation-api";
-import { draftFromRepair, performedByLabel, type MetadataDraft, type ModerationRepair } from "./repair-types";
+import { draftFromRepair, performedByLabel, type MetadataDraft, type ModerationRepair,
+  originWarning,
+} from "./repair-types";
 
 const SWIPE_THRESHOLD = 90;
 
@@ -91,7 +93,11 @@ function QuickCard({
           ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" draggable={false} />
           : <div className="missing-image">Kein Bild eingereicht</div>}
         <div className="quick-body">
-          <p className="section-index">{repairCategoryLabel(repair.category)}{repair.location_region ? ` · ${repair.location_region}` : ""}</p>
+          <p className="section-index">
+            {repairCategoryLabel(repair.category)}
+            {repair.origin?.kreis ? ` · ${repair.origin.kreis}` : repair.location_region ? ` · ${repair.location_region}` : ""}
+            {originWarning(repair) && <span className="status-chip is-pending">{originWarning(repair)}</span>}
+          </p>
           <h3>{repair.brand_model || "Marke/Modell unbekannt"}</h3>
           {repair.story && <p className="quick-story">{repair.story}</p>}
           <dl>

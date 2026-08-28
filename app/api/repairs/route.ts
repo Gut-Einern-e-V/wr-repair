@@ -1,14 +1,13 @@
 import { after } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { notifyModerators } from "@/lib/push";
-import { verifyRegion, isWithinRegion } from "@/lib/geo";
-import { type RegionConfig } from "@/lib/region-config";
 import { extractExif } from "@/lib/exif";
-import { anonymizeRequestOrigin, isAnonymizedPoint } from "@/lib/geo-anonymize";
+import { anonymizeCoordinates } from "@/lib/geo-anonymize";
+import { decideOrigin, ipRegionTag } from "@/lib/origin-check";
+import { ipCity, outsideRegionHelp } from "@/lib/outside-region-help";
 import { rateLimit } from "@/lib/rate-limit";
 import { getAppSettings } from "@/lib/app-settings";
 import { repairCategoryValues } from "@/lib/repair-catalog";
-import { kreisForPoint } from "@/lib/nrw-map";
 
 export const runtime = "nodejs";
 
@@ -50,48 +49,12 @@ async function verifyCaptcha(token: string) {
   }
 }
 
-/**
- * Ermittelt die anonymisierte Herkunft einer Einreichung.
- *
- * Bevorzugt wird der Wert, den der Browser aus dem Original-EXIF gerastert
- * hat; er ist naeher am tatsaechlichen Reparaturort als die IP. Weil er aber
- * aus dem Client kommt, wird er nicht uebernommen, sondern verifiziert: Das
- * Raster ist idempotent, ein exakter Zellpunkt bleibt beim erneuten Schnappen
- * unveraendert. Genauere oder frei erfundene Koordinaten fallen damit durch.
- *
- * Ohne brauchbaren Client-Wert dient der Vercel-Geo-Header als Rueckfall. Er
- * ist ohnehin nur stadtgenau und wird durch dasselbe Raster geschickt.
- */
-function resolveAnonymizedOrigin(request: Request, formData: FormData, region: RegionConfig) {
-  // Ohne konfigurierte Bounds gibt es keine Regionspruefung; dann darf die
-  // Herkunft nicht still wegfallen, weil isWithinRegion() in dem Fall immer
-  // false liefert.
-  const hasBounds = region.bounds !== null;
-  const inRegion = (lat: number, lon: number) => !hasBounds || isWithinRegion(lat, lon, region);
-
-  const rawLat = Number.parseFloat(String(formData.get("origin_lat") ?? ""));
-  const rawLon = Number.parseFloat(String(formData.get("origin_lon") ?? ""));
-
-  if (isAnonymizedPoint(rawLat, rawLon) && inRegion(rawLat, rawLon)) {
-    return { lat: rawLat, lon: rawLon };
-  }
-
-  const fromIp = anonymizeRequestOrigin(request);
-  if (fromIp && inRegion(fromIp.lat, fromIp.lon)) {
-    return fromIp;
-  }
-
-  return null;
-}
-
 export async function POST(request: Request) {
   const settings = await getAppSettings();
 
   if (settings.submissionWindow.status !== "open") {
     return errorResponse("Einreichungen sind derzeit nicht geoeffnet.", 403);
   }
-
-  const geoCheck = verifyRegion(request, settings.region);
 
   const limit = rateLimit(request, "repair-submission", { limit: 3, windowMs: 15 * 60 * 1_000 });
   if (!limit.allowed) {
@@ -170,22 +133,45 @@ export async function POST(request: Request) {
 
   const repairId = crypto.randomUUID();
 
-  // Determine location_region: IP geo first, then EXIF GPS as fallback.
-  let locationRegion: string | null = geoCheck.allowed ? geoCheck.region : null;
+  /* Herkunft pruefen, bevor irgendetwas gespeichert wird.
+     Reihenfolge mit Absicht: Erst wenn feststeht, dass die Einreichung
+     angenommen wird, wandert das Bild in den Storage. Eine Absage kostet so
+     weder Speicher noch eine Aufraeumrunde. */
+  let origin = decideOrigin(request, formData, settings.region);
+
+  /* Letzte Gelegenheit vor der Absage: das EXIF des Bildes.
+     Normalerweise rastert schon der Browser die Foto-Koordinate und schickt
+     nur das Ergebnis (siehe components/repair-submission-form.tsx). Schlaegt
+     das fehl - alte Browser, blockierte Skripte -, waere eine echte Reparatur
+     aus dem Gebiet sonst abgewiesen worden, obwohl der Beleg im Bild steckt.
+     Der Buffer wird ohnehin gebraucht und danach fuer den Upload wiederverwendet. */
+  if (!origin.allowed && image instanceof File && image.size > 0 && image.type === "image/jpeg") {
+    const buffer = await image.arrayBuffer();
+    const exif = await extractExif(buffer);
+    const exifPoint = anonymizeCoordinates(exif.latitude, exif.longitude);
+    origin = decideOrigin(request, formData, settings.region, exifPoint);
+    // Aus dem Buffer neu aufgebaut, damit die Originalbytes erhalten bleiben.
+    image = new File([buffer], image.name, { type: image.type });
+  }
+
+  if (!origin.allowed) {
+    /* Nur zaehlen, nichts aufheben: Zeitpunkt und grobe Gegend, damit sich
+       spaeter sagen laesst, wie viele Menschen von ausserhalb mitmachen
+       wollten. Kein Inhalt, kein Bild, kein Bezug zu einer Person. */
+    await supabase.from("blocked_submissions").insert({
+      ip_country: request.headers.get("x-vercel-ip-country"),
+      ip_region: ipRegionTag(request),
+      ip_city: ipCity(request),
+    });
+
+    return Response.json(
+      { error: "Diese Reparatur zaehlt leider nicht fuer den Rekord.", outsideRegion: outsideRegionHelp(request, settings.region.label) },
+      { status: 403 },
+    );
+  }
 
   if (image instanceof File && image.size > 0) {
     imagePath = `pending/${repairId}.${imageExtensions[image.type]}`;
-
-    // Extract EXIF GPS for region verification (not stored in DB).
-    if (!geoCheck.allowed && image.type === "image/jpeg") {
-      const buffer = await image.arrayBuffer();
-      const exif = await extractExif(buffer);
-      if (exif.latitude !== null && exif.longitude !== null && isWithinRegion(exif.latitude, exif.longitude, settings.region)) {
-        locationRegion = settings.region.label;
-      }
-      // Re-create the file from the buffer so we can still upload the original bytes.
-      image = new File([buffer], image.name, { type: image.type });
-    }
 
     const { error: uploadError } = await supabase.storage
       .from("repair-images")
@@ -198,10 +184,6 @@ export async function POST(request: Request) {
 
   const parsedDuration = durationMinutes ? parseInt(String(durationMinutes), 10) : null;
   const parsedValue = itemValueEuros ? parseFloat(String(itemValueEuros)) : null;
-  const origin = resolveAnonymizedOrigin(request, formData, settings.region);
-  // Einmalig aus der anonymisierten Zelle hergeleitet, statt bei jedem
-  // Dashboard-Aufruf per Punkt-in-Polygon-Test neu zu berechnen.
-  const kreis = origin ? kreisForPoint(origin) : null;
 
   const { error: insertError } = await supabase.from("repairs").insert({
     id: repairId,
@@ -214,10 +196,14 @@ export async function POST(request: Request) {
     repair_succeeded: repairSucceeded,
     image_path: imagePath,
     consent_publication: true,
-    location_region: locationRegion,
-    location_lat: origin?.lat ?? null,
-    location_lon: origin?.lon ?? null,
-    kreis,
+    location_region: origin.regionLabel,
+    location_lat: origin.point?.lat ?? null,
+    location_lon: origin.point?.lon ?? null,
+    kreis: origin.kreis,
+    // Belege fuer die Moderation: woher die Ortsangabe stammt und was die
+    // Verbindung dazu sagt (siehe lib/origin-check.ts).
+    origin_source: origin.source,
+    origin_ip_region: origin.ipRegion,
     status: "pending",
   });
 

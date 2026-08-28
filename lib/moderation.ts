@@ -1,5 +1,8 @@
 import { requireModerator } from "@/lib/admin-auth";
 import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
+import { hasOriginMismatch, type OriginSource } from "@/lib/origin-check";
+import { projectToUnitSquare } from "@/lib/nrw-map";
+import type { RegionConfig } from "@/lib/region-config";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
@@ -12,7 +15,7 @@ export const CLAIM_LEASE_SECONDS = 300;
 
 /** Spalten, die das Moderationsbackend ueber eine Einreichung braucht. */
 export const moderationColumns =
-  "id, category, brand_model, duration_minutes, item_value_euros, performed_by, story, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time, claimed_by, claimed_at";
+  "id, category, brand_model, duration_minutes, item_value_euros, performed_by, story, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region";
 
 export type ModerationRow = {
   id: string;
@@ -20,7 +23,63 @@ export type ModerationRow = {
   status: string;
   claimed_by: string | null;
   claimed_at: string | null;
+  location_lat: number | string | null;
+  location_lon: number | string | null;
+  kreis: string | null;
+  origin_source: string | null;
+  origin_ip_region: string | null;
 };
+
+/**
+ * Alles, was die Moderation ueber die Herkunft einer Einreichung wissen muss -
+ * an einer Stelle statt ueber fuenf Felder verteilt.
+ *
+ * `mapX`/`mapY` sind die auf der Landkarte projizierten Koordinaten der
+ * anonymisierten Zelle (0..1 innerhalb des Landes, siehe projectToUnitSquare
+ * in lib/nrw-map.ts). Die Projektion passiert hier auf dem Server, damit die
+ * Konsole im Browser keine 1200 Zeilen Polygondaten laden muss.
+ */
+export type ModerationOrigin = {
+  lat: number;
+  lon: number;
+  kreis: string | null;
+  source: OriginSource | null;
+  ipRegion: string | null;
+  /** Verbindung und Ortsangabe kommen aus verschiedenen Gegenden. */
+  mismatch: boolean;
+  /** Die Zelle liegt ausserhalb des Gebiets - sollte nach der Herkunftspruefung nicht mehr vorkommen. */
+  outside: boolean;
+  mapX: number;
+  mapY: number;
+};
+
+/* numeric aus Postgres kommt je nach Treiber als Zahl oder als String. */
+function toNumber(value: number | string | null): number | null {
+  if (value === null) return null;
+  const parsed = typeof value === "number" ? value : Number.parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+const originSources = new Set(["photo", "gps", "manual", "ip"]);
+
+function toModerationOrigin(row: ModerationRow, region: RegionConfig): ModerationOrigin | null {
+  const lat = toNumber(row.location_lat);
+  const lon = toNumber(row.location_lon);
+  if (lat === null || lon === null) return null;
+
+  const { x, y } = projectToUnitSquare({ lat, lon });
+  return {
+    lat,
+    lon,
+    kreis: row.kreis,
+    source: originSources.has(row.origin_source ?? "") ? (row.origin_source as OriginSource) : null,
+    ipRegion: row.origin_ip_region,
+    mismatch: hasOriginMismatch(row.origin_ip_region, row.kreis, region),
+    outside: row.kreis === null,
+    mapX: x,
+    mapY: y,
+  };
+}
 
 /**
  * Moderationszugang samt Zeitfenster. Ausserhalb des Einreichungszeitraums
@@ -68,14 +127,23 @@ export async function signRepairImages(supabase: SupabaseClient, rows: { image_p
  * und aufgeloestem Anspruch. `claimed_by` selbst verlaesst den Server nicht -
  * wer prueft, ist keine Information fuer den Browser, nur ob jemand prueft.
  */
-export function toModerationRepair<Row extends ModerationRow>(row: Row, urls: Map<string, string>, viewerId: string) {
-  const { image_path, claimed_by, claimed_at, ...rest } = row;
+export function toModerationRepair<Row extends ModerationRow>(
+  row: Row,
+  urls: Map<string, string>,
+  viewerId: string,
+  region: RegionConfig,
+) {
+  /* Die Herkunftsspalten gehen als aufbereitetes `origin`-Objekt raus, nicht
+     zusaetzlich als lose Spalten - sie werden hier nur weggeschnitten. */
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { image_path, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region, ...rest } = row;
   const claimedUntil = claimed_at && row.status === "pending"
     ? new Date(Date.parse(claimed_at) + CLAIM_LEASE_SECONDS * 1000).toISOString()
     : null;
 
   return {
     ...rest,
+    origin: toModerationOrigin(row, region),
     imageUrl: image_path ? (urls.get(image_path) ?? null) : null,
     claimedUntil: claimedUntil && Date.parse(claimedUntil) > Date.now() ? claimedUntil : null,
     claimedByMe: claimed_by === viewerId,
