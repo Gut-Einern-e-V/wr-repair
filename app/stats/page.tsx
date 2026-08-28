@@ -46,9 +46,10 @@ export default function LiveDashboardPage() {
   const [nowMs, setNowMs] = useState(0);
   // Zaehler im Vollbild: fuer den Moment, in dem nur die Zahl zaehlt.
   const [counterFullscreen, setCounterFullscreen] = useState(false);
-  // Einzelne Reparaturen als Bild zeigen. Abschaltbar, weil der Spotlight mitten
-  // auf der Karte liegt und nicht auf jede Buehne gehoert.
-  const [showSpotlight, setShowSpotlight] = useState(true);
+  // Einzelne Reparaturen als Bild zeigen. Standardmaessig aus: Der Spotlight
+  // liegt mitten auf der Karte und zoomt die Kamera weg, das gehoert nicht auf
+  // jede Buehne. Wer ihn will, schaltet ihn im Zahnrad oder mit B dazu.
+  const [showSpotlight, setShowSpotlight] = useState(false);
   // Beamer-Modus: reines Schwarz statt des dunklen Blaus. Ein DLP-Projektor
   // schaltet dort das Licht ganz ab, was den Kontrast deutlich anhebt.
   const [beamer, setBeamer] = useState(false);
