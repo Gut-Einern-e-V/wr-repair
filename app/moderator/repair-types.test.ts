@@ -16,6 +16,7 @@ function repair(overrides: Partial<ModerationRepair> = {}): ModerationRepair {
     consent_publication: true,
     status: "pending",
     location_region: "Wuppertal",
+    origin: null,
     moderator_comment: null,
     created_at: "2026-08-27T08:00:00.000Z",
     entry_time: "2026-08-27T08:00:00.000Z",

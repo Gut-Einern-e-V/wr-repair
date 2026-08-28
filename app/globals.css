@@ -1153,3 +1153,43 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
   .consent-actions .consent-button { width: auto; padding: 10px 8px; text-align: center; }
   .consent-actions .text-button { justify-self: start; align-self: center; }
 }
+
+/* Absage fuer Einreichungen von ausserhalb des Gebiets.
+   Bewusst nicht rot wie .form-error: Hier ist nichts schiefgegangen, hier
+   bekommt jemand ein Angebot statt einer Fehlermeldung. */
+.outside-region-notice {
+  margin: 18px 0; padding: 20px; border: var(--line);
+  border-left: 8px solid var(--mint); background: var(--paper);
+}
+.outside-region-notice h3 { margin: 0 0 10px; font-size: 22px; letter-spacing: -.01em; }
+.outside-region-notice p { margin: 0 0 16px; font-size: 15px; line-height: 1.45; }
+/* Wie bei .hero-actions: die Grundregel .button zentriert ihren Text nicht. */
+.outside-region-notice .button { display: inline-flex; align-items: center; gap: 6px; }
+.outside-region-hint {
+  margin: 16px 0 0 !important; padding-top: 14px; border-top: 1px solid rgba(16, 22, 38, .22);
+  font: 12px/1.45 var(--mono);
+}
+
+/* Herkunftspruefung in der Moderation. */
+.origin-review { margin: 22px 0; padding: 16px; border: var(--hairline); background: var(--paper); }
+.origin-review.has-warning { border-left: 6px solid var(--yellow); }
+.origin-review h4 {
+  display: flex; align-items: center; gap: 10px; margin: 0 0 14px;
+  font: 500 11px/1.3 var(--mono); letter-spacing: .06em; text-transform: uppercase;
+}
+.origin-review dl { margin: 0 !important; }
+.origin-review .moderator-comment { margin-top: 14px; }
+
+/* Die anonymisierte Herkunftszelle auf der Landeskarte. */
+.origin-map { margin: 0 0 16px; }
+.origin-map svg { width: 100%; max-width: 220px; height: auto; background: var(--bg); border: var(--hairline); }
+.origin-map-outline { fill: rgba(149, 212, 187, .35); stroke: var(--ink); stroke-width: 6; stroke-linejoin: round; }
+.origin-map-halo { fill: rgba(236, 66, 76, .25); }
+.origin-map-dot { fill: var(--red); stroke: var(--ink); stroke-width: 4; }
+/* Punkt ausserhalb des Landes: gleiche Karte, aber unuebersehbar markiert. */
+.origin-map.is-outside .origin-map-dot { fill: var(--red-deep); }
+.origin-map.is-outside svg { border: 2px solid var(--red-deep); }
+.origin-map figcaption { margin-top: 8px; max-width: 320px; font: 10px/1.4 var(--mono); color: var(--muted); }
+
+/* Herkunftshinweis in der Moderationsliste. */
+.table-sub.is-warning { color: var(--red-deep); font-weight: 700; }

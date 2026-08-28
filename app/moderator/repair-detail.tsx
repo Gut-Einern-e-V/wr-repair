@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
+import OriginMap from "./origin-map";
 import RepairExif from "./repair-exif";
 import {
   draftFromRepair,
   isUnderReview,
+  originSourceLabel,
+  originWarning,
   performedByLabel,
   repairStatusLabels,
   type MetadataDraft,
@@ -30,6 +33,7 @@ export default function RepairDetail({
 }) {
   const [comment, setComment] = useState(repair.moderator_comment ?? "");
   const [draft, setDraft] = useState<MetadataDraft>(() => draftFromRepair(repair));
+  const warning = originWarning(repair);
 
   return (
     <article className="repair-review">
@@ -50,6 +54,41 @@ export default function RepairDetail({
           {repair.location_region && <div><dt>Region</dt><dd>{repair.location_region}</dd></div>}
           {repair.imageUrl && <RepairExif imageUrl={repair.imageUrl} />}
         </dl>
+
+        {/* Herkunft als eigener Block statt als weitere Zeile in der Liste:
+            Ob eine Einreichung wirklich aus dem Land kommt, entscheidet sich
+            aus dem Zusammenspiel von Ortsangabe, ihrer Quelle und der
+            Verbindung - das laesst sich einzeln aufgezaehlt schlecht lesen. */}
+        <section className={`origin-review${warning ? " has-warning" : ""}`} aria-labelledby={`origin-${repair.id}`}>
+          <h4 id={`origin-${repair.id}`}>Herkunft {warning && <span className="status-chip is-pending">{warning}</span>}</h4>
+          {repair.origin ? (
+            <>
+              <OriginMap origin={repair.origin} />
+              <dl>
+                <div><dt>Kreis</dt><dd>{repair.origin.kreis ?? "Außerhalb des Landes"}</dd></div>
+                <div><dt>Angegebene Quelle</dt><dd>{originSourceLabel(repair.origin.source)}</dd></div>
+                <div><dt>Verbindung</dt><dd>{repair.origin.ipRegion ?? "Unbekannt"}</dd></div>
+                <div>
+                  <dt>Zelle</dt>
+                  <dd>
+                    <a href={`https://www.openstreetmap.org/?mlat=${repair.origin.lat}&mlon=${repair.origin.lon}&zoom=11`} target="_blank" rel="noopener noreferrer">
+                      {repair.origin.lat.toFixed(3)}, {repair.origin.lon.toFixed(3)}
+                    </a>
+                  </dd>
+                </div>
+              </dl>
+              {repair.origin.mismatch && (
+                <p className="moderator-comment">
+                  Die Verbindung kam aus einer anderen Gegend als die Ortsangabe. Das ist kein Ablehnungsgrund –
+                  wer unterwegs oder im Urlaub einträgt, landet regelmäßig hier. Die angegebene Quelle sagt, wie
+                  belastbar die Ortsangabe ist.
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="moderator-comment">Zu dieser Einreichung liegt keine Ortsangabe vor. Sie zählt für den Rekord, taucht aber nicht auf der Karte auf.</p>
+          )}
+        </section>
         <details className="metadata-editor">
           <summary>Metadaten bearbeiten</summary>
           <MetadataFields draft={draft} onChange={setDraft} />

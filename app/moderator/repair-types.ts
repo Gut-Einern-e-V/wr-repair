@@ -1,3 +1,6 @@
+import type { ModerationOrigin } from "@/lib/moderation";
+import type { OriginSource } from "@/lib/origin-check";
+
 export type RepairStatus = "pending" | "approved" | "rejected";
 
 export type ModerationRepair = {
@@ -14,6 +17,8 @@ export type ModerationRepair = {
   consent_publication: boolean;
   status: RepairStatus;
   location_region: string | null;
+  /** Aufbereitete Herkunft samt Kartenposition, oder null ohne Ortsangabe. */
+  origin: ModerationOrigin | null;
   moderator_comment: string | null;
   created_at: string;
   entry_time: string | null;
@@ -58,6 +63,36 @@ export const performedByLabels: Record<string, string> = {
 
 export function performedByLabel(value: string | null) {
   return (value && performedByLabels[value]) || "–";
+}
+
+/**
+ * Wie die Ortsangabe zustande kam - absteigend nach Beweiskraft.
+ *
+ * Bewusst als Angabe formuliert und nicht als Tatsache: Der Wert kommt aus
+ * dem Browser der einreichenden Person und laesst sich nicht nachpruefen.
+ * Verifiziert ist nur, dass der Punkt auf einem Rasterzellpunkt liegt.
+ */
+export const originSourceLabels: Record<OriginSource, string> = {
+  photo: "Foto mit Ortsangabe",
+  gps: "Standortfreigabe im Browser",
+  manual: "Kreis selbst ausgewählt",
+  ip: "Nur aus der Internetverbindung",
+};
+
+export function originSourceLabel(source: OriginSource | null) {
+  return source ? originSourceLabels[source] : "Unbekannt";
+}
+
+/**
+ * Kurzer Hinweis fuer Liste und Schnellpruefung, oder null wenn alles stimmig
+ * ist. Ein Hinweis ist kein Ablehnungsgrund - er sagt nur, dass hier ein Blick
+ * auf die Herkunft lohnt.
+ */
+export function originWarning(repair: ModerationRepair): string | null {
+  if (!repair.origin) return "Ohne Ortsangabe";
+  if (repair.origin.outside) return "Herkunft außerhalb";
+  if (repair.origin.mismatch) return "Verbindung woanders";
+  return null;
 }
 
 export function draftFromRepair(repair: ModerationRepair): MetadataDraft {

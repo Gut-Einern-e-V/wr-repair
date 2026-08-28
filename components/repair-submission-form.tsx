@@ -6,6 +6,7 @@ import { FriendlyCaptcha } from "@/components/friendly-captcha";
 import { RepairCategorySelect } from "@/components/repair-form-fields";
 import { repairCategories, type RepairCategory } from "@/lib/repair-catalog";
 import { anonymizeCoordinates, type AnonymizedPoint } from "@/lib/geo-anonymize";
+import type { OutsideRegionHelp } from "@/lib/outside-region-help";
 import { nrwKreiseList } from "@/lib/nrw-kreise-list";
 
 const MAX_IMAGE_BYTES = 200 * 1024;
@@ -118,6 +119,7 @@ export function RepairSubmissionForm({
   const [submittedRepairId, setSubmittedRepairId] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState("");
+  const [outsideRegion, setOutsideRegion] = useState<OutsideRegionHelp | null>(null);
   const [fileError, setFileError] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -346,6 +348,7 @@ export function RepairSubmissionForm({
 
     setIsSubmitting(true);
     setSubmissionError("");
+    setOutsideRegion(null);
     setUploadProgress(0);
 
     const request = new XMLHttpRequest();
@@ -366,6 +369,13 @@ export function RepairSubmissionForm({
         return;
       }
 
+      /* Die Absage fuer Einreichungen von ausserhalb ist keine Fehlermeldung,
+         sondern ein Angebot - deshalb eigener Zustand statt form-error. */
+      if (request.status === 403 && request.response?.outsideRegion) {
+        setOutsideRegion(request.response.outsideRegion as OutsideRegionHelp);
+        return;
+      }
+
       setSubmissionError(request.response?.error ?? "Die Einreichung konnte nicht gesendet werden.");
     };
     request.onerror = () => {
@@ -382,6 +392,12 @@ export function RepairSubmissionForm({
       // was nicht exakt auf einem Zellpunkt liegt.
       formData.set("origin_lat", String(anonymizedOrigin.lat));
       formData.set("origin_lon", String(anonymizedOrigin.lon));
+      /* Woher die Angabe stammt, geht mit: Fuer die Moderation ist der
+         Unterschied zwischen einem Foto mit GPS und einem angeklickten
+         Dropdown die eigentliche Information. Der Vorschlag aus der
+         IP-Herkunft ist keine Angabe der einreichenden Person - er heisst
+         beim Server deshalb "ip". */
+      formData.set("origin_source", locationSource === "ip-suggestion" ? "ip" : locationSource ?? "manual");
     }
     if (captchaEnabled) {
       const captchaResponse = formData.get("frc-captcha-response");
@@ -506,6 +522,16 @@ export function RepairSubmissionForm({
       {captchaError && <p className="form-error" role="alert">{captchaError}</p>}
       {uploadProgress !== null && <div className="upload-progress" aria-live="polite"><span>Bild wird hochgeladen: {uploadProgress} %</span><progress value={uploadProgress} max="100" /></div>}
       {submissionError && <p className="form-error" role="alert">{submissionError}</p>}
+      {outsideRegion && (
+        <div className="outside-region-notice" role="alert">
+          <h3>{outsideRegion.headline}</h3>
+          <p>{outsideRegion.message}</p>
+          <a className="button button-secondary" href={outsideRegion.href} target="_blank" rel="noreferrer">
+            {outsideRegion.linkLabel} <span aria-hidden="true">&#8599;</span>
+          </a>
+          <p className="outside-region-hint">{outsideRegion.hint}</p>
+        </div>
+      )}
       <button className="button button-primary form-submit" type="submit" disabled={isSubmitting || isCompressing || Boolean(fileError)}>{isSubmitting ? "Wird gesendet ..." : "Zur Prüfung einreichen"} <span aria-hidden="true">&#8594;</span></button>
     </form>
   );

@@ -1,4 +1,5 @@
 import { CLAIM_LEASE_SECONDS, moderationColumns, requireModerationAccess, signRepairImages, toModerationRepair } from "@/lib/moderation";
+import { getAppSettings } from "@/lib/app-settings";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -56,5 +57,5 @@ export async function POST(request: Request) {
     return Response.json({ error: "Das Bild konnte nicht geladen werden." }, { status: 502 });
   }
 
-  return Response.json({ repair: toModerationRepair(claimed, urls, access.currentAdmin.user.id), remaining });
+  return Response.json({ repair: toModerationRepair(claimed, urls, access.currentAdmin.user.id, (await getAppSettings()).region), remaining });
 }

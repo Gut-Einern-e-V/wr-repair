@@ -13,6 +13,7 @@ import {
   type ModerationFilters,
   type ModerationRepair,
   type RepairStatus,
+  originWarning,
 } from "./repair-types";
 
 type LoadResponse = { repairs: ModerationRepair[]; counts: Record<string, number> | null; truncated: boolean };
@@ -166,7 +167,10 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
                       : <span className="table-thumb is-empty" aria-label="Kein Bild" />}</td>
                     <td><strong>{repair.brand_model || "Marke/Modell unbekannt"}</strong><span className="table-sub">{repairCategoryLabel(repair.category)}</span></td>
                     <td>{new Date(repair.entry_time ?? repair.created_at).toLocaleString("de-DE")}</td>
-                    <td>{repair.location_region ?? "–"}</td>
+                    <td>
+                      {repair.origin?.kreis ?? repair.location_region ?? "–"}
+                      {originWarning(repair) && <span className="table-sub is-warning">{originWarning(repair)}</span>}
+                    </td>
                     <td>{repair.consent_publication ? "Ja" : "Nein"}</td>
                     <td>
                       <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span>

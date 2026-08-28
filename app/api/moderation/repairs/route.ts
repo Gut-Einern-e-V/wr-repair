@@ -1,6 +1,7 @@
 import { repairCategoryValues } from "@/lib/repair-catalog";
 import { moderationColumns, requireModerationAccess, signRepairImages, toModerationRepair } from "@/lib/moderation";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { getAppSettings } from "@/lib/app-settings";
 
 const statuses = new Set(["pending", "approved", "rejected"]);
 const categoriesSet = new Set(repairCategoryValues as string[]);
@@ -40,6 +41,9 @@ export async function GET(request: Request) {
   }
 
   const supabase = createSupabaseAdminClient();
+  // Fuer den Herkunfts-Abgleich in der Moderation: dieselbe Gebietskonfiguration,
+  // gegen die beim Einreichen geprueft wurde.
+  const { region } = await getAppSettings();
   let query = supabase.from("repairs").select(moderationColumns).eq("status", status);
 
   if (category) query = query.eq("category", category);
@@ -73,7 +77,7 @@ export async function GET(request: Request) {
   }
 
   return Response.json({
-    repairs: (repairs ?? []).map((repair) => toModerationRepair(repair, urls, access.currentAdmin.user.id)),
+    repairs: (repairs ?? []).map((repair) => toModerationRepair(repair, urls, access.currentAdmin.user.id, region)),
     counts,
     truncated: (repairs ?? []).length === limit,
   });
