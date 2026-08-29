@@ -27,26 +27,33 @@ export type DashboardHighlight = {
    */
   approvedAt: string | null;
   /**
-   * Kreis oder kreisfreie Stadt der Reparatur - oder `null`.
+   * Kreis oder kreisfreie Stadt der Reparatur - oder `null`, wenn die
+   * Herkunftspruefung keinen bestimmen konnte.
    *
-   * Wird nur gesetzt, wenn in diesem Kreis mindestens `KREIS_MIN_FOR_LABEL`
-   * freigegebene Reparaturen liegen. Damit gilt dieselbe Zusage wie fuer die
-   * Karte: Eine sichtbare Ortsangabe steht immer fuer eine Gruppe, nie fuer
-   * eine einzelne Person. Feiner als der Kreis wird es nirgends.
+   * Abgeleitet aus der bereits anonymisierten Koordinate, nicht aus dem
+   * echten Ort (siehe `lib/geo-anonymize.ts`) - Punkt und Kreisname passen
+   * dadurch immer zueinander.
+   *
+   * Frueher stand der Name erst ab fuenf Reparaturen je Kreis am Eintrag.
+   * Diese Schwelle ist weg: Karte und Kreis-Rangliste zeigen seit
+   * 202608270003 ab der ersten Reparatur etwas an, und ein Kreis ist keine
+   * Ortsangabe, die auf einen Haushalt zurueckfuehrt. Der Punkt der Wolke
+   * landet damit auch dort, wo der Text ihn verortet.
    */
   kreis: string | null;
   /**
-   * Derselbe Kreis, aber ohne die `KREIS_MIN_FOR_LABEL`-Schwelle - fuer die
-   * Landeposition der Punktwolke, nie als sichtbarer Text. Karte und
-   * Kreis-Rangliste zeigen bereits ab der ersten Reparatur etwas an (siehe
-   * `dashboard_stats()`); die Landung eines einzelnen Punktes soll dazu
-   * passen, nicht auf eine zufaellige, unbeteiligte Zelle ausweichen.
+   * Anonymisierte Herkunft dieser Reparatur - dieselbe Angabe, die im
+   * Aggregat unter `cells` steht, nur eben dieser Zeile zugeordnet. `null`,
+   * wenn die Herkunftspruefung keine Koordinate ergeben hat.
+   *
+   * Damit landet ein live eintreffender Punkt sofort an seiner Stelle, statt
+   * bis zum naechsten vollen Snapshot irgendwo in seinem Kreis zu liegen. Ein
+   * Ein Vertrauensbruch ist die Angabe nicht: Sie ist im Browser um bis zu
+   * 1 km zufaellig verschoben und steht ohnehin in `cells`.
    */
-  mapKreis: string | null;
+  lat: number | null;
+  lon: number | null;
 };
-
-/** Ab so vielen Reparaturen je Kreis darf sein Name am Eintrag stehen. */
-export const KREIS_MIN_FOR_LABEL = 5;
 
 /**
  * Anonymisierte Herkunftszelle mit der Zahl der Reparaturen darin.
@@ -210,7 +217,7 @@ export function mergeDashboardDelta(snapshot: DashboardSnapshot, delta: Dashboar
   const kreise = { ...snapshot.kreise };
   if (added.length === delta.added.length) {
     for (const item of added) {
-      if (item.mapKreis) kreise[item.mapKreis] = (kreise[item.mapKreis] ?? 0) + 1;
+      if (item.kreis) kreise[item.kreis] = (kreise[item.kreis] ?? 0) + 1;
     }
   }
 

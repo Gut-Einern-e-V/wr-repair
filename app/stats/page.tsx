@@ -11,6 +11,7 @@ import { RecordCounter } from "./record-counter";
 import { LiveTicker } from "./live-ticker";
 import { CategoryTreemap, DayRecord, DeadlineCountdown, KreisTop, MetricTiles, categoryColor } from "./panels";
 import { StageSettings } from "./stage-settings";
+import { FullscreenButton } from "./fullscreen-button";
 import { SubmitQr } from "./submit-qr";
 
 /**
@@ -36,7 +37,7 @@ type Status = "loading" | "ready" | "closed" | "error";
 export default function LiveDashboardPage() {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [status, setStatus] = useState<Status>("loading");
-  const [arrivals, setArrivals] = useState<{ id: string; kreis: string | null }[]>([]);
+  const [arrivals, setArrivals] = useState<{ id: string; kreis: string | null; lat: number | null; lon: number | null }[]>([]);
   const [spotlight, setSpotlight] = useState<number | null>(null);
   const [celebrating, setCelebrating] = useState(false);
   const [clock, setClock] = useState("");
@@ -62,6 +63,12 @@ export default function LiveDashboardPage() {
   const [kreisBaseline, setKreisBaseline] = useState<Record<string, number> | null>(null);
 
   const cursorRef = useRef<string | null>(null);
+  /**
+   * Ob die Route Bild-URLs mitschicken soll. Sie kosten einen zusaetzlichen
+   * Aufruf bei Supabase und machen den groessten Teil der Antwort aus, gezeigt
+   * werden sie aber nur im Spotlight - und der ist standardmaessig aus.
+   */
+  const wantsImagesRef = useRef(false);
   /** Letzte gefeierte Runde, damit dieselbe nicht zweimal gefeiert wird. */
   const celebratedLapRef = useRef(0);
   // Flaeche, in die die Karte gezeichnet wird. Die Canvas liegt ganzflaechig
@@ -76,7 +83,7 @@ export default function LiveDashboardPage() {
 
   const loadSnapshot = useCallback(async () => {
     try {
-      const response = await fetch("/api/dashboard");
+      const response = await fetch(`/api/dashboard${wantsImagesRef.current ? "?images=1" : ""}`);
       if (response.status === 403) {
         setStatus("closed");
         return;
@@ -119,7 +126,8 @@ export default function LiveDashboardPage() {
       if (!cursor || document.hidden) return;
 
       try {
-        const response = await fetch(`/api/dashboard?since=${encodeURIComponent(cursor)}`);
+        const images = wantsImagesRef.current ? "&images=1" : "";
+        const response = await fetch(`/api/dashboard?since=${encodeURIComponent(cursor)}${images}`);
         if (!response.ok) return;
 
         const delta = await response.json() as DashboardDelta;
@@ -127,7 +135,7 @@ export default function LiveDashboardPage() {
 
         cursorRef.current = delta.cursor;
         if (delta.added.length > 0) {
-          setArrivals(delta.added.map((item) => ({ id: item.id, kreis: item.mapKreis })));
+          setArrivals(delta.added.map((item) => ({ id: item.id, kreis: item.kreis, lat: item.lat, lon: item.lon })));
         }
         setSnapshot((current) => (current ? mergeDashboardDelta(current, delta) : current));
       } catch {
@@ -137,6 +145,17 @@ export default function LiveDashboardPage() {
 
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    wantsImagesRef.current = showSpotlight;
+    if (!showSpotlight) return;
+    // Ohne den sofortigen Nachschlag stuende der erste Spotlight nach dem
+    // Einschalten ohne Bild da - der naechste regulaere Snapshot kommt erst in
+    // bis zu fuenf Minuten. Wie beim ersten Laden ueber einen Timeout, damit
+    // der Abruf nicht im laufenden Render haengt.
+    const timer = window.setTimeout(() => void loadSnapshot(), 0);
+    return () => window.clearTimeout(timer);
+  }, [showSpotlight, loadSnapshot]);
 
   // Zielerreichung feiern - und jede weitere volle Runde genauso. Der Rekord
   // ist mit dem Ziel nicht zu Ende, also ist das Feiern nicht einmalig.
@@ -243,6 +262,7 @@ export default function LiveDashboardPage() {
           <p className="dashboard-live"><i aria-hidden="true" />Live aus Nordrhein-Westfalen</p>
           <div className="dashboard-tools">
             <p className="dashboard-clock">{clock} Uhr</p>
+            <FullscreenButton />
             <StageSettings
               beamer={beamer}
               onToggleBeamer={() => setBeamer((current) => !current)}

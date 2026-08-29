@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/rate-limit";
 import { getAppSettings } from "@/lib/app-settings";
-import { KREIS_MIN_FOR_LABEL, MAX_HIGHLIGHTS, readCells, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
+import { MAX_HIGHLIGHTS, readCells, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
 
 /**
  * Datenquelle des Buehnen-Dashboards.
@@ -24,19 +24,13 @@ const SIGNED_URL_TTL_SECONDS = 900;
 
 type CacheEntry<T> = { value: T; expiresAt: number };
 
-let snapshotCache: CacheEntry<DashboardSnapshot> | null = null;
-const deltaCache = new Map<string, CacheEntry<DashboardDelta>>();
-
 /**
- * Zuletzt bekannte Reparaturzahlen je Kreis, gemerkt aus dem Snapshot.
- *
- * Der Delta-Pfad ruft das Aggregat bewusst nicht auf - genau das macht ihn
- * billig. Fuer die Ortsangabe braucht er die Schwelle trotzdem. Ist noch kein
- * Snapshot durch diese Instanz gelaufen, bleibt die Karte leer und die Eintraege
- * bekommen keinen Ort. Das ist die richtige Richtung: im Zweifel weniger
- * veroeffentlichen, der naechste Snapshot traegt ihn nach.
+ * Je Bildvariante ein eigener Eintrag: Eine Antwort ohne Bild-URLs darf nicht
+ * fuer eine Anfrage mit `?images=1` durchgereicht werden - und umgekehrt waere
+ * es Verschwendung.
  */
-let lastKreisTotals: Record<string, number> = {};
+const snapshotCache = new Map<string, CacheEntry<DashboardSnapshot>>();
+const deltaCache = new Map<string, CacheEntry<DashboardDelta>>();
 
 type SupabaseAdmin = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -49,7 +43,16 @@ type RepairRow = {
   created_at: string | null;
   moderated_at: string | null;
   kreis: string | null;
+  location_lat: number | string | null;
+  location_lon: number | string | null;
 };
+
+/** `numeric`-Spalten kommen je nach Treiber als Zahl oder als Zeichenkette. */
+function toCoordinate(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  const parsed = typeof value === "number" ? value : Number.parseFloat(String(value));
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 function toNumber(value: unknown): number {
   const parsed = typeof value === "number" ? value : Number.parseFloat(String(value ?? 0));
@@ -80,29 +83,25 @@ function fillTimeline(rows: unknown): { date: string; total: number }[] {
 }
 
 /**
- * Ortsangabe eines einzelnen Eintrags als sichtbarer Text - oder `null`.
+ * Kreis und Herkunftszelle stehen bereits als Spalten auf der Zeile - einmalig
+ * bei der Einreichung aus der im Browser anonymisierten Koordinate hergeleitet,
+ * siehe `app/api/repairs/route.ts`. Sie werden unveraendert weitergereicht: Die
+ * frueher hier sitzende Schwelle (Name erst ab fuenf Reparaturen je Kreis) ist
+ * entfallen, siehe `DashboardHighlight.kreis`.
  *
- * Der Kreis steht bereits als Spalte auf der Zeile (einmalig bei der
- * Einreichung aus der anonymisierten Zelle hergeleitet, siehe
- * `app/api/repairs/route.ts`) und wird hier nur noch gegen die
- * k-Anonymitaetsschwelle geprueft: Genannt wird er nur, wenn ihm mindestens
- * `KREIS_MIN_FOR_LABEL` freigegebene Reparaturen zugeordnet sind - ein
- * benannter Einzeleintrag mit Kategorie und Zeitstempel ist identifizierender
- * als eine aggregierte Kartenzahl, die diese Schwelle nicht mehr hat (siehe
- * `dashboard_stats()`). Fuer die Landeposition der Punktwolke gilt diese
- * Schwelle nicht - siehe `mapKreis` in `toHighlights()`.
+ * Bild-URLs entstehen nur auf Anforderung. Sie kosten einen zusaetzlichen
+ * Aufruf bei Supabase und sind der groesste Teil der Antwort - das Dashboard
+ * zeigt Einzelbilder aber nur, wenn der Spotlight eingeschaltet ist, und der
+ * ist es standardmaessig nicht.
  */
-function toKreis(row: RepairRow, busyKreise: Record<string, number>): string | null {
-  if (!row.kreis) return null;
-  return (busyKreise[row.kreis] ?? 0) >= KREIS_MIN_FOR_LABEL ? row.kreis : null;
-}
-
 async function toHighlights(
   supabase: SupabaseAdmin,
   rows: RepairRow[],
-  busyKreise: Record<string, number>,
+  withImages: boolean,
 ): Promise<DashboardHighlight[]> {
-  const paths = rows.map((row) => row.image_path).filter((path): path is string => Boolean(path));
+  const paths = withImages
+    ? rows.map((row) => row.image_path).filter((path): path is string => Boolean(path))
+    : [];
   const signed = paths.length
     ? await supabase.storage.from("repair-images").createSignedUrls(paths, SIGNED_URL_TTL_SECONDS)
     : { data: [], error: null };
@@ -117,8 +116,9 @@ async function toHighlights(
     imageAltText: row.image_alt_text,
     submittedAt: row.created_at,
     approvedAt: row.moderated_at,
-    kreis: toKreis(row, busyKreise),
-    mapKreis: row.kreis,
+    kreis: row.kreis,
+    lat: toCoordinate(row.location_lat),
+    lon: toCoordinate(row.location_lon),
   }));
 }
 
@@ -126,7 +126,7 @@ async function toHighlights(
 // Laufband zeigt. `moderated_at` bleibt trotzdem dabei: Daran haengen die
 // Reihenfolge der Deltas und der Cursor.
 const highlightColumns =
-  "id, category, brand_model, image_path, image_alt_text, created_at, moderated_at, kreis";
+  "id, category, brand_model, image_path, image_alt_text, created_at, moderated_at, kreis, location_lat, location_lon";
 
 /** Bester Tag aus dem Aggregat - fehlt er, hat die Aktion noch keinen. */
 function toBestDay(value: unknown): DashboardSnapshot["bestDay"] {
@@ -144,14 +144,14 @@ async function loadSnapshot(
   campaign: DashboardSnapshot["campaign"],
   goal: number,
   dayRecord: number | null,
+  withImages: boolean,
 ): Promise<DashboardSnapshot | null> {
   const { data, error } = await supabase.rpc("dashboard_stats");
   if (error || !data) return null;
 
   const aggregate = data as Record<string, unknown>;
   const cells = readCells(aggregate.cells);
-  const busyKreise = toCounts(aggregate.kreise);
-  lastKreisTotals = busyKreise;
+  const kreise = toCounts(aggregate.kreise);
 
   const { data: recent } = await supabase
     .from("repairs")
@@ -174,15 +174,15 @@ async function loadSnapshot(
     bestDay: toBestDay(aggregate.bestDay),
     dayRecord,
     cells,
-    kreise: busyKreise,
-    highlights: await toHighlights(supabase, (recent ?? []) as RepairRow[], busyKreise),
+    kreise,
+    highlights: await toHighlights(supabase, (recent ?? []) as RepairRow[], withImages),
     campaign,
     cursor: typeof aggregate.cursor === "string" ? aggregate.cursor : null,
     generatedAt: new Date().toISOString(),
   };
 }
 
-async function loadDelta(supabase: SupabaseAdmin, since: string): Promise<DashboardDelta | null> {
+async function loadDelta(supabase: SupabaseAdmin, since: string, withImages: boolean): Promise<DashboardDelta | null> {
   const { count, error: countError } = await supabase
     .from("repairs")
     .select("id", { count: "exact", head: true })
@@ -212,7 +212,7 @@ async function loadDelta(supabase: SupabaseAdmin, since: string): Promise<Dashbo
     categories[row.category] = (categories[row.category] ?? 0) + 1;
   }
 
-  const highlights = await toHighlights(supabase, rows, lastKreisTotals);
+  const highlights = await toHighlights(supabase, rows, withImages);
 
   return {
     total: count ?? 0,
@@ -244,17 +244,24 @@ export async function GET(request: Request) {
     );
   }
 
-  const since = new URL(request.url).searchParams.get("since");
+  const params = new URL(request.url).searchParams;
+  const since = params.get("since");
+  // Bild-URLs nur, wenn sie auch gezeigt werden - siehe `toHighlights()`.
+  const withImages = params.get("images") === "1";
   const sinceDate = since ? new Date(since) : null;
   const isDelta = Boolean(sinceDate && !Number.isNaN(sinceDate.valueOf()));
   const now = Date.now();
+  const variant = withImages ? "images" : "plain";
 
-  if (!isDelta && snapshotCache && snapshotCache.expiresAt > now) {
-    return Response.json(snapshotCache.value, { headers: { "Cache-Control": "public, s-maxage=20, stale-while-revalidate=120" } });
+  if (!isDelta) {
+    const cached = snapshotCache.get(variant);
+    if (cached && cached.expiresAt > now) {
+      return Response.json(cached.value, { headers: { "Cache-Control": "public, s-maxage=20, stale-while-revalidate=120" } });
+    }
   }
 
   if (isDelta) {
-    const cached = deltaCache.get(since as string);
+    const cached = deltaCache.get(`${variant}:${since}`);
     if (cached && cached.expiresAt > now) {
       return Response.json(cached.value, { headers: { "Cache-Control": "public, s-maxage=5, stale-while-revalidate=30" } });
     }
@@ -268,14 +275,14 @@ export async function GET(request: Request) {
   }
 
   if (isDelta) {
-    const delta = await loadDelta(supabase, (sinceDate as Date).toISOString());
+    const delta = await loadDelta(supabase, (sinceDate as Date).toISOString(), withImages);
     if (!delta) {
       return Response.json({ error: "Die Live-Daten konnten nicht geladen werden." }, { status: 502 });
     }
 
     // Nur wenige Cursor gleichzeitig vorhalten, sonst waechst die Map unbegrenzt.
     if (deltaCache.size > 50) deltaCache.clear();
-    deltaCache.set(since as string, { value: delta, expiresAt: now + DELTA_TTL_MS });
+    deltaCache.set(`${variant}:${since}`, { value: delta, expiresAt: now + DELTA_TTL_MS });
 
     return Response.json(delta, { headers: { "Cache-Control": "public, s-maxage=5, stale-while-revalidate=30" } });
   }
@@ -283,11 +290,11 @@ export async function GET(request: Request) {
   const snapshot = await loadSnapshot(supabase, {
     startAt: campaign.startAt?.toISOString() ?? null,
     endAt: campaign.endAt?.toISOString() ?? null,
-  }, settings.recordGoal, settings.dayRecord);
+  }, settings.recordGoal, settings.dayRecord, withImages);
   if (!snapshot) {
     return Response.json({ error: "Die Live-Daten konnten nicht geladen werden." }, { status: 502 });
   }
 
-  snapshotCache = { value: snapshot, expiresAt: now + SNAPSHOT_TTL_MS };
+  snapshotCache.set(variant, { value: snapshot, expiresAt: now + SNAPSHOT_TTL_MS });
   return Response.json(snapshot, { headers: { "Cache-Control": "public, s-maxage=20, stale-while-revalidate=120" } });
 }

@@ -23,7 +23,7 @@
  * origin_ip_region an die Moderation, die ihn sieht und entscheidet.
  */
 
-import { anonymizeRequestOrigin, isAnonymizedPoint, type AnonymizedPoint } from "./geo-anonymize";
+import { anonymizeRequestOrigin, isCoarsePoint, type AnonymizedPoint } from "./geo-anonymize";
 import { isWithinRegion, verifyRegion } from "./geo";
 import { kreisForPoint } from "./nrw-map";
 import type { RegionConfig } from "./region-config";
@@ -82,15 +82,19 @@ export function ipRegionTag(request: Request): string | null {
 
 /**
  * Die vom Browser mitgeschickte Ortsangabe - erst uebernommen, nachdem sie
- * verifiziert wurde. `isAnonymizedPoint` prueft, ob der Wert wirklich auf
- * einem Rasterzellpunkt liegt; genauere oder erfundene Koordinaten fallen
- * durch. Die Quellenangabe selbst laesst sich nicht pruefen und gilt deshalb
- * in der Moderation als Angabe, nicht als Beleg.
+ * geprueft wurde. `isCoarsePoint` laesst nur Werte durch, die auf ~110 m
+ * gerundet sind; eine rohe GPS-Koordinate faellt damit durch.
+ *
+ * Diese Pruefung ist schwaecher als die frueher hier stehende: Solange auf ein
+ * Raster geschnappt wurde, liess sich nachrechnen, ob ein Wert wirklich aus
+ * der Anonymisierung stammt. Mit dem Zufallsversatz geht das nicht mehr (siehe
+ * Modulkopf von lib/geo-anonymize.ts). Auch die Quellenangabe laesst sich
+ * nicht pruefen und gilt in der Moderation als Angabe, nicht als Beleg.
  */
 function readClaimedOrigin(formData: FormData): { point: AnonymizedPoint; source: OriginSource } | null {
   const lat = Number.parseFloat(String(formData.get("origin_lat") ?? ""));
   const lon = Number.parseFloat(String(formData.get("origin_lon") ?? ""));
-  if (!isAnonymizedPoint(lat, lon)) return null;
+  if (!isCoarsePoint(lat, lon)) return null;
 
   const raw = String(formData.get("origin_source") ?? "");
   const source = originSources.has(raw as OriginSource) ? (raw as OriginSource) : "manual";
@@ -100,8 +104,8 @@ function readClaimedOrigin(formData: FormData): { point: AnonymizedPoint; source
 /**
  * Entscheidet ueber Annahme und Herkunft einer Einreichung.
  *
- * `exifPoint` ist die serverseitig aus dem Bild gelesene, bereits gerasterte
- * Koordinate. Sie wird nur gebraucht, wenn der Browser keine brauchbare
+ * `exifPoint` ist die serverseitig aus dem Bild gelesene, bereits
+ * anonymisierte Koordinate. Sie wird nur gebraucht, wenn der Browser keine brauchbare
  * Angabe geschickt hat - dann ist sie die letzte Gelegenheit, eine echte
  * Reparatur aus dem Gebiet vor der Absage zu bewahren.
  */

@@ -1,69 +1,79 @@
 /**
  * Anonymisierung von Herkunftskoordinaten.
  *
- * Zweck: Das Buehnen-Dashboard soll grob zeigen, aus welchen Gegenden
- * Reparaturen kommen, ohne dass ein einzelner Beitrag auf einen Haushalt
- * zurueckfuehrbar ist. Dafuer wird jede Koordinate auf eine feste Zelle von
- * rund {@link CELL_SIZE_KM} Kilometern geschnappt.
+ * Zweck: Das Buehnen-Dashboard soll zeigen, aus welchen Gegenden Reparaturen
+ * kommen, ohne dass ein einzelner Beitrag auf einen Haushalt zurueckfuehrbar
+ * ist. Dafuer bekommt jede Koordinate einen zufaelligen Versatz von bis zu
+ * {@link BLUR_RADIUS_KM} Kilometern und wird auf {@link DECIMALS} Nachkomma-
+ * stellen (~110 m) gerundet. Die Ausgangskoordinate verlaesst den Browser
+ * nicht.
  *
- * Warum Raster statt reinem Zufallsversatz: Ein zufaelliger Offset um den
- * echten Punkt mittelt sich heraus, sobald mehrere Einreichungen vom selben
- * Ort kommen - der Mittelwert konvergiert gegen die Wahrheit. Das Raster ist
- * dagegen idempotent: derselbe Ort ergibt immer dieselbe Zelle, egal wie oft
- * er eingereicht wird. Der zusaetzliche Versatz ist deshalb *nicht* zufaellig,
- * sondern aus der Zellnummer abgeleitet. Er dient allein der Optik, damit die
- * Punkte auf der Karte nicht sichtbar auf einem Gitter sitzen.
+ * Der Versatz ist gleichverteilt in einer Kreisflaeche um den echten Punkt.
+ * Umgekehrt heisst das: Zu einem veroeffentlichten Punkt liegt der echte Ort
+ * irgendwo in einer Flaeche von rund 3 km^2 - und zwar gleichverteilt, ohne
+ * dass die Mitte wahrscheinlicher waere.
  *
- * Die Idempotenz hat einen zweiten Nutzen: Weil der Browser anonymisiert und
- * nur das Ergebnis sendet, kann der Server per {@link isAnonymizedPoint}
- * pruefen, ob ein Wert wirklich aus dieser Funktion stammt. Beliebig genaue
- * Koordinaten fallen dabei durch.
+ * ## Was dieses Verfahren nicht leistet
+ *
+ * Bis August 2026 wurde stattdessen auf ein 5-km-Raster geschnappt. Das hatte
+ * zwei Eigenschaften, die hier bewusst aufgegeben wurden:
+ *
+ * 1. **Der Server konnte nachrechnen.** Ein Rasterwert ist reproduzierbar, ein
+ *    Zufallsversatz nicht: Jede Koordinate ist ein plausibles Ergebnis. Der
+ *    Server kann deshalb nur noch pruefen, dass ein gemeldeter Wert grob genug
+ *    *aussieht* (siehe {@link isCoarsePoint}) - nicht mehr, dass er wirklich
+ *    aus dieser Funktion stammt. Eine selbst gebaute Anfrage kann damit eine
+ *    auf ~110 m genaue Koordinate einschleusen. Vorher fiel so etwas durch.
+ * 2. **Wiederholung verriet nichts.** Im Raster bekamen alle Reparaturen
+ *    derselben Zelle exakt denselben Wert. Zufaellige Versaetze mitteln sich
+ *    dagegen heraus: Ballen sich n Punkte um denselben Ort, naehert ihr
+ *    Mittelwert den echten Ort mit rund {@link BLUR_RADIUS_KM}/sqrt(n) an. Bei
+ *    einem Repair-Cafe mit vielen Eintraegen ist das ein oeffentlicher Ort und
+ *    unproblematisch; bei einem Haushalt mit wenigen Eintraegen bleibt der
+ *    Fehler in der Groessenordnung eines Kilometers.
+ *
+ * Der Tausch war eine bewusste Entscheidung: Die Karte soll zeigen, wo
+ * repariert wurde, und nicht nur, in welchem Kreis.
  */
-
-import { hashString, seededRandom } from "./hash";
 
 export type AnonymizedPoint = { lat: number; lon: number };
 
-/** Kantenlaenge einer Rasterzelle in Kilometern. */
-export const CELL_SIZE_KM = 5;
+/** Groesster moeglicher Versatz gegenueber dem echten Ort, in Kilometern. */
+export const BLUR_RADIUS_KM = 1;
 
 /** Nachkommastellen der gespeicherten Werte (~110 m) - deckt sich mit numeric(6,3). */
-const DECIMALS = 3;
+export const DECIMALS = 3;
 
 /** Kilometer pro Breitengrad. Fuer den Zweck hier reicht die Kugelnaeherung. */
 const KM_PER_DEGREE_LAT = 111.32;
-
-/**
- * Anteil der Zellbreite, um den ein Punkt maximal aus der Zellmitte versetzt
- * wird. Bewusst unter 0.5, damit der Punkt seine Zelle nie verlaesst - sonst
- * waere das Verfahren nicht mehr idempotent.
- */
-const JITTER_FRACTION = 0.34;
 
 function roundTo(value: number, decimals: number): number {
   const factor = 10 ** decimals;
   return Math.round(value * factor) / factor;
 }
 
-/** Kantenlaenge einer Zelle in Grad, bezogen auf ein Breitenband. */
-function cellSize(latIndex: number, latStep: number): number {
-  // Laengengrade ruecken zu den Polen hin zusammen; ohne diese Korrektur
-  // waeren die Zellen im Norden deutlich schmaler als im Sueden.
-  //
-  // Wichtig: Die Stauchung wird aus der *Bandmitte* berechnet, nicht aus der
-  // Eingabebreite. Sonst haengt die Zellbreite vom Rohwert ab und ein zweiter
-  // Durchlauf mit dem bereits geschnappten Punkt landete in einer anderen
-  // Spalte - das Verfahren waere nicht mehr idempotent.
-  const bandLat = (latIndex + 0.5) * latStep;
-  const shrink = Math.max(Math.cos((bandLat * Math.PI) / 180), 0.01);
-  return latStep / shrink;
+/**
+ * Gleichverteilte Zufallszahl in [0, 1).
+ *
+ * Bewusst aus der Krypto-Quelle und nicht aus `Math.random()`: Deren Zustand
+ * ist aus wenigen Ausgaben rekonstruierbar. Wer mehrere Einreichungen
+ * derselben Sitzung sieht, koennte damit sonst die Versaetze zurueckrechnen -
+ * und die Anonymisierung waere aufgehoben.
+ */
+function randomUnit(): number {
+  const buffer = new Uint32Array(1);
+  crypto.getRandomValues(buffer);
+  return buffer[0] / 2 ** 32;
 }
 
 /**
- * Schnappt eine Koordinate auf den Repraesentanten ihrer Rasterzelle.
+ * Verschiebt eine Koordinate zufaellig und rundet sie.
  *
- * Gibt `null` zurueck, wenn die Eingabe keine brauchbare Koordinate ist.
- * Die Rueckgabe ist bewusst grob: Sie beschreibt eine Gegend, keinen Ort.
+ * Gibt `null` zurueck, wenn die Eingabe keine brauchbare Koordinate ist. Die
+ * Rueckgabe ist bewusst ungenau: Sie beschreibt eine Gegend, keinen Ort. Zwei
+ * Aufrufe mit derselben Eingabe liefern verschiedene Ergebnisse - anders als
+ * frueher ist die Funktion nicht idempotent, ein zweiter Durchlauf verschiebt
+ * den Punkt ein weiteres Mal.
  */
 export function anonymizeCoordinates(lat: unknown, lon: unknown): AnonymizedPoint | null {
   if (typeof lat !== "number" || typeof lon !== "number") return null;
@@ -72,37 +82,65 @@ export function anonymizeCoordinates(lat: unknown, lon: unknown): AnonymizedPoin
   // Exakte Nullkoordinaten stammen praktisch immer aus kaputten EXIF-Feldern.
   if (lat === 0 && lon === 0) return null;
 
-  const latStep = CELL_SIZE_KM / KM_PER_DEGREE_LAT;
-  const latIndex = Math.floor(lat / latStep);
-  const lonStep = cellSize(latIndex, latStep);
-  const lonIndex = Math.floor(lon / lonStep);
-
-  // Versatz aus der Zellnummer, nicht aus dem Zufallsgenerator: Zwei Punkte
-  // derselben Zelle erhalten denselben Versatz und bleiben ununterscheidbar.
-  const random = seededRandom(hashString(`cell:${latIndex}:${lonIndex}`));
-  const offsetLat = (random() - 0.5) * 2 * JITTER_FRACTION;
-  const offsetLon = (random() - 0.5) * 2 * JITTER_FRACTION;
+  // Wurzel aus dem Zufallswert, damit die Punkte ueber die Kreisflaeche
+  // gleichverteilt sind. Ohne sie waere die Mitte deutlich dichter besetzt -
+  // und damit der echte Ort wahrscheinlicher als sein Umfeld.
+  const angle = randomUnit() * Math.PI * 2;
+  const distance = Math.sqrt(randomUnit()) * BLUR_RADIUS_KM;
+  const shrink = Math.max(Math.cos((lat * Math.PI) / 180), 0.01);
 
   return {
-    lat: roundTo((latIndex + 0.5 + offsetLat) * latStep, DECIMALS),
-    lon: roundTo((lonIndex + 0.5 + offsetLon) * lonStep, DECIMALS),
+    lat: roundTo(lat + (Math.sin(angle) * distance) / KM_PER_DEGREE_LAT, DECIMALS),
+    lon: roundTo(lon + (Math.cos(angle) * distance) / (KM_PER_DEGREE_LAT * shrink), DECIMALS),
   };
 }
 
 /**
- * Prueft, ob ein Punkt bereits das Ergebnis von {@link anonymizeCoordinates}
- * ist. Genutzt vom Upload-Endpunkt, um vom Browser gelieferte Werte zu
- * verifizieren, statt ihnen zu vertrauen.
+ * Rundet eine Koordinate, ohne sie zu verschieben.
+ *
+ * Fuer Angaben, die von vornherein keine Genauigkeit haben: Wer im Formular
+ * einen Kreis auswaehlt, nennt keinen Ort, sondern eine Flaeche von der Groesse
+ * eines Landkreises - dort gibt es nichts zu verschleiern. Ein zusaetzlicher
+ * Versatz wuerde den Punkt nur ueber die Kreisgrenze schieben koennen und die
+ * ausgewaehlte Angabe damit verfaelschen.
+ *
+ * Fuer echte Koordinaten - Standortabfrage, Foto-EXIF, IP-Herkunft - ist
+ * {@link anonymizeCoordinates} zustaendig.
  */
-export function isAnonymizedPoint(lat: unknown, lon: unknown): boolean {
-  const snapped = anonymizeCoordinates(lat, lon);
-  return snapped !== null && snapped.lat === lat && snapped.lon === lon;
+export function coarsenCoordinates(lat: unknown, lon: unknown): AnonymizedPoint | null {
+  if (typeof lat !== "number" || typeof lon !== "number") return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null;
+  if (lat === 0 && lon === 0) return null;
+
+  return { lat: roundTo(lat, DECIMALS), lon: roundTo(lon, DECIMALS) };
+}
+
+/**
+ * Prueft, ob ein Punkt grob genug ist, um gespeichert zu werden.
+ *
+ * Das ist alles, was der Server nach dem Wechsel vom Raster zum Zufallsversatz
+ * noch pruefen kann (siehe Modulkopf): Ob ein Wert wirklich aus
+ * {@link anonymizeCoordinates} stammt, laesst sich nicht mehr feststellen -
+ * wohl aber, dass er nicht genauer ist, als die Anonymisierung ihn je
+ * ausliefern wuerde. Eine rohe GPS-Koordinate mit fuenf Nachkommastellen
+ * faellt damit durch, eine auf 110 m gerundete nicht.
+ */
+export function isCoarsePoint(lat: unknown, lon: unknown): boolean {
+  if (typeof lat !== "number" || typeof lon !== "number") return false;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return false;
+  if (lat === 0 && lon === 0) return false;
+
+  return roundTo(lat, DECIMALS) === lat && roundTo(lon, DECIMALS) === lon;
 }
 
 /**
  * Liest die von Vercel gesetzten Geo-Header und gibt sie anonymisiert zurueck.
- * Diese Angaben sind ohnehin nur stadtgenau; das Raster vereinheitlicht sie
- * lediglich mit der EXIF-Quelle.
+ *
+ * Diese Angaben sind ohnehin nur stadtgenau. Der Versatz macht sie nicht
+ * genauer - er verhindert nur, dass alle Einreichungen einer Stadt exakt auf
+ * demselben Punkt liegen.
  */
 export function anonymizeRequestOrigin(request: Request): AnonymizedPoint | null {
   const lat = Number.parseFloat(request.headers.get("x-vercel-ip-latitude") ?? "");

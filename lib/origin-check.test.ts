@@ -5,7 +5,7 @@ import { getRegionConfig } from "./region-config";
 
 const nrw = getRegionConfig();
 
-/** Wuppertal und Muenchen, jeweils schon auf ihre Rasterzelle geschnappt. */
+/** Wuppertal und Muenchen, jeweils schon anonymisiert. */
 const inNrw = anonymizeCoordinates(51.256, 7.15)!;
 const inBavaria = anonymizeCoordinates(48.137, 11.575)!;
 
@@ -120,7 +120,7 @@ describe("Herkunftspruefung einer Einreichung", () => {
     expect(decision.source).toBe("ip");
   });
 
-  it("uebernimmt keine Koordinate, die nicht auf einem Rasterzellpunkt liegt", () => {
+  it("uebernimmt keine Koordinate, die genauer ist als die Anonymisierung", () => {
     const { request, formData } = submission(
       connectionFrom("BY", { lat: 48.137, lon: 11.575 }),
       { origin_lat: "51.2562", origin_lon: "7.1503", origin_source: "gps" },
