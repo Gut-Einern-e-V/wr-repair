@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { anonymizeCoordinates, isAnonymizedPoint, CELL_SIZE_KM } from "./geo-anonymize";
+import { anonymizeCoordinates, isCoarsePoint, BLUR_RADIUS_KM, DECIMALS } from "./geo-anonymize";
 
 /** Grobe Entfernung in Kilometern zwischen zwei Punkten. */
 function distanceKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }): number {
@@ -10,51 +10,51 @@ function distanceKm(a: { lat: number; lon: number }, b: { lat: number; lon: numb
 
 const koeln = { lat: 50.9375, lon: 6.9603 };
 
+/** Ein Stapel Ergebnisse derselben Eingabe - der Versatz ist zufaellig. */
+function sample(size: number) {
+  return Array.from({ length: size }, () => anonymizeCoordinates(koeln.lat, koeln.lon)!);
+}
+
 describe("anonymizeCoordinates", () => {
   it("verschiebt den Punkt, gibt ihn also nie unveraendert zurueck", () => {
-    const result = anonymizeCoordinates(koeln.lat, koeln.lon);
-    expect(result).not.toBeNull();
-    expect(result).not.toEqual(koeln);
+    for (const point of sample(50)) {
+      expect(point).not.toEqual(koeln);
+    }
   });
 
-  it("bleibt in der Groessenordnung einer Zelle vom Original entfernt", () => {
-    const result = anonymizeCoordinates(koeln.lat, koeln.lon)!;
-    expect(distanceKm(koeln, result)).toBeLessThan(CELL_SIZE_KM * 1.5);
+  it("bleibt innerhalb des Versatzradius", () => {
+    // Die Rundung kann den Punkt um bis zu ~78 m ueber den Radius schieben.
+    for (const point of sample(500)) {
+      expect(distanceKm(koeln, point)).toBeLessThanOrEqual(BLUR_RADIUS_KM + 0.1);
+    }
   });
 
-  it("ist idempotent: ein zweiter Durchlauf aendert nichts mehr", () => {
-    const once = anonymizeCoordinates(koeln.lat, koeln.lon)!;
-    const twice = anonymizeCoordinates(once.lat, once.lon)!;
-    expect(twice).toEqual(once);
+  it("liefert bei gleicher Eingabe verschiedene Ergebnisse", () => {
+    // Genau das unterscheidet den Versatz vom frueheren Raster: Zwei
+    // Reparaturen vom selben Ort bekommen nicht denselben Wert.
+    const distinct = new Set(sample(50).map((point) => `${point.lat}:${point.lon}`));
+    expect(distinct.size).toBeGreaterThan(30);
   });
 
-  it("bildet nahe beieinander liegende Punkte auf denselben Wert ab", () => {
-    const a = anonymizeCoordinates(koeln.lat, koeln.lon)!;
-    const b = anonymizeCoordinates(koeln.lat + 0.0005, koeln.lon + 0.0005)!;
-    expect(b).toEqual(a);
+  it("rundet auf die Genauigkeit der Datenbankspalte", () => {
+    const factor = 10 ** DECIMALS;
+    for (const point of sample(100)) {
+      expect(Math.round(point.lat * factor) / factor).toBe(point.lat);
+      expect(Math.round(point.lon * factor) / factor).toBe(point.lon);
+    }
   });
 
-  it("mittelt sich nicht auf den echten Punkt zurueck", () => {
-    // Der entscheidende Unterschied zu zufaelligem Jitter: Viele Messungen
-    // rund um denselben Ort ergeben immer denselben Versatz, statt sich im
-    // Mittel dem wahren Punkt anzunaehern.
-    const samples = Array.from({ length: 200 }, (_, index) =>
-      anonymizeCoordinates(koeln.lat + (index % 7) * 0.0002, koeln.lon + (index % 5) * 0.0002)!,
-    );
-    const mean = samples.reduce(
-      (sum, point) => ({ lat: sum.lat + point.lat / samples.length, lon: sum.lon + point.lon / samples.length }),
-      { lat: 0, lon: 0 },
-    );
-    expect(distanceKm(koeln, mean)).toBeGreaterThan(0.3);
+  it("verteilt gleichmaessig ueber die Flaeche statt zur Mitte hin", () => {
+    // Bei Gleichverteilung ueber die Kreisflaeche liegt die Haelfte der Punkte
+    // ausserhalb des halben Radius (die aeussere Haelfte hat dieselbe Flaeche).
+    // Ohne die Wurzel im Radius waeren es nur rund ein Viertel - dann waere der
+    // echte Ort deutlich wahrscheinlicher als sein Umfeld.
+    const outer = sample(600).filter((point) => distanceKm(koeln, point) > BLUR_RADIUS_KM / 2).length;
+    expect(outer).toBeGreaterThan(600 * 0.6);
+    expect(outer).toBeLessThan(600 * 0.9);
   });
 
-  it("trennt weit auseinander liegende Orte weiterhin", () => {
-    const koelnCell = anonymizeCoordinates(koeln.lat, koeln.lon)!;
-    const dortmundCell = anonymizeCoordinates(51.5136, 7.4653)!;
-    expect(dortmundCell).not.toEqual(koelnCell);
-  });
-
-  it("weist unbrauchbare Eingaben zurueck", () => {
+  it("weist unbrauchbare Eingaben ab", () => {
     expect(anonymizeCoordinates(0, 0)).toBeNull();
     expect(anonymizeCoordinates(Number.NaN, 7)).toBeNull();
     expect(anonymizeCoordinates(91, 7)).toBeNull();
@@ -63,18 +63,29 @@ describe("anonymizeCoordinates", () => {
   });
 });
 
-describe("isAnonymizedPoint", () => {
-  it("akzeptiert eigene Ergebnisse", () => {
-    const point = anonymizeCoordinates(koeln.lat, koeln.lon)!;
-    expect(isAnonymizedPoint(point.lat, point.lon)).toBe(true);
+describe("isCoarsePoint", () => {
+  it("nimmt an, was aus der Anonymisierung kommt", () => {
+    for (const point of sample(50)) {
+      expect(isCoarsePoint(point.lat, point.lon)).toBe(true);
+    }
   });
 
-  it("lehnt genaue Koordinaten ab, die nicht aus dem Raster stammen", () => {
-    expect(isAnonymizedPoint(koeln.lat, koeln.lon)).toBe(false);
+  it("weist eine rohe GPS-Koordinate ab", () => {
+    expect(isCoarsePoint(51.26583, 7.16142)).toBe(false);
+    expect(isCoarsePoint(koeln.lat, koeln.lon)).toBe(false);
   });
 
-  it("lehnt Werte ab, die knapp neben einem Zellpunkt liegen", () => {
-    const point = anonymizeCoordinates(koeln.lat, koeln.lon)!;
-    expect(isAnonymizedPoint(point.lat + 0.004, point.lon)).toBe(false);
+  it("weist Unsinn ab", () => {
+    expect(isCoarsePoint(Number.NaN, 7)).toBe(false);
+    expect(isCoarsePoint(0, 0)).toBe(false);
+    expect(isCoarsePoint("51.2", 7)).toBe(false);
+    expect(isCoarsePoint(91, 7)).toBe(false);
+  });
+
+  it("kann nicht erkennen, ob wirklich verschoben wurde", () => {
+    // Festgehalten, weil es die bewusst in Kauf genommene Schwaeche des
+    // Verfahrens ist: Ein auf 110 m gerundeter echter Ort sieht fuer den
+    // Server genauso aus wie ein verschobener (siehe Modulkopf).
+    expect(isCoarsePoint(51.266, 7.161)).toBe(true);
   });
 });

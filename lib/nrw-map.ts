@@ -1,7 +1,7 @@
 /**
  * Stilisierte NRW-Karte fuer das Buehnen-Dashboard.
  *
- * Fuer Einreichungen mit anonymisierter Herkunft (5-km-Zelle, siehe
+ * Fuer Einreichungen mit anonymisierter Herkunft (verschobene Koordinate, siehe
  * lib/geo-anonymize.ts) zeichnet das Dashboard die echte Zelle. Fehlt sie -
  * etwa bei Altbestaenden oder wenn die k-Anonymitaetsschwelle nicht erreicht
  * ist - faellt es auf eine *symbolische* Position zurueck: Jede Reparatur
@@ -1151,64 +1151,109 @@ export function symbolicPosition(id: string): { x: number; y: number; hub: strin
 export type OriginCell = { lat: number; lon: number; count: number };
 
 /**
- * Position eines Punktes auf der Karte.
+ * Bildschirmposition einer Herkunftsangabe.
  *
- * Liegen Herkunftszellen vor, wird der Punkt einer davon zugelost - gewichtet
- * nach der Zahl der Reparaturen darin. Innerhalb der Zelle wird er zusaetzlich
- * gestreut, damit nicht alle Punkte einer Zelle exakt uebereinander liegen.
- * Das ist rein optisch; die Zuordnung Punkt-zu-Zelle ist ohnehin willkuerlich,
- * weil das Aggregat nur Summen und keine Einzelbeitraege enthaelt.
+ * Seit dem Wechsel vom Raster zum Zufallsversatz (siehe lib/geo-anonymize.ts)
+ * hat jede Reparatur ihre eigene Koordinate. Der erste Punkt einer Angabe
+ * liegt deshalb genau darauf - eine zusaetzliche Streuung waere hier nur eine
+ * zweite, ungenauere Anonymisierung ueber der ersten.
  *
- * Ohne Zellen - etwa vor der ersten anonymisierten Einreichung - bleibt es bei
- * der symbolischen Verteilung ueber die Ballungsraeume.
+ * Gestreut wird erst ab dem zweiten: Zwei Reparaturen koennen auf denselben
+ * gerundeten Wert fallen, und uebereinander gezeichnet waeren sie ein Punkt
+ * statt zwei. Der Abstand dafuer liegt weit unter dem Versatz der
+ * Anonymisierung und behauptet deshalb keine Genauigkeit, die es nicht gibt.
+ * Er darf aber die Kreisgrenze nicht ueberschreiten: Der gezaehlte Kreis einer
+ * Reparatur steht als Spalte auf der Zeile und stammt aus genau dieser
+ * Koordinate (siehe `decideOrigin`). Ein Punkt, der nebenan landet, wuerde die
+ * Faerbung der Karte gegen die Rangliste laufen lassen.
+ *
+ * Entscheidend bleibt die Stabilitaet: Punkt Nummer `index` einer Angabe liegt
+ * immer an derselben Stelle. Kommt eine Reparatur dazu, bekommt sie die
+ * naechste Nummer - alle vorhandenen Punkte bleiben liegen.
  */
-export function positionForId(id: string, cells: OriginCell[]): { x: number; y: number } {
-  if (cells.length === 0) return symbolicPosition(id);
+export function cellPoint(cell: { lat: number; lon: number }, index: number): { x: number; y: number } {
+  if (index === 0) return projectToUnitSquare(cell);
 
-  const total = cells.reduce((sum, cell) => sum + cell.count, 0);
-  if (total <= 0) return symbolicPosition(id);
+  const random = seededRandom(hashString(`${cell.lat}:${cell.lon}:${index}`));
+  // Etwa 200 m - genug, damit zwei Punkte auseinanderzuhalten sind.
+  const spread = 0.2 / 111.32;
+  const kreis = kreisForPoint(cell);
 
-  const random = seededRandom(hashString(`${id}:cell`));
-  let pick = random() * total;
-  let chosen = cells[cells.length - 1];
-
-  for (const candidate of cells) {
-    pick -= candidate.count;
-    if (pick <= 0) {
-      chosen = candidate;
-      break;
-    }
-  }
-
-  // Streuradius etwa eine halbe Zellbreite (~2,5 km).
-  const spread = 2.5 / 111.32;
-  const kreis = kreisForPoint(chosen);
-
-  // Bis zu 12 Versuche, damit die Streuung nicht ueber die Kreisgrenze der
-  // gewaehlten Zelle hinausschiesst - sonst wirkt ein Nachbarkreis auf der
-  // Karte besetzt, obwohl ihm keine Zelle zugeordnet ist.
   for (let attempt = 0; attempt < 12; attempt += 1) {
     const angle = random() * Math.PI * 2;
     const distance = Math.sqrt(random()) * spread;
     const point = {
-      lat: chosen.lat + Math.sin(angle) * distance,
-      lon: chosen.lon + (Math.cos(angle) * distance) / latitudeScale,
+      lat: cell.lat + Math.sin(angle) * distance,
+      lon: cell.lon + (Math.cos(angle) * distance) / latitudeScale,
     };
     if (kreisForPoint(point) === kreis) return projectToUnitSquare(point);
   }
 
-  return projectToUnitSquare(chosen);
+  // Grenznah kann die Streuung fehlschlagen. Dann lieber uebereinander als im
+  // falschen Kreis.
+  return projectToUnitSquare(cell);
+}
+
+/** Ein Platz in der Punktwolke: die Herkunftsangabe und die Nummer darin. */
+export type CloudSlot = { lat: number; lon: number; index: number };
+
+/**
+ * Alle Plaetze der Wolke, aus dem Herkunftsaggregat aufgeloest - ein Platz je
+ * gemeldeter Reparatur mit bekannter Herkunft. Seit dem Zufallsversatz hat
+ * fast jede Reparatur ihre eigene Angabe, `count` ist also meist 1; mehr als
+ * eine kommt nur vor, wenn zwei Werte auf dieselbe Rundung fallen.
+ *
+ * Die Reihenfolge ist kein Zufall. Auf einer kleinen Buehne zeichnet die
+ * Wolke nicht alle Punkte, sondern nur die ersten `n` (siehe MAX_PARTICLES und
+ * das Flaechenbudget in repair-cloud.tsx). Dieser Ausschnitt muss das Land
+ * trotzdem richtig abbilden, und dafuer sorgen zwei Schluessel:
+ *
+ * 1. Der Fuellgrad: Punkt `index` einer Angabe mit `count` Reparaturen bekommt
+ *    `(index + 0.5) / count`. Wo mehrere Reparaturen auf denselben Wert
+ *    fallen, enthaelt jeder Praefix ungefaehr ihren Anteil.
+ * 2. Danach eine Streuung aus der Koordinate selbst. Seit dem Zufallsversatz
+ *    hat fast jede Reparatur ihre eigene Angabe, `count` ist also fast immer 1
+ *    und der erste Schluessel fuer alle gleich - nach Koordinate sortiert
+ *    zeigte ein knappes Budget dann den halben Sueden und den Rest gar nicht.
+ *    Der Hash mischt die Reihenfolge raeumlich durch, bleibt dabei aber je
+ *    Punkt derselbe.
+ *
+ * Waechst eine Angabe, aendert sich die Reihenfolge ihrer eigenen Punkte
+ * untereinander. Sichtbar ist das nicht: Ihre Positionen haengen an
+ * `cellPoint(angabe, index)` und nicht an dieser Reihenfolge.
+ */
+export function cloudSlots(cells: OriginCell[]): CloudSlot[] {
+  const slots: { slot: CloudSlot; key: number; scatter: number }[] = [];
+
+  for (const cell of cells) {
+    const count = Math.max(0, Math.floor(cell.count));
+    const scatter = hashString(`${cell.lat}:${cell.lon}:order`);
+    for (let index = 0; index < count; index += 1) {
+      slots.push({ slot: { lat: cell.lat, lon: cell.lon, index }, key: (index + 0.5) / count, scatter });
+    }
+  }
+
+  // Die Koordinate zuletzt: Sie entscheidet nur noch bei gleichem Hash und
+  // haelt die Reihenfolge unabhaengig davon, wie die Datenbank die Zellen
+  // liefert.
+  slots.sort((left, right) =>
+    left.key - right.key
+    || left.scatter - right.scatter
+    || left.slot.lat - right.slot.lat
+    || left.slot.lon - right.slot.lon
+    || left.slot.index - right.slot.index);
+
+  return slots.map((entry) => entry.slot);
 }
 
 /**
  * Zufaelliger Punkt innerhalb eines konkreten Kreises, deterministisch aus der
- * Reparatur-ID - fuer die Landeposition eines einzelnen Neuzugangs, dessen
- * Kreis bereits bekannt ist (siehe `DashboardHighlight.mapKreis`).
+ * Reparatur-ID - fuer die Landeposition eines einzelnen Neuzugangs, von dem
+ * nur der Kreis bekannt ist (siehe `DashboardHighlight.kreis`).
  *
- * Anders als `positionForId()` (das eine beliebige, nach Haeufigkeit
- * gewichtete Zelle aus dem gesamten Zellen-Aggregat zieht, weil dieses keine
- * Einzelzuordnung mehr enthaelt) landet dieser Punkt garantiert im genannten
- * Kreis, weil sein Umriss direkt bekannt ist. Zufallspunkte im
+ * Rueckfall fuer einen Neuzugang ohne Herkunftszelle - ohne Koordinate bleibt
+ * der Kreis die einzige Ortsangabe. Der Punkt landet garantiert in ihm, weil
+ * sein Umriss direkt bekannt ist. Zufallspunkte im
  * Begrenzungsrechteck, verworfen bis einer im Umriss liegt; nach 24 Versuchen
  * faellt es auf den Flaechenschwerpunkt der Stuetzpunkte zurueck - der liegt
  * bei fast allen Kreisen ohnehin innen (siehe lib/nrw-kreise-list.ts).

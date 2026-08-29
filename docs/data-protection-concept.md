@@ -1,6 +1,6 @@
 # Datenschutzkonzept (technischer Stand)
 
-Stand: 17. Juli 2026
+Stand: 29. August 2026
 
 Dieses Dokument beschreibt den aktuell implementierten technischen Datenfluss. Es ist keine Datenschutzerklaerung und keine Rechtsberatung. Vor dem oeffentlichen Start muessen die verantwortliche Stelle, Rechtsgrundlagen, Auftragsverarbeitungsvertraege, Kontaktwege und Fristen durch die verantwortliche Organisation rechtlich geprueft und in die oeffentliche Datenschutzerklaerung uebernommen werden.
 
@@ -11,9 +11,9 @@ Die Plattform erfasst Reparaturen fuer den Weltrekordversuch, moderiert sie und 
 | Datenkategorie | Aktuell verarbeitet | Speicherung und Zugriff |
 | --- | --- | --- |
 | Reparaturangaben | Kategorie, Beschreibung, Antworten, Reparaturerfolg, optionale redaktionelle Metadaten und Moderationskommentar | Tabelle `repairs` in Supabase; nur Moderator*innen und hoeher sehen nicht freigegebene Beitraege. |
-| Bild | Vom Browser neu gerendertes JPEG ohne EXIF- und GPS-Metadaten | Privater Supabase-Storage-Bucket `repair-images`; oeffentliche Galerie und Moderation erhalten nur kurzlebige signierte URLs. |
+| Bild | Vom Browser neu gerendertes JPEG ohne EXIF- und GPS-Metadaten | Privater Supabase-Storage-Bucket `repair-images`; oeffentliche Galerie und Moderation erhalten nur kurzlebige signierte URLs. Das Entfernen der Metadaten geschieht derzeit allein im Browser; der Server prueft es nicht nach (siehe Vorab-Checkliste). |
 | Grobe Region | Ausschliesslich der Wert `Nordrhein-Westfalen` nach erfolgreicher Vercel-Header-Pruefung | Spalte `location_region` in `repairs`; keine Stadt- oder Postleitzahldaten. |
-| Anonymisierte Herkunft | Optional der Mittelpunkt einer festen Rasterzelle von rund 5 km Kantenlaenge | Spalten `location_lat` und `location_lon` in `repairs`. Die Zuordnung erfolgt im Browser; die zugrunde liegende genaue Koordinate wird nicht uebertragen. Oeffentlich sichtbar nur aggregiert und erst ab fuenf Reparaturen je Zelle. |
+| Anonymisierte Herkunft | Optional eine um bis zu 1 km zufaellig verschobene und auf ~110 m gerundete Koordinate, dazu der daraus abgeleitete Kreis | Spalten `location_lat`, `location_lon` und `kreis` in `repairs`. Die Verschiebung erfolgt im Browser; die genaue Koordinate wird nicht uebertragen. Der Server nimmt nur gerundete Werte an, kann die Verschiebung selbst aber nicht nachpruefen. |
 | IP-Adresse | Kurzzeitig als Schlüssel des prozesslokalen Rate Limits | Nicht in `repairs` geschrieben. Der Zaehlereintrag wird nach dem jeweiligen Limitfenster verworfen: 15 Minuten fuer Einreichungen, 1 Minute fuer Statistikabfragen. |
 | Friendly-Captcha-Loesung | Loesungswert aus dem Formular zur Bot-Pruefung | Nicht in der Datenbank gespeichert; wird serverseitig an Friendly Captcha `siteverify` gesendet. |
 | Admin-Konten | Auth-E-Mail, optionaler Anzeigename und Anwendungrolle | Supabase Auth sowie die Tabellen `profiles` und `user_roles`; nur fuer den Moderationsbetrieb. |
@@ -32,13 +32,21 @@ Friendly Captcha muss vor dem Produktionsstart datenschutzrechtlich freigegeben 
 Fuer die Karte im Live-Dashboard wird je Reparatur hoechstens eine grob gerasterte Herkunft gespeichert. Der Ablauf ist so gebaut, dass genaue Koordinaten den Browser nie verlassen:
 
 1. Der Browser liest die GPS-Koordinate aus den EXIF-Daten des gewaehlten Bildes, **bevor** das Bild neu gerendert und die Metadaten damit verworfen werden.
-2. Der Browser schnappt die Koordinate auf den Mittelpunkt einer festen Rasterzelle von rund 5 km Kantenlaenge und sendet ausschliesslich diesen Zellwert. Die Ausgangskoordinate wird nicht uebertragen.
+2. Der Browser verschiebt die Koordinate um eine zufaellige, gleichverteilte Strecke von bis zu 1 km, rundet auf drei Nachkommastellen (~110 m) und sendet ausschliesslich diesen Wert. Die Ausgangskoordinate wird nicht uebertragen. Der Zufall stammt aus `crypto.getRandomValues`, damit sich aus mehreren Einreichungen einer Sitzung nicht auf die Versaetze zurueckrechnen laesst.
 3. Enthaelt das Bild keine Koordinate, wird ersatzweise die von Vercel aus der IP-Adresse abgeleitete Stadtkoordinate verwendet und identisch gerastert. Die IP-Adresse selbst wird dabei nicht gespeichert.
-4. Der Server akzeptiert einen vom Browser gesendeten Wert nur, wenn er exakt einem Zellmittelpunkt entspricht und innerhalb der konfigurierten Region liegt. Genauere Werte werden verworfen.
+4. Der Server akzeptiert einen vom Browser gesendeten Wert nur, wenn er auf drei Nachkommastellen gerundet ist und innerhalb der konfigurierten Region liegt. Genauere Werte werden verworfen.
+5. Eine im Formular manuell ausgewaehlte Kreisangabe laeuft nicht durch die Verschiebung: Sie nennt keinen Ort, sondern eine Kreisflaeche, und wird ueber diese gestreut.
 
-Das Raster ist idempotent: Derselbe Ort ergibt immer dieselbe Zelle. Ein rein zufaelliger Versatz waere schwaecher, weil sich der Mittelwert mehrerer Einreichungen vom selben Ort dem echten Punkt annaehern wuerde.
+Zwei Eigenschaften des Verfahrens sind bewusst in Kauf genommen und sollten bei der rechtlichen Bewertung bekannt sein:
 
-Die oeffentliche Aggregatfunktion gibt eine Zelle erst aus, wenn ihr mindestens fuenf freigegebene Reparaturen zugeordnet sind. Die Spalten `location_lat` und `location_lon` sind ausserdem per Spalten-GRANT fuer die anonyme Datenbankrolle gesperrt, damit diese Schwelle nicht ueber einen direkten Tabellenzugriff umgangen werden kann.
+- **Der Server kann die Anonymisierung nicht nachpruefen.** Bis August 2026 wurde auf ein 5-km-Raster geschnappt; ein Rasterwert ist reproduzierbar, und der Server verwarf alles, was nicht exakt darauf lag. Ein Zufallsversatz ist nicht reproduzierbar - jede Koordinate ist ein plausibles Ergebnis. Geprueft wird deshalb nur noch die Genauigkeit: Eine selbst gebaute Anfrage koennte eine auf ~110 m genaue Koordinate einschleusen, vorbei am Formular. Zusammen mit dem noch offenen serverseitigen Entfernen der Bild-Metadaten ist das der zweite Punkt, an dem die Zusage an der Mitarbeit des Clients haengt.
+- **Wiederholte Einreichungen vom selben Ort mitteln sich aus.** Im Raster bekamen sie alle denselben Wert. Beim Zufallsversatz naehert sich der Mittelwert von n Punkten dem echten Ort mit rund 1 km/Wurzel(n). Bei einem oeffentlichen Repair-Cafe mit vielen Eintraegen ist das unproblematisch, bei wenigen Eintraegen eines Haushalts bleibt der Fehler in der Groessenordnung eines Kilometers.
+
+Der Tausch war eine bewusste Entscheidung zugunsten einer Karte, die zeigt, wo repariert wurde, statt nur, in welchem Kreis.
+
+Rasterung und Versatz sind der Schutz - eine zusaetzliche Mindestzahl je Zelle gibt es nicht mehr. Bis August 2026 gab die Aggregatfunktion eine Zelle erst ab fuenf zugeordneten Reparaturen aus, und ein einzelner Eintrag bekam seinen Kreis erst ab fuenf Reparaturen dort angeschrieben. Beide Schwellen sind entfallen (Migration `202608270003` und `DashboardHighlight.kreis`): Eine Zelle von 5 km Kantenlaenge und ein Kreis mit sechsstelliger Einwohnerzahl fuehren nicht auf einen Haushalt zurueck, auch nicht bei einem einzelnen Eintrag. Das war eine bewusste Entscheidung und keine Folge einer Umstellung.
+
+Die Spalten `location_lat` und `location_lon` sind per Spalten-GRANT fuer die anonyme Datenbankrolle gesperrt. Ein direkter Tabellenzugriff mit dem oeffentlichen Schluessel kann die Herkunft damit auch nicht zeilenweise auslesen; oeffentlich erreichbar ist sie nur ueber die beiden dokumentierten Routen.
 
 ## Zugriff und Veroeffentlichung
 
@@ -47,7 +55,10 @@ Die oeffentliche Aggregatfunktion gibt eine Zelle erst aus, wenn ihr mindestens 
 - Nur `approved` Reparaturen mit Veroeffentlichungszustimmung erscheinen in Galerie und Statistik.
 - Moderator*innen erhalten zeitlich begrenzte Bild-URLs. Admins und Superadmins koennen einen nicht gecachten CSV-Export erstellen.
 - Der CSV-Export enthaelt keine Bild-URLs oder Roh-IP-Adressen, aber Reparatur- und Moderationsdaten. Er darf nur in einem geschuetzten Arbeitsumfeld verarbeitet werden.
-- Die oeffentliche Statistik verarbeitet nur aggregierte Zahlen freigegebener Reparaturen. Die Karte im Live-Dashboard zeigt ausschliesslich Rasterzellen von rund 5 km Kantenlaenge, und auch diese erst ab fuenf Reparaturen je Zelle. Einzelne Einreichungen sind darueber nicht identifizierbar.
+- Zwei oeffentliche Routen geben freigegebene Daten heraus, beide ohne API-Key, weil die Buehnenseite im Browser laeuft:
+  - `/api/stats` ausschliesslich Aggregate: Zahlen, Kategorien, Kreis-Summen, Zeitachse (siehe `docs/hardware-display-api.md`).
+  - `/api/dashboard` zusaetzlich die juengsten freigegebenen Einzelbeitraege mit Kategorie, Marke/Modell, Zeitstempel, Kreis, Herkunftszelle und - nur auf Anforderung mit `images=1` - einer kurzlebigen Bild-URL, dazu die Rasterzellen der Karte (siehe `docs/dashboard-api.md`). Die Zelle je Eintrag ist dieselbe Angabe, die in der Summe ohnehin ausgeliefert wird; sie ist um bis zu 1 km zufaellig verschoben. Es ist derselbe Inhalt, der auf der Buehne unter `/stats` zu sehen ist - maschinenlesbar statt nur projiziert.
+- Die Karte zeigt ausschliesslich verschobene Koordinaten. Der echte Ort einer einzelnen Einreichung liegt gleichverteilt in einer Flaeche von rund 3 km^2 um den gezeigten Punkt.
 
 ## Aufbewahrung und Loeschung
 
@@ -118,3 +129,4 @@ Daten an ein Schriftennetzwerk gehen.
 - [ ] Vercel-Produktionsvariablen sowie Friendly-Captcha-Domains konfigurieren.
 - [ ] Globales WAF- oder Redis-basiertes Rate Limit zusaetzlich zum prozesslokalen Limit aktivieren.
 - [ ] Einwilligungstexte im Banner und auf der Datenschutzseite rechtlich freigeben und die Kategorien gegen die dann tatsaechlich eingebundenen Dienste pruefen.
+- [ ] EXIF- und GPS-Metadaten serverseitig aus dem hochgeladenen Bild entfernen. Derzeit erledigt das allein der Browser, indem er das Bild ueber ein Canvas neu rendert. Eine direkt zusammengebaute Anfrage kann ein Bild mit Standortdaten hochladen; nach der Freigabe ist es ueber eine signierte URL erreichbar. Die Zusage auf der Datenschutzseite haengt damit an der Mitarbeit des Clients.

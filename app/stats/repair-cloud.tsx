@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { hashString, nrwHubs, nrwKreise, nrwOutline, positionForId, projectToUnitSquare, randomPointInKreis, rhineCourse, seededRandom, type OriginCell } from "@/lib/nrw-map";
+import { cellPoint, cloudSlots, hashString, nrwHubs, nrwKreise, nrwOutline, projectToUnitSquare, randomPointInKreis, rhineCourse, seededRandom, symbolicPosition, type CloudSlot, type OriginCell } from "@/lib/nrw-map";
 
 /**
  * Punktwolke aller Reparaturen ueber der Karte von Nordrhein-Westfalen.
@@ -28,6 +28,12 @@ import { hashString, nrwHubs, nrwKreise, nrwOutline, positionForId, projectToUni
 
 export type CloudFocus = { id: string } | null;
 
+/**
+ * Woher ein Punkt seine Position nimmt: ein fester Platz aus dem Aggregat,
+ * die Angaben eines Neuzugangs, oder gar nichts.
+ */
+type PointSource = { slot: CloudSlot } | { kreis: string | null; lat: number | null; lon: number | null } | null;
+
 /** Kreis unter dem Zeiger, in Bildschirmkoordinaten fuer die Sprechblase. */
 export type KreisHover = { name: string; x: number; y: number } | null;
 
@@ -35,11 +41,12 @@ type Props = {
   /** Gesamtzahl der Reparaturen (bestimmt die Punktdichte). */
   total: number;
   /**
-   * Neu hinzugekommene Reparaturen seit dem letzten Render, mit Kreis, wenn
-   * bekannt (siehe `DashboardHighlight.mapKreis`) - damit landet der Punkt
-   * dort, statt aus dem Zellen-Aggregat eine beliebige Zelle zu erben.
+   * Neu hinzugekommene Reparaturen seit dem letzten Render, mit ihrer
+   * Herkunftszelle - damit landet der Punkt sofort dort, wo er hingehoert.
+   * Ohne Zelle bleibt der Kreis als groebere Angabe (siehe
+   * `DashboardHighlight`).
    */
-  arrivals: { id: string; kreis: string | null }[];
+  arrivals: { id: string; kreis: string | null; lat: number | null; lon: number | null }[];
   /** Punkt, auf den die Kamera zoomen soll. */
   focusId: string | null;
   /** Zielerreichung: loest einen Konfetti-Ausbruch aus. */
@@ -151,13 +158,17 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
   // Zellen kommen erst mit dem ersten Snapshot an. Bereits gesetzte Punkte
   // bleiben, wo sie sind - ein Umspringen der ganzen Wolke waere unruhiger als
   // die wenigen symbolisch platzierten Punkte der ersten Sekunden.
-  const cellsRef = useRef(cells);
+  // Aus den Zellen werden die Plaetze der Wolke: ein Platz je Reparatur mit
+  // bekannter Herkunft, an der Stelle ihrer eigenen Zelle. Bereits gesetzte
+  // Punkte behalten ihren Platz, weil `cellPoint` nur an Zelle und laufender
+  // Nummer haengt - kommt eine Reparatur dazu, waechst die Liste hinten.
+  const slotsRef = useRef<CloudSlot[]>([]);
   useEffect(() => {
-    cellsRef.current = cells;
+    slotsRef.current = cloudSlots(cells);
   }, [cells]);
 
   // Neuzugaenge werden nur einmal eingespielt, deshalb ueber eine Queue.
-  const queueRef = useRef<{ id: string; kreis: string | null }[]>([]);
+  const queueRef = useRef<Props["arrivals"]>([]);
   const seenRef = useRef(new Set<string>());
   useEffect(() => {
     for (const arrival of arrivals) {
@@ -273,15 +284,35 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
     const indexById = new Map<string, number>();
 
     /**
+     * Wo ein Punkt landet. In dieser Reihenfolge:
+     *
+     * 1. Auf seinem Platz aus dem Zellen-Aggregat - das ist der Normalfall
+     *    und die eingetragene, gerasterte Koordinate selbst.
+     * 2. Ein Neuzugang bringt seine Zelle mit und landet sofort darin, statt
+     *    bis zum naechsten Snapshot zu warten. Seine Nummer in der Zelle ist
+     *    noch unbekannt, deshalb dient die Reparatur-ID als Streuung - beim
+     *    naechsten Laden sitzt er auf einem regulaeren Platz derselben Zelle.
+     * 3. Ohne Zelle bleibt der Kreis, ohne Kreis die symbolische Verteilung
+     *    ueber die Ballungsraeume. Beides betrifft Reparaturen ohne
+     *    verwertbare Herkunft und die ersten Sekunden vor dem ersten Snapshot.
+     */
+    function positionFor(id: string, at: PointSource): { x: number; y: number } {
+      if (at && "slot" in at) return cellPoint(at.slot, at.slot.index);
+      if (at?.lat != null && at.lon != null) return cellPoint({ lat: at.lat, lon: at.lon }, hashString(id));
+      if (at?.kreis) {
+        const inKreis = randomPointInKreis(id, at.kreis);
+        if (inKreis) return inKreis;
+      }
+      return symbolicPosition(id);
+    }
+
+    /**
      * `still` erscheint ohne Bewegung, `arrival` fliegt mit Ring und Schweif
      * ein, `intro` gehoert zum Eroeffnungsregen.
      */
-    function addParticle(id: string, entry: "still" | "arrival" | "intro", kreis: string | null = null) {
+    function addParticle(id: string, entry: "still" | "arrival" | "intro", at: PointSource = null) {
       if (count >= MAX_PARTICLES) return;
-      // Ist der Kreis dieser konkreten Reparatur bekannt, landet sie darin -
-      // statt aus dem Zellen-Aggregat eine beliebige, nach Haeufigkeit
-      // gewichtete Zelle zu erben, die mit dieser Reparatur nichts zu tun hat.
-      const point = (kreis && randomPointInKreis(id, kreis)) || positionForId(id, cellsRef.current);
+      const point = positionFor(id, at);
       const random = seededRandom(hashString(`${id}:wobble`));
       const index = count;
       baseX[index] = point.x;
@@ -449,7 +480,12 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
       // auf einer kleinen Buehne nach einem Wimpernschlag vorbei.
       let budget = introDone ? 60 : Math.max(8, Math.ceil(desired / INTRO_FRAMES));
       while (count < desired && budget > 0) {
-        addParticle(`fill:${count}`, introDone ? "still" : "intro");
+        // Die Plaetze sind so sortiert, dass jeder Anfangsteil das Land
+        // richtig abbildet - auf einer kleinen Buehne reicht ein Ausschnitt
+        // (siehe `cloudSlots`). Reparaturen ohne Herkunft bleiben uebrig und
+        // werden symbolisch verteilt.
+        const slot = slotsRef.current[count];
+        addParticle(`fill:${count}`, introDone ? "still" : "intro", slot ? { slot } : null);
         budget -= 1;
       }
       if (count >= desired) introDone = true;
@@ -457,7 +493,7 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
       let pending = queueRef.current.shift();
       while (pending) {
         if (!indexById.has(pending.id)) {
-          addParticle(pending.id, "arrival", pending.kreis);
+          addParticle(pending.id, "arrival", pending);
           if (pending.kreis) kreisFlash.set(pending.kreis, 1);
         }
         pending = queueRef.current.shift();

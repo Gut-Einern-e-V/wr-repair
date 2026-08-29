@@ -96,18 +96,27 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
 /* Einstellungen hinter einem Zahnrad. Aufgeklappt ueber <details>, deshalb hier
    kein Zustand - nur der voreingestellte Marker muss weg. */
 .stage-settings { position: relative; }
-.stage-settings summary {
+/* Zahnrad und Vollbild-Schalter stehen nebeneinander und sehen deshalb gleich
+   aus: gleiche Groesse, gleiche zurueckhaltende Farbe, nur ein Symbol. */
+.stage-settings summary, .stage-fullscreen {
   display: grid; place-items: center;
   width: 26px; height: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
   list-style: none;
   color: rgba(238, 241, 247, .35);
   cursor: pointer;
   transition: color 140ms ease;
 }
 .stage-settings summary::-webkit-details-marker { display: none; }
-.stage-settings summary:hover, .stage-settings[open] summary { color: rgba(238, 241, 247, .8); }
-.stage-settings summary:focus-visible { outline: 2px solid var(--stage-yellow); outline-offset: 3px; }
-.stage-settings svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.stage-settings summary:hover, .stage-settings[open] summary,
+.stage-fullscreen:hover, .stage-fullscreen[aria-pressed="true"] { color: rgba(238, 241, 247, .8); }
+.stage-settings summary:focus-visible, .stage-fullscreen:focus-visible { outline: 2px solid var(--stage-yellow); outline-offset: 3px; }
+.stage-settings svg, .stage-fullscreen svg {
+  width: 18px; height: 18px;
+  fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round;
+}
 
 .stage-settings-panel {
   position: absolute;
@@ -579,8 +588,8 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   .dashboard-brand { gap: 7px; font-size: 8px; }
   .dashboard-brand .brand-mark { width: 20px; height: 20px; font-size: 13px; }
   .dashboard-tools { gap: 9px; }
-  .stage-settings summary { width: 20px; height: 20px; }
-  .stage-settings svg { width: 14px; height: 14px; }
+  .stage-settings summary, .stage-fullscreen { width: 20px; height: 20px; }
+  .stage-settings svg, .stage-fullscreen svg { width: 14px; height: 14px; }
   .stage-settings-panel { width: 180px; padding: 9px; }
   .kreis-top li { grid-template-columns: 1.1em minmax(0, 1fr) auto 2.6em; gap: 5px; }
   .kreis-top-track { display: none; }

@@ -1,4 +1,4 @@
-import { anonymizeRequestOrigin, isAnonymizedPoint } from "@/lib/geo-anonymize";
+import { anonymizeRequestOrigin, isCoarsePoint } from "@/lib/geo-anonymize";
 import { kreisForPoint } from "@/lib/nrw-map";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -26,7 +26,11 @@ export async function GET(request: Request) {
   const rawLat = Number.parseFloat(params.get("lat") ?? "");
   const rawLon = Number.parseFloat(params.get("lon") ?? "");
 
-  const point = isAnonymizedPoint(rawLat, rawLon)
+  // Der Punkt wird hier nicht erneut anonymisiert: Der Browser hat das bereits
+  // getan, und ein zweiter Versatz wuerde ihn ein weiteres Mal verschieben -
+  // dann nennte diese Auskunft womoeglich einen anderen Kreis als den, der
+  // spaeter an der Einreichung steht.
+  const point = isCoarsePoint(rawLat, rawLon)
     ? { lat: rawLat, lon: rawLon }
     : anonymizeRequestOrigin(request);
 

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { FriendlyCaptcha } from "@/components/friendly-captcha";
 import { RepairCategorySelect } from "@/components/repair-form-fields";
 import { repairCategories, type RepairCategory } from "@/lib/repair-catalog";
-import { anonymizeCoordinates, type AnonymizedPoint } from "@/lib/geo-anonymize";
+import { anonymizeCoordinates, coarsenCoordinates, type AnonymizedPoint } from "@/lib/geo-anonymize";
 import type { OutsideRegionHelp } from "@/lib/outside-region-help";
 import { nrwKreiseList } from "@/lib/nrw-kreise-list";
 
@@ -18,7 +18,7 @@ const compressibleImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]
  *
  * Der Ablauf ist bewusst so geschnitten, dass die Rohkoordinate das Geraet nie
  * verlaesst: Sie existiert nur innerhalb dieser Funktion, wird direkt in eine
- * ~5-km-Zelle uebersetzt und danach verworfen. Anschliessend entfernt
+ * zufaellig verschobene, grobe Koordinate uebersetzt und danach verworfen. Anschliessend entfernt
  * {@link createCompressedImage} beim Neu-Encodieren ohnehin saemtliche
  * EXIF-Segmente aus der Datei, die hochgeladen wird.
  */
@@ -247,7 +247,7 @@ export function RepairSubmissionForm({
         + (origin
           // Nur anzeigen, wenn wirklich eine Herkunft ermittelt wurde - sonst
           // waere es ein Versprechen ueber Daten, die es gar nicht gibt.
-          ? " Fuer die Karte wird nur ein auf rund 5 km gerundeter Bereich uebertragen."
+          ? " Fuer die Karte wird nur ein zufaellig verschobener Punkt uebertragen, nicht der genaue Ort."
           : ""),
       );
     } catch (error) {
@@ -284,7 +284,7 @@ export function RepairSubmissionForm({
         setAnonymizedOrigin(anonymized);
         setLocationSource("gps");
         setSelectedKreis("");
-        setLocationStatus("Standort erkannt. Für die Karte wird nur ein auf rund 5 km gerundeter Bereich übertragen.");
+        setLocationStatus("Standort erkannt. Für die Karte wird nur ein zufällig verschobener Punkt übertragen, nicht der genaue Ort.");
         void resolveKreisLabel(anonymized).then((kreis) => {
           if (kreis) setSelectedKreis(kreis);
         });
@@ -318,21 +318,24 @@ export function RepairSubmissionForm({
     const kreis = nrwKreiseList.find((item) => item.name === name);
     if (!kreis) return;
 
-    // Zufaelliger Versatz um den Kreis-Referenzpunkt, damit nicht jede manuelle
-    // Wahl desselben Kreises auf exakt derselben Rasterzelle landet - die Karte
-    // wirkt sonst bei mehreren Eintraegen im selben Kreis unnatuerlich gleichfoermig.
-    // radiusKm ist je Kreis so gewaehlt, dass die Streuung nie in einen
-    // Nachbarkreis rutscht (siehe lib/nrw-kreise-list.ts).
+    // Zufaelliger Versatz um den Kreis-Referenzpunkt: Eine manuelle Wahl sagt
+    // nur den Kreis, also wird der Punkt ueber ihn gestreut, statt alle
+    // Eintraege auf denselben Referenzpunkt zu legen. radiusKm ist je Kreis so
+    // gewaehlt, dass die Streuung nie in einen Nachbarkreis rutscht (siehe
+    // lib/nrw-kreise-list.ts). Danach nur noch runden und nicht zusaetzlich
+    // verschieben: Der Versatz koennte den Punkt ueber die Kreisgrenze
+    // schieben, und dann stuende an der Einreichung ein anderer Kreis als der
+    // ausgewaehlte.
     const angle = Math.random() * Math.PI * 2;
     const distance = Math.sqrt(Math.random()) * kreis.radiusKm;
     const jitteredLat = kreis.lat + (Math.sin(angle) * distance) / 111.32;
     const jitteredLon = kreis.lon + (Math.cos(angle) * distance) / (111.32 * Math.cos((kreis.lat * Math.PI) / 180));
-    const anonymized = anonymizeCoordinates(jitteredLat, jitteredLon);
+    const anonymized = coarsenCoordinates(jitteredLat, jitteredLon);
     if (!anonymized) return;
 
     setAnonymizedOrigin(anonymized);
     setLocationSource("manual");
-    setLocationStatus(`"${name}" ausgewählt. Für die Karte wird nur ein auf rund 5 km gerundeter Bereich übertragen.`);
+    setLocationStatus(`"${name}" ausgewählt. Für die Karte wird nur ein ungefährer Punkt im Kreis übertragen.`);
   }
 
   function submitRepair(event: FormEvent<HTMLFormElement>) {

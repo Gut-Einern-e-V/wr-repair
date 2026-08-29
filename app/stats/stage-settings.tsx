@@ -64,7 +64,7 @@ export function StageSettings({ showSpotlight, onToggleSpotlight, beamer, onTogg
           laesst dort das Licht ganz aus - das ergibt den hoechsten Kontrast.
         </p>
         <p className="stage-settings-keys">
-          <kbd>F</kbd> Vollbild · <kbd>B</kbd> Einzelbilder · <kbd>Esc</kbd> zurueck
+          <kbd>F</kbd> Zaehler gross · <kbd>B</kbd> Einzelbilder · <kbd>Esc</kbd> zurueck
         </p>
       </div>
     </details>

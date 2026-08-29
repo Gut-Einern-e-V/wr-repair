@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, dayRecordState, formatDayLabel, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, readCells, isFreshlyApproved, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
 
-function highlight(id: string, category = "tools", mapKreis: string | null = null) {
+function highlight(id: string, category = "tools", kreis: string | null = null) {
   return {
     id,
     category,
@@ -10,8 +10,9 @@ function highlight(id: string, category = "tools", mapKreis: string | null = nul
     imageAltText: null,
     submittedAt: "2026-10-01T09:00:00.000Z",
     approvedAt: "2026-10-01T10:00:00.000Z",
-    kreis: null,
-    mapKreis,
+    kreis,
+    lat: null,
+    lon: null,
   };
 }
 
@@ -72,7 +73,7 @@ describe("mergeDashboardDelta", () => {
     expect(mergeDashboardDelta(snapshot, { ...delta, total: 3, added: [] }).total).toBe(10);
   });
 
-  it("zaehlt neue Eintraege mit mapKreis in die Kreis-Summen", () => {
+  it("zaehlt neue Eintraege mit Kreis in die Kreis-Summen", () => {
     const withKreise: DashboardDelta = {
       ...delta,
       added: [highlight("c", "tools", "Remscheid"), highlight("d", "bicycle", "Remscheid"), highlight("e", "tools", null)],
