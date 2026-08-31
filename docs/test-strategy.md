@@ -9,12 +9,15 @@ Stand: 17. Juli 2026
 - Einreichungszeitfenster: fehlende, ungueltige und umgedrehte Konfiguration bleibt geschlossen; valide Konfiguration liefert `before`, `open` und `after`.
 - NRW-Check: nur die Kombination `DE` und `NW` wird akzeptiert; der lokale Override funktioniert ausschliesslich in `development`.
 - Rate Limit: Versuche werden pro Namespace und erster Forwarded-IP begrenzt und nach Ablauf des Fensters wieder freigegeben.
+- Einreichungs-Torwaechter: Limit und Kampagneneinstellungen kommen in einem einzigen Aufruf; der Abdruck der Verbindung ist wiedererkennbar, enthaelt die Adresse nicht im Klartext und haengt am Salz; fehlt die Datenbankfunktion, greift das Notlimit im Arbeitsspeicher statt einer Absage.
 
 `npm run lint`, `npx tsc --noEmit` und `npm run build` bleiben verpflichtende Checks vor einem Deployment.
 
 ## Vor dem Launch manuell pruefen
 
 - Einreichung im produktionsnahen Vercel-Preview: Zeitfenster, Friendly Captcha, NRW-Header, erlaubte Dateitypen, 200-KiB-Grenze und EXIF-freies Bild pruefen.
+- Einreichung unter Last, mit mehreren Geraeten im selben WLAN (Issue #64): Das Limit darf nicht bei der vierten Person zuschlagen, das Foto muss wenige Sekunden nach der Einreichung in der Moderation sichtbar sein, und `Server-Timing` in den Entwicklerwerkzeugen zeigt, welcher Abschnitt Zeit kostet.
+- Wiederholungsversuch: Einreichung bei abgeschaltetem Netz absenden, Netz waehrend der Wartezeit wieder einschalten - es darf genau eine Reparatur entstehen, nicht zwei.
 - Moderator*innen: Rollen `moderator`, `admin` und `superadmin`, Freigabe/Ablehnung, Bildloeschung sowie CSV-Export mit Testkonten pruefen.
 - Ansichten bei 360 px, 768 px und 1280 px: Navigation, Formulardialog, Partnerlogos, Fokusreihenfolge und horizontalen Ueberlauf pruefen.
 - Barrierefreiheit: vollstaendige Tastaturbedienung, Screenreader-Meldungen im Formular, Kontrast und Reduced Motion pruefen.
