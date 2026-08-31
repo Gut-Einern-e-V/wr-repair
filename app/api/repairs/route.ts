@@ -138,6 +138,16 @@ export async function POST(request: Request) {
     return withTimings(errorResponse("Der Einreichungsdienst ist noch nicht konfiguriert.", 503, false));
   }
 
+  /* Ob die Wiedererkennung ueberhaupt zur Verfuegung steht.
+
+     `persisted` ist false, wenn `submission_gate` nicht geantwortet hat - und
+     Funktion, Zaehltabelle und die Spalte `client_key` stammen aus derselben
+     Migration. Fehlt die eine, fehlt auch die andere. Ohne diese Bremse wuerde
+     der Insert eine Spalte setzen, die es noch nicht gibt, und Postgres wiese
+     *jede* Einreichung ab: Zwischen Deployment und Migration stuende die
+     Aktion still, statt nur ohne Wiedererkennung zu laufen. */
+  const canRecogniseRetry = gate.persisted;
+
   /* Wiederholungsversuch: Steht die Einreichung schon, ist hier Schluss.
      Diese Abfrage muss *vor* der Captcha-Pruefung stehen, und der Grund ist
      nicht Geschwindigkeit. Ein Token von Friendly Captcha ist einmalig. Kam der
@@ -149,7 +159,7 @@ export async function POST(request: Request) {
 
      Nur bei Wiederholungen, damit der Normalfall keine zusaetzliche Abfrage
      traegt. */
-  if (clientKey && attemptNumber > 1) {
+  if (canRecogniseRetry && clientKey && attemptNumber > 1) {
     const lookupStartedAt = Date.now();
     const { data: existing } = await supabase
       .from("repairs")
@@ -319,7 +329,7 @@ export async function POST(request: Request) {
   const insertStartedAt = Date.now();
   const { error: insertError } = await supabase.from("repairs").insert({
     id: repairId,
-    client_key: clientKey,
+    ...(canRecogniseRetry ? { client_key: clientKey } : {}),
     category,
     brand_model: typeof brandModel === "string" && brandModel.trim() ? brandModel.trim() : null,
     duration_minutes: parsedDuration && parsedDuration > 0 ? parsedDuration : null,
@@ -347,7 +357,7 @@ export async function POST(request: Request) {
        die Antwort verlorenging. Die richtige Antwort darauf ist die des ersten
        Versuchs - eine zweite Zeile waere ein Fehler, eine Fehlermeldung eine
        Luege. */
-    if (insertError.code === "23505" && clientKey) {
+    if (insertError.code === "23505" && canRecogniseRetry && clientKey) {
       const { data: existing } = await supabase
         .from("repairs")
         .select("id")
@@ -421,6 +431,20 @@ export async function POST(request: Request) {
           repairId,
         });
       }
+    }
+
+    /* Sichtbar machen, dass die Wiedererkennung fehlt: In diesem Fenster kann
+       ein Wiederholungsversuch des Browsers eine zweite Reparatur anlegen. Die
+       Fehlertabelle stammt aus derselben Migration und nimmt den Eintrag noch
+       nicht an - in den Serverprotokollen steht er trotzdem, und genau da wird
+       er zwischen Deployment und Migration gesucht. */
+    if (!canRecogniseRetry && clientKey) {
+      await logSubmissionFailure(supabase, request, {
+        stage: "gate",
+        reason: "idempotency_unavailable",
+        detail: "submission_gate fehlt - Migration 202608310001 noch nicht ausgerollt?",
+        repairId,
+      });
     }
 
     if (captchaUnavailable) {

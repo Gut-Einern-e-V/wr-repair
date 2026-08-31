@@ -49,6 +49,7 @@ const reasonLabels: Record<string, string> = {
   link_failed: "Das Foto liegt im Speicher, liess sich aber nicht mit der Einreichung verknuepfen.",
   push_failed: "Die Moderation konnte nicht benachrichtigt werden.",
   count_failed: "Die Zaehlung einer Einreichung von ausserhalb ist fehlgeschlagen.",
+  idempotency_unavailable: "Wiederholungsversuche waren nicht erkennbar; die Migration 202608310001 fehlte. Ein zweiter Versuch konnte eine doppelte Reparatur anlegen.",
 };
 
 function formatBytes(bytes: number) {
