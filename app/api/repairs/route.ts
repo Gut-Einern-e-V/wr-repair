@@ -5,8 +5,8 @@ import { extractExif } from "@/lib/exif";
 import { anonymizeCoordinates } from "@/lib/geo-anonymize";
 import { decideOrigin, ipRegionTag } from "@/lib/origin-check";
 import { ipCity, outsideRegionHelp } from "@/lib/outside-region-help";
-import { checkSubmissionGate } from "@/lib/submission-gate";
-import { logSubmissionFailure } from "@/lib/submission-log";
+import { checkSubmissionGate, retryHint, submissionLimit } from "@/lib/submission-gate";
+import { logSubmissionFailure, logSubmissionFailureOnce } from "@/lib/submission-log";
 import { repairCategoryValues } from "@/lib/repair-catalog";
 
 export const runtime = "nodejs";
@@ -76,8 +76,37 @@ async function verifyCaptcha(token: string): Promise<{ outcome: CaptchaOutcome; 
       return { outcome: "unavailable", detail: `HTTP ${response.status}` };
     }
 
-    const result = await response.json() as { success?: boolean };
-    return { outcome: response.ok && result.success === true ? "valid" : "invalid" };
+    const result = await response.json().catch(() => null) as
+      { success?: boolean; error?: { error_code?: string; detail?: string } } | null;
+
+    /* Ein ungueltiges Loesungswort kommt laut Friendly Captcha als HTTP 200 mit
+       `success: false` (`response_invalid`, `response_timeout`,
+       `response_duplicate`) - Status 200 heiszt also nicht "gueltig". Ein 401
+       oder 403 dagegen betrifft nicht die Einreichung, sondern uns: ein
+       fehlender oder falscher `FRIENDLY_CAPTCHA_API_KEY`. Ein 429 heiszt, dass
+       unser Kontingent aufgebraucht ist.
+
+       Der Unterschied war vorher eingeebnet: Ein Tippfehler im API-Key sah aus
+       wie Spam und wies jede Einreichung mit "Der Spam-Schutz konnte nicht
+       bestaetigt werden" ab - beim Aktivieren genau der Fehler, der niemandem
+       auffaellt, weil er nach dem Verhalten eines funktionierenden
+       Spam-Schutzes aussieht. Diese drei Faelle gelten jetzt als Stoerung,
+       also: annehmen, aufschreiben, die Moderation entscheiden lassen.
+
+       Ein 400 bleibt bewusst eine Absage. Er kann am mitgeschickten
+       Loesungswort haengen, und was ein Skript selbst ausloesen kann, darf kein
+       Weg an der Pruefung vorbei sein. */
+    if (response.status === 401 || response.status === 403 || response.status === 429) {
+      return { outcome: "unavailable", detail: `HTTP ${response.status} ${result?.error?.error_code ?? ""}`.trim() };
+    }
+
+    if (!response.ok) {
+      return { outcome: "invalid", detail: `HTTP ${response.status} ${result?.error?.error_code ?? ""}`.trim() };
+    }
+
+    return result?.success === true
+      ? { outcome: "valid" }
+      : { outcome: "invalid", detail: result?.error?.error_code ?? "ohne Fehlercode" };
   } catch (error) {
     return { outcome: "unavailable", detail: error instanceof Error ? error.message : "fetch failed" };
   }
@@ -126,9 +155,26 @@ export async function POST(request: Request) {
   }
 
   if (!gate.allowed) {
+    /* Einmal aufschreiben, wenn das Limit greift (Issue #59).
+
+       Bisher war eine Absage des Torwaechters nach der Antwort vergessen: Ob
+       das Limit bei einer Veranstaltung ueberhaupt jemanden getroffen hat, war
+       hinterher nicht feststellbar - und damit auch nicht, ob die Zahlen
+       passen. Protokolliert wird nur der erste Versuch ueber der Grenze, sonst
+       stuende hier je abgewiesener Anfrage eine Zeile. Nach der Antwort, damit
+       der Mensch vor dem Formular nicht auf das Protokoll wartet. */
+    const { limit } = submissionLimit();
+    if (gate.hits === limit + 1) {
+      after(() => logSubmissionFailure(supabase, request, {
+        stage: "gate",
+        reason: "rate_limited",
+        detail: `${gate.hits} Versuche im laufenden Fenster, Grenze ${limit}`,
+      }));
+    }
+
     return withTimings(Response.json(
       {
-        error: `Gerade wurden von dieser Internetverbindung sehr viele Einreichungen gesendet. Bitte versuche es in ${Math.ceil(gate.retryAfterSeconds / 60)} Minuten erneut.`,
+        error: `Gerade wurden von dieser Internetverbindung sehr viele Einreichungen gesendet. Bitte versuche es ${retryHint(gate.retryAfterSeconds)} erneut.`,
       },
       { status: 429, headers: { "Retry-After": String(gate.retryAfterSeconds) } },
     ));
@@ -226,6 +272,17 @@ export async function POST(request: Request) {
 
   if (process.env.NEXT_PUBLIC_CAPTCHA_ENABLED !== "false") {
     if (typeof captchaToken !== "string" || !captchaToken) {
+      /* Kein Token. Das ist der Normalfall fuer ein Skript und der Notfall fuer
+         eine Veranstaltung: Laedt das Widget nicht - falscher Sitekey, Domain
+         im Friendly-Captcha-Dashboard nicht freigegeben, Ausfall des CDN -,
+         dann kommt niemand mehr durch, und ohne diesen Eintrag saehe man es
+         nirgends. Einmal je Instanz, siehe logSubmissionFailureOnce: Ein
+         Eintrag je Anfrage waere fuer ein Skript eine Einladung. */
+      after(() => logSubmissionFailureOnce(supabase, request, {
+        stage: "captcha",
+        reason: "token_missing",
+        detail: "Einreichung ohne Captcha-Token - Widget defekt oder Skript?",
+      }));
       return withTimings(errorResponse("Bitte bestaetige zuerst den Spam-Schutz.", 403));
     }
 
@@ -234,10 +291,30 @@ export async function POST(request: Request) {
     mark("captcha", captchaStartedAt);
 
     if (captcha.outcome === "unconfigured") {
+      /* Fehlende Umgebungsvariable, also ein Konfigurationsfehler und keine
+         Stoerung: Er trifft *jede* Einreichung, bis jemand ihn behebt. Deshalb
+         hier ein Eintrag - im Systemstatus steht dann nicht nur, dass der
+         Schluessel fehlt, sondern auch, dass es bereits Einreichungen
+         gekostet hat. */
+      after(() => logSubmissionFailureOnce(supabase, request, {
+        stage: "captcha",
+        reason: "captcha_unconfigured",
+        detail: "FRIENDLY_CAPTCHA_API_KEY oder NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY fehlt",
+      }));
       return withTimings(errorResponse("Der Spam-Schutz ist noch nicht konfiguriert.", 503, false));
     }
 
     if (captcha.outcome === "invalid") {
+      /* Ein definitives "ungueltig" von Friendly Captcha - der eigentliche
+         Spam-Fall. Auch hier einmal je Instanz: Kommen die Absagen in Serie,
+         liegt es eher an einem verbrauchten Token oder einem falsch
+         zugeordneten Sitekey als an Spam, und das soll im Admin-Backend
+         auffallen. */
+      after(() => logSubmissionFailureOnce(supabase, request, {
+        stage: "captcha",
+        reason: "captcha_invalid",
+        detail: captcha.detail ?? "siteverify meldet ungueltig",
+      }));
       return withTimings(errorResponse("Der Spam-Schutz konnte nicht bestaetigt werden. Bitte versuche es erneut.", 403));
     }
 

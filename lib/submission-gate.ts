@@ -19,10 +19,23 @@ import { rateLimit } from "./rate-limit";
  * Die Zahlen sind deutlich groszuegiger als vorher und ueber die Umgebung
  * verstellbar: Das Captcha ist der eigentliche Spam-Schutz, das Limit nur die
  * Bremse gegen ein Skript, das ohne Captcha auf die Route eindrischt.
+ *
+ * Warum 40 je Minute und nicht 30 je fuenf Minuten (Issue #59)? Zwei Gruende,
+ * und beide zielen auf ein Reparatur-Cafe:
+ *
+ * - Die Rate darf hoch sein. In einem Cafe sitzen alle im selben WLAN, also
+ *   auf einer IP-Adresse, und in der Stunde nach dem Anschrauben tragen alle
+ *   gleichzeitig ein. Dazu zaehlt jeder Versuch mit, auch die verworfenen -
+ *   wer sich zweimal vertippt, verbraucht drei Zaehler statt einem.
+ * - Die Strafe muss kurz sein. Vorher lief das Fenster fuenf Minuten: Wer
+ *   hineinlief, wartete bis zu fuenf Minuten. Ein Fenster von einer Minute
+ *   bremst ein Skript genauso - es kommt pro Minute nicht weiter -, laesst
+ *   einen falsch getroffenen Menschen aber nach spaetestens einer Minute
+ *   weitermachen.
  */
 
-const DEFAULT_LIMIT = 30;
-const DEFAULT_WINDOW_SECONDS = 5 * 60;
+const DEFAULT_LIMIT = 40;
+const DEFAULT_WINDOW_SECONDS = 60;
 
 function positiveEnv(name: string, fallback: number) {
   const parsed = Number.parseInt(process.env[name] ?? "", 10);
@@ -64,13 +77,37 @@ export type SubmissionGate = {
   settings: AppSettings;
   /** False, wenn nur das Notlimit im Arbeitsspeicher gegriffen hat. */
   persisted: boolean;
+  /**
+   * Wievielter Versuch dieser Verbindung im laufenden Fenster - null, wenn nur
+   * das Notlimit im Arbeitsspeicher gegriffen hat.
+   *
+   * Gebraucht fuer das Fehlerprotokoll: Wenn das Limit greift, soll *ein*
+   * Eintrag im Admin-Backend stehen und nicht einer je abgewiesener Anfrage.
+   * Mit dem Zaehler laesst sich genau der erste Versuch ueber der Grenze
+   * erkennen (siehe app/api/repairs/route.ts).
+   */
+  hits: number | null;
 };
 
 type GateResponse = {
   allowed?: boolean;
   retryAfterSeconds?: number;
+  hits?: number;
   settings?: SettingsRow | null;
 };
+
+/**
+ * Wartezeit in einem Satzteil, den man vorlesen kann.
+ *
+ * Vorher stand in der Absage immer "in X Minuten", auch bei 20 Sekunden
+ * Restzeit - aufgerundet also "in 1 Minuten". Mit einem Fenster von einer
+ * Minute ist das jetzt der Normalfall und nicht die Ausnahme.
+ */
+export function retryHint(seconds: number) {
+  if (seconds <= 75) return "in einer Minute";
+  const minutes = Math.ceil(seconds / 60);
+  return `in ${minutes} Minuten`;
+}
 
 /**
  * Prueft das Limit und liefert die Einstellungen.
@@ -100,6 +137,7 @@ export async function checkSubmissionGate(
         retryAfterSeconds: gate.retryAfterSeconds ?? windowSeconds,
         settings: buildAppSettings(gate.settings ?? null),
         persisted: true,
+        hits: typeof gate.hits === "number" ? gate.hits : null,
       };
     }
   }
@@ -110,5 +148,6 @@ export async function checkSubmissionGate(
     retryAfterSeconds: fallback.retryAfterSeconds,
     settings: buildAppSettings(await readSettingsRow()),
     persisted: false,
+    hits: null,
   };
 }
