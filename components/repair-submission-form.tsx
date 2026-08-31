@@ -13,6 +13,53 @@ const MAX_IMAGE_BYTES = 200 * 1024;
 const compressibleImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 /**
+ * Wiederholungsversuche einer Einreichung (Issue #64).
+ *
+ * Beim ersten User-Test sind Einreichungen fehlgeschlagen, und das Formular hat
+ * bei jedem Wackler in der Mobilfunkverbindung sofort aufgegeben - obwohl genau
+ * dort ein zweiter Versuch fast immer durchgeht. Drei Versuche mit wachsender
+ * Pause sind der Kompromiss: lang genug, um eine Funkloch-Sekunde zu
+ * ueberbruecken, kurz genug, dass niemand vor einem scheinbar haengenden
+ * Formular sitzt.
+ */
+const MAX_ATTEMPTS = 3;
+const RETRY_DELAYS_MS = [1_200, 3_000];
+/**
+ * Eigene Frist statt der des Browsers. Ohne sie wartet ein angefangener,
+ * nie beantworteter Sendeversuch bis zum Timeout des Betriebssystems - und
+ * genau das war das "hat sehr lange gedauert" aus dem Issue.
+ */
+const REQUEST_TIMEOUT_MS = 45_000;
+/** Ab hier wird der Hinweis eingeblendet, dass es dauert, aber noch laeuft. */
+const SLOW_NOTICE_AFTER_MS = 8_000;
+
+function delay(ms: number) {
+  return new Promise((resolve) => { window.setTimeout(resolve, ms); });
+}
+
+/**
+ * Schluessel eines Sendevorgangs, den der Server als Wiedererkennungsmerkmal
+ * nutzt: Kommt derselbe Schluessel zweimal an, weil die Antwort des ersten
+ * Versuchs verlorenging, entsteht trotzdem nur eine Einreichung (siehe
+ * `client_key` in app/api/repairs/route.ts).
+ */
+function createSubmissionKey() {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `k${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+}
+
+/** Ergebnis eines einzelnen Sendeversuchs. */
+type AttemptResult =
+  | { kind: "success"; id: string }
+  | { kind: "outside"; help: OutsideRegionHelp }
+  /** Endgueltig: Der Server hat inhaltlich entschieden, ein zweiter Versuch aendert nichts. */
+  | { kind: "rejected"; message: string }
+  /** Ein zweiter Versuch kann helfen. `reachedServer` sagt, ob das Captcha-Token verbraucht ist. */
+  | { kind: "retryable"; message: string; reachedServer: boolean };
+
+/**
  * Liest die Aufnahmeposition aus dem Originalbild und gibt sie sofort
  * gerastert zurueck.
  *
@@ -145,7 +192,24 @@ export function RepairSubmissionForm({
   const [compressionMessage, setCompressionMessage] = useState("");
   const [isCompressing, setIsCompressing] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  /**
+   * Wo der Sendevorgang steht. Vorher gab es dazu nur den Fortschritt des
+   * Bild-Uploads: Stand der bei 100 Prozent, verschwand jede Rueckmeldung,
+   * obwohl der Server noch Herkunft, Spam-Schutz und Speicherung vor sich
+   * hatte. Genau diese Luecke war das "hat sehr lange gedauert" aus Issue #64.
+   */
+  const [submitPhase, setSubmitPhase] = useState<"sending" | "processing" | null>(null);
+  const [attemptNumber, setAttemptNumber] = useState(0);
+  const [isSlow, setIsSlow] = useState(false);
   const [captchaError, setCaptchaError] = useState("");
+  /**
+   * Bleibt ueber alle Wiederholungsversuche derselben Einreichung gleich, damit
+   * der Server einen doppelt angekommenen Versuch erkennt statt eine zweite
+   * Reparatur anzulegen. Nach einer erfolgreichen Einreichung wieder null: Die
+   * naechste Reparatur ist ein neuer Vorgang.
+   */
+  const submissionKeyRef = useRef<string | null>(null);
+  const resetCaptchaRef = useRef<(() => void) | null>(null);
   const [enterLottery, setEnterLottery] = useState(false);
   const friendlyCaptchaSiteKey = process.env.NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY;
   const captchaEnabled = process.env.NEXT_PUBLIC_CAPTCHA_ENABLED !== "false";
@@ -338,55 +402,41 @@ export function RepairSubmissionForm({
     setLocationStatus(`"${name}" ausgewählt. Für die Karte wird nur ein ungefährer Punkt im Kreis übertragen.`);
   }
 
-  function submitRepair(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (fileError || isCompressing) {
-      return;
+  /** Aktuelles Captcha-Token aus dem versteckten Feld, das das Widget setzt. */
+  function currentCaptchaToken(form: HTMLFormElement) {
+    const field = form.elements.namedItem("frc-captcha-response");
+    return field instanceof HTMLInputElement ? field.value : "";
+  }
+
+  /**
+   * Holt ein frisches Captcha-Token.
+   *
+   * Notwendig, weil ein Token von Friendly Captcha einmalig ist: Hat ein
+   * Sendeversuch den Server erreicht und ist erst danach gescheitert, ist das
+   * Token verbraucht. Ohne diesen Schritt bekaeme der Wiederholungsversuch eine
+   * Absage vom Spam-Schutz - der Versuch waere also gar keiner.
+   */
+  async function refreshCaptcha(form: HTMLFormElement, usedToken: string) {
+    const reset = resetCaptchaRef.current;
+    if (!reset) return;
+
+    reset();
+    for (let waited = 0; waited < 10_000; waited += 250) {
+      await delay(250);
+      const token = currentCaptchaToken(form);
+      if (token && token !== usedToken) return;
     }
+  }
 
-    if (captchaEnabled && !friendlyCaptchaSiteKey) {
-      setSubmissionError("Der Spam-Schutz ist noch nicht konfiguriert.");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setSubmissionError("");
-    setOutsideRegion(null);
-    setUploadProgress(0);
-
-    const request = new XMLHttpRequest();
-    request.open("POST", "/api/repairs");
-    request.responseType = "json";
-    request.upload.onprogress = (progressEvent) => {
-      if (progressEvent.lengthComputable) {
-        setUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 100));
-      }
-    };
-    request.onload = () => {
-      setIsSubmitting(false);
-      setUploadProgress(null);
-
-      if (request.status >= 200 && request.status < 300) {
-        setSubmittedRepairId(typeof request.response?.id === "string" ? request.response.id : "");
-        setIsSubmitted(true);
-        return;
-      }
-
-      /* Die Absage fuer Einreichungen von ausserhalb ist keine Fehlermeldung,
-         sondern ein Angebot - deshalb eigener Zustand statt form-error. */
-      if (request.status === 403 && request.response?.outsideRegion) {
-        setOutsideRegion(request.response.outsideRegion as OutsideRegionHelp);
-        return;
-      }
-
-      setSubmissionError(request.response?.error ?? "Die Einreichung konnte nicht gesendet werden.");
-    };
-    request.onerror = () => {
-      setIsSubmitting(false);
-      setUploadProgress(null);
-      setSubmissionError("Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.");
-    };
-    const formData = new FormData(event.currentTarget);
+  /**
+   * Baut die Formulardaten fuer *einen* Versuch.
+   *
+   * Bewusst je Versuch neu und nicht einmal vorab: Ein Wiederholungsversuch
+   * soll das inzwischen erneuerte Captcha-Token mitnehmen, nicht das
+   * verbrauchte.
+   */
+  function buildFormData(form: HTMLFormElement) {
+    const formData = new FormData(form);
     if (uploadFile) {
       formData.set("image", uploadFile);
     }
@@ -402,16 +452,157 @@ export function RepairSubmissionForm({
          beim Server deshalb "ip". */
       formData.set("origin_source", locationSource === "ip-suggestion" ? "ip" : locationSource ?? "manual");
     }
-    if (captchaEnabled) {
-      const captchaResponse = formData.get("frc-captcha-response");
-      if (typeof captchaResponse !== "string" || !captchaResponse) {
-        setIsSubmitting(false);
+    return formData;
+  }
+
+  /**
+   * Ein einzelner Sendeversuch.
+   *
+   * Bleibt bei XMLHttpRequest statt fetch, weil nur damit der Fortschritt des
+   * Bild-Uploads ablesbar ist - `upload.onprogress` hat in fetch keine
+   * Entsprechung.
+   */
+  function sendAttempt(formData: FormData, submissionKey: string, attempt: number): Promise<AttemptResult> {
+    return new Promise((resolve) => {
+      const request = new XMLHttpRequest();
+      request.open("POST", "/api/repairs");
+      request.responseType = "json";
+      request.timeout = REQUEST_TIMEOUT_MS;
+      request.setRequestHeader("X-Submission-Key", submissionKey);
+      request.setRequestHeader("X-Submission-Attempt", String(attempt));
+
+      request.upload.onprogress = (progressEvent) => {
+        if (progressEvent.lengthComputable) {
+          setUploadProgress(Math.round((progressEvent.loaded / progressEvent.total) * 100));
+        }
+      };
+      /* Der Upload ist durch, der Server arbeitet. Ab hier zeigt das Formular
+         "wird geprueft und gespeichert" statt eines Balkens, der auf 100 Prozent
+         stehenbleibt. */
+      request.upload.onload = () => {
         setUploadProgress(null);
-        setCaptchaError("Der Spam-Schutz wird noch vorbereitet. Bitte versuche es gleich erneut.");
-        return;
-      }
+        setSubmitPhase("processing");
+      };
+
+      request.onload = () => {
+        const status = request.status;
+        const body = request.response as { id?: unknown; error?: unknown; outsideRegion?: unknown; retry?: unknown } | null;
+
+        if (status >= 200 && status < 300) {
+          resolve({ kind: "success", id: typeof body?.id === "string" ? body.id : "" });
+          return;
+        }
+
+        /* Die Absage fuer Einreichungen von ausserhalb ist keine Fehlermeldung,
+           sondern ein Angebot - deshalb eigener Zustand statt form-error. */
+        if (status === 403 && body?.outsideRegion) {
+          resolve({ kind: "outside", help: body.outsideRegion as OutsideRegionHelp });
+          return;
+        }
+
+        const message = typeof body?.error === "string" ? body.error : "Die Einreichung konnte nicht gesendet werden.";
+
+        /* Nur Serverfehler sind einen zweiten Versuch wert. Bei 4xx hat der
+           Server inhaltlich entschieden - auch beim Limit (429), dessen Meldung
+           bereits sagt, wie lange zu warten ist. Ein automatischer Versuch
+           dagegen waere nur ein weiterer Treffer auf dasselbe Limit.
+
+           `retry: false` widerspricht dem ausdruecklich: So markiert der Server
+           die Konfigurationsfehler, gegen die auch der dritte Versuch nichts
+           ausrichtet. */
+        const retryable = (status >= 500 || status === 0) && body?.retry !== false;
+        resolve(retryable
+          ? { kind: "retryable", message, reachedServer: status >= 500 }
+          : { kind: "rejected", message });
+      };
+
+      request.onerror = () => {
+        // Die Anfrage hat den Server nicht erreicht, das Captcha-Token ist also
+        // unverbraucht und der naechste Versuch kann es weiterverwenden.
+        resolve({ kind: "retryable", message: "Netzwerkfehler. Bitte prüfe deine Verbindung und versuche es erneut.", reachedServer: false });
+      };
+      request.ontimeout = () => {
+        resolve({ kind: "retryable", message: "Die Verbindung hat zu lange gebraucht. Bitte versuche es erneut.", reachedServer: false });
+      };
+
+      request.send(formData);
+    });
+  }
+
+  async function submitRepair(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    // Vor dem ersten await festhalten: React gibt currentTarget danach frei.
+    const form = event.currentTarget;
+
+    if (fileError || isCompressing) {
+      return;
     }
-    request.send(formData);
+
+    if (captchaEnabled && !friendlyCaptchaSiteKey) {
+      setSubmissionError("Der Spam-Schutz ist noch nicht konfiguriert.");
+      return;
+    }
+
+    if (captchaEnabled && !currentCaptchaToken(form)) {
+      setCaptchaError("Der Spam-Schutz wird noch vorbereitet. Bitte versuche es gleich erneut.");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmissionError("");
+    setOutsideRegion(null);
+    setUploadProgress(0);
+    setSubmitPhase("sending");
+    setIsSlow(false);
+
+    const slowTimer = window.setTimeout(() => setIsSlow(true), SLOW_NOTICE_AFTER_MS);
+    submissionKeyRef.current ??= createSubmissionKey();
+    const submissionKey = submissionKeyRef.current;
+
+    try {
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+        setAttemptNumber(attempt);
+        const usedToken = currentCaptchaToken(form);
+        const result = await sendAttempt(buildFormData(form), submissionKey, attempt);
+
+        if (result.kind === "success") {
+          setSubmittedRepairId(result.id);
+          setIsSubmitted(true);
+          // Der Vorgang ist abgeschlossen; eine weitere Reparatur ist ein neuer.
+          submissionKeyRef.current = null;
+          return;
+        }
+
+        if (result.kind === "outside") {
+          setOutsideRegion(result.help);
+          return;
+        }
+
+        if (result.kind === "rejected") {
+          setSubmissionError(result.message);
+          return;
+        }
+
+        if (attempt === MAX_ATTEMPTS) {
+          setSubmissionError(`${result.message} Wir haben es ${MAX_ATTEMPTS} Mal versucht. Deine Angaben stehen noch im Formular.`);
+          return;
+        }
+
+        setSubmitPhase("sending");
+        setUploadProgress(0);
+        if (result.reachedServer && captchaEnabled) {
+          await refreshCaptcha(form, usedToken);
+        }
+        await delay(RETRY_DELAYS_MS[attempt - 1]);
+      }
+    } finally {
+      window.clearTimeout(slowTimer);
+      setIsSubmitting(false);
+      setUploadProgress(null);
+      setSubmitPhase(null);
+      setAttemptNumber(0);
+      setIsSlow(false);
+    }
   }
 
   if (isSubmitted) {
@@ -521,9 +712,25 @@ export function RepairSubmissionForm({
       )}
 
       <p className="geo-notice">Teilnahme ist nur aus {process.env.NEXT_PUBLIC_REGION_LABEL ?? "Nordrhein-Westfalen"} möglich. Der Standort wird beim Absenden über die Vercel-Regionserkennung geprüft; die IP-Adresse wird nicht gespeichert.</p>
-      {captchaEnabled ? friendlyCaptchaSiteKey ? <div className="captcha-field"><FriendlyCaptcha sitekey={friendlyCaptchaSiteKey} onError={setCaptchaError} /><small>Der Spam-Schutz von Friendly Captcha wird vor dem Absenden automatisch vorbereitet.</small></div> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p> : <p className="form-notice" role="status">Der Spam-Schutz ist vorübergehend deaktiviert.</p>}
+      {captchaEnabled ? friendlyCaptchaSiteKey ? <div className="captcha-field"><FriendlyCaptcha sitekey={friendlyCaptchaSiteKey} onError={setCaptchaError} resetRef={resetCaptchaRef} /><small>Der Spam-Schutz von Friendly Captcha wird vor dem Absenden automatisch vorbereitet.</small></div> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p> : <p className="form-notice" role="status">Der Spam-Schutz ist vorübergehend deaktiviert.</p>}
       {captchaError && <p className="form-error" role="alert">{captchaError}</p>}
-      {uploadProgress !== null && <div className="upload-progress" aria-live="polite"><span>Bild wird hochgeladen: {uploadProgress} %</span><progress value={uploadProgress} max="100" /></div>}
+      {/* Eine Anzeige fuer den ganzen Vorgang statt nur fuer den Upload: erst der
+          Balken des Bildes, danach der Hinweis, dass der Server noch arbeitet.
+          Ohne den zweiten Teil sah ein langsamer Server wie ein eingefrorenes
+          Formular aus (Issue #64). */}
+      {submitPhase && (
+        <div className="upload-progress" aria-live="polite">
+          {submitPhase === "sending" && uploadProgress !== null && uploadProgress < 100 ? <>
+            <span>Bild wird hochgeladen: {uploadProgress} %</span>
+            <progress value={uploadProgress} max="100" />
+          </> : <>
+            <span>Einreichung wird geprüft und gespeichert …</span>
+            <progress />
+          </>}
+          {attemptNumber > 1 && <small>Der erste Versuch kam nicht durch. Versuch {attemptNumber} von {MAX_ATTEMPTS} – bitte das Formular offen lassen.</small>}
+          {isSlow && attemptNumber <= 1 && <small>Das dauert länger als sonst. Bitte warte noch einen Moment, wir versuchen es weiter.</small>}
+        </div>
+      )}
       {submissionError && <p className="form-error" role="alert">{submissionError}</p>}
       {outsideRegion && (
         <div className="outside-region-notice" role="alert">
@@ -535,7 +742,7 @@ export function RepairSubmissionForm({
           <p className="outside-region-hint">{outsideRegion.hint}</p>
         </div>
       )}
-      <button className="button button-primary form-submit" type="submit" disabled={isSubmitting || isCompressing || Boolean(fileError)}>{isSubmitting ? "Wird gesendet ..." : "Zur Prüfung einreichen"} <span aria-hidden="true">&#8594;</span></button>
+      <button className="button button-primary form-submit" type="submit" disabled={isSubmitting || isCompressing || Boolean(fileError)}>{isSubmitting ? submitPhase === "processing" ? "Wird gespeichert ..." : "Wird gesendet ..." : "Zur Prüfung einreichen"} <span aria-hidden="true">&#8594;</span></button>
     </form>
   );
 }

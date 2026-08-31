@@ -908,6 +908,16 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .admin-facts dd { margin: 4px 0 0; font-size: 16px; font-weight: 700; }
 .user-row-actions { display: flex; align-items: center; gap: 14px; }
 
+/* Protokoll fehlgeschlagener Einreichungen (Issue #64). Die Farbe links sagt,
+   ob die Einreichung verloren ist oder nur unvollstaendig ankam. */
+.failure-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.failure-list li { padding: 14px 16px; border: var(--line); background: var(--paper); }
+.failure-list li.is-lost { border-left: 6px solid var(--red-deep); }
+.failure-list li.is-partial { border-left: 6px solid var(--yellow); }
+.failure-list strong { display: block; margin-bottom: 4px; font: 10px var(--mono); text-transform: uppercase; }
+.failure-list span { display: block; font-size: 14px; }
+.failure-list .quota-note { margin-top: 6px; word-break: break-word; }
+
 @media (max-width: 720px) {
   .backend-nav { flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
   .backend-user { display: none; }

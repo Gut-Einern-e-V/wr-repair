@@ -27,6 +27,9 @@ Copy `.env.example` to `.env.local` for local work. `.env.local` is intentionall
 | `SUBMISSION_END_AT` | Secret | Preview, Production | End of the validated participation window in ISO 8601 with timezone. |
 | `GEOIP_ALLOW_LOCAL` | Secret | Development only | Set to `true` only for local testing when Vercel geo headers are unavailable. Never set this in Preview or Production. |
 | `ALLOWED_ORIGINS` | Secret | Development, Preview, Production | Comma-separated allowed website origins for future API CORS checks. |
+| `SUBMISSION_RATE_LIMIT` | Secret | Optional | Submissions accepted per internet connection and window. Defaults to 30. The limit keys on the IP address, and at an event every device shares one, so raise it rather than lower it (issue #64). |
+| `SUBMISSION_RATE_WINDOW_SECONDS` | Secret | Optional | Length of that window in seconds. Defaults to 300. |
+| `SUBMISSION_RATE_SALT` | Secret | Recommended | Salt for the SHA-256 fingerprint the submission counter stores instead of an IP address. Falls back to `SUPABASE_SERVICE_ROLE_KEY`. Changing it resets all running counters. |
 
 Do not set a `NODE_ENV` variable in Vercel. Next.js supplies `production` for builds and runtime automatically.
 

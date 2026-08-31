@@ -14,7 +14,12 @@ import { rateLimit } from "@/lib/rate-limit";
  * muss sie nicht laden (siehe lib/nrw-kreise-list.ts).
  */
 export async function GET(request: Request) {
-  const limit = rateLimit(request, "geo-kreis", { limit: 30, windowMs: 60 * 1_000 });
+  /* Grosszuegig, weil sich das Limit auf die IP-Adresse bezieht und bei einer
+     Veranstaltung alle Geraete hinter derselben stecken. Mit den alten 30 pro
+     Minute fiel der Kreis-Vorschlag im Formular schon bei einem Dutzend
+     Menschen im gleichen WLAN aus (Issue #64). Die Auskunft rechnet nur ein
+     Polygon nach und liest nichts, was schuetzenswert waere. */
+  const limit = rateLimit(request, "geo-kreis", { limit: 300, windowMs: 60 * 1_000 });
   if (!limit.allowed) {
     return Response.json(
       { error: "Zu viele Standortabfragen. Bitte kurz warten." },

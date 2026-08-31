@@ -73,8 +73,12 @@ export function mergeRegion(base: RegionConfig, row: SettingsRow | null): Region
     enabled: row.region_enabled ?? base.enabled,
     label: row.region_label?.trim() || base.label,
     ipCountry: row.region_ip_country?.trim().toUpperCase() || base.ipCountry,
-    // An explicitly emptied sub-region is a valid choice, so only null falls back.
-    ipRegion: row.region_ip_region === null ? base.ipRegion : row.region_ip_region.trim().toUpperCase(),
+    /* An explicitly emptied sub-region is a valid choice, so only a missing
+       value falls back. Bewusst `== null` und nicht `=== null`: Die Zeile kommt
+       nicht mehr nur aus einer Abfrage mit fester Spaltenliste, sondern auch
+       aus `submission_gate` (siehe lib/submission-gate.ts). Eine dort fehlende
+       Spalte darf die Einreichung nicht mit einem Serverfehler beenden. */
+    ipRegion: row.region_ip_region == null ? base.ipRegion : row.region_ip_region.trim().toUpperCase(),
     bounds: hasBox
       ? { latMin: row.region_lat_min as number, latMax: row.region_lat_max as number, lonMin: row.region_lon_min as number, lonMax: row.region_lon_max as number }
       : base.bounds,
@@ -105,11 +109,14 @@ export async function readSettingsRow(): Promise<SettingsRow | null> {
 }
 
 /**
- * Cached per request so a page rendering several settings-aware sections still
- * hits the database once.
+ * Legt die gespeicherten Ueberschreibungen auf die Umgebungsvorgaben.
+ *
+ * Getrennt von {@link getAppSettings}, weil die Zeile nicht immer aus einer
+ * eigenen Abfrage kommt: Die Einreichungsroute holt sie zusammen mit der
+ * Limitpruefung in einem Aufruf (siehe lib/submission-gate.ts) und braucht
+ * denselben Aufbau, ohne die Datenbank ein zweites Mal zu fragen.
  */
-export const getAppSettings = cache(async (): Promise<AppSettings> => {
-  const row = await readSettingsRow();
+export function buildAppSettings(row: SettingsRow | null): AppSettings {
   const storedWindow = row ? parseWindow(row.submission_start_at, row.submission_end_at) : null;
 
   return {
@@ -122,4 +129,10 @@ export const getAppSettings = cache(async (): Promise<AppSettings> => {
     persisted: row !== null,
     row,
   };
-});
+}
+
+/**
+ * Cached per request so a page rendering several settings-aware sections still
+ * hits the database once.
+ */
+export const getAppSettings = cache(async (): Promise<AppSettings> => buildAppSettings(await readSettingsRow()));

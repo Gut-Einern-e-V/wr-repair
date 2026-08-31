@@ -4,6 +4,15 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 type BucketUsage = { id: string; objects: number; bytes: number };
+type SubmissionFailure = {
+  id: string;
+  created_at: string;
+  stage: string;
+  reason: string;
+  detail: string | null;
+  ip_region: string | null;
+  repair_id: string | null;
+};
 type Usage = {
   databaseBytes: number;
   buckets: BucketUsage[];
@@ -42,7 +51,7 @@ export async function GET() {
     return Response.json({ error: "Die Supabase-Zugangsdaten sind nicht konfiguriert." }, { status: 503 });
   }
 
-  const [database, storage, auth, usageProbe] = await Promise.all([
+  const [database, storage, auth, usageProbe, failureProbe] = await Promise.all([
     timed(async () => {
       const { error } = await supabase.from("campaign_settings").select("id").limit(1);
       if (error) throw new Error(error.message);
@@ -62,6 +71,19 @@ export async function GET() {
       const { data, error } = await supabase.rpc("system_usage");
       if (error) throw new Error(error.message);
       return data as Usage;
+    }),
+    /* Was beim Einreichen schiefging (Issue #64). Nach dem User-Test war das
+       nicht mehr feststellbar, weil jeder Fehler nur als deutsche Meldung im
+       Browser landete und danach vergessen war. Hier stehen die letzten
+       Vorfaelle - ohne Inhalte, ohne Personenbezug, nur Grund und Zeitpunkt. */
+    timed(async () => {
+      const { data, error } = await supabase
+        .from("submission_failures")
+        .select("id, created_at, stage, reason, detail, ip_region, repair_id")
+        .order("created_at", { ascending: false })
+        .limit(25);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as SubmissionFailure[];
     }),
   ]);
 
@@ -93,6 +115,20 @@ export async function GET() {
         }
       : null,
     usageError: usageProbe.ok ? null : "Die Belegung konnte nicht gelesen werden. Wurde die Migration ausgefuehrt?",
+    submissionFailures: failureProbe.ok
+      ? failureProbe.value.map((row) => ({
+          id: row.id,
+          at: row.created_at,
+          stage: row.stage,
+          reason: row.reason,
+          detail: row.detail,
+          ipRegion: row.ip_region,
+          // Nur ob, nicht welche: Die Einreichung selbst gehoert in die
+          // Moderation, nicht in den Systemstatus.
+          incomplete: Boolean(row.repair_id),
+        }))
+      : [],
+    submissionFailuresError: failureProbe.ok ? null : "Das Einreichungsprotokoll konnte nicht gelesen werden. Wurde die Migration ausgefuehrt?",
     checkedAt: new Date().toISOString(),
   }, { headers: { "Cache-Control": "no-store" } });
 }

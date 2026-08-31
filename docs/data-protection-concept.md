@@ -25,6 +25,10 @@ Die Datenbankmigration enthaelt derzeit die Spalte `entry_ip`. Die aktuelle Uplo
 
 Der NRW-Check verwendet die von Vercel bereitgestellten Request-Header `x-vercel-ip-country` und `x-vercel-ip-country-region`. Akzeptiert wird nur `DE` und `NW`. Die Anwendung ruft keinen separaten Geo-IP-Anbieter auf und speichert keine Roh-IP. Bei nicht eindeutiger Zuordnung wird die Einreichung abgelehnt und die Person auf VPN oder Proxy hingewiesen.
 
+Das Einreichungslimit zaehlt je Internetverbindung, speichert dafuer aber keine Adresse: In `submission_throttle` steht ein mit einem Serverschluessel gesalzener SHA-256-Abdruck der IP-Adresse (`SUBMISSION_RATE_SALT`, siehe `lib/submission-gate.ts`). Der Abdruck erlaubt, zwei Anfragen derselben Verbindung zusammenzufuehren, und laesst sich ohne Kenntnis des Salzes nicht auf eine Adresse zurueckfuehren. Die Zeilen werden von der Zaehlfunktion selbst geloescht, sobald ihr Zeitfenster mehr als eine Stunde zurueckliegt.
+
+Faellt beim Einreichen etwas aus, wird der Grund in `submission_failures` notiert - Stufe, Kurzgrund, Meldung des Dienstes, Zeitpunkt und dieselbe grobe Gegend wie in `blocked_submissions`. Kein Inhalt, keine Adresse, keine Mail. Der Eintrag verweist hoechstens auf die Reparatur-ID, damit sich eine unvollstaendig angekommene Einreichung zuordnen laesst.
+
 Friendly Captcha muss vor dem Produktionsstart datenschutzrechtlich freigegeben werden. Insbesondere sind dessen Datenschutzinformationen, ein moeglicher Auftragsverarbeitungsvertrag, der vom Widget geladene CDN-Code und die Einbindung in die oeffentliche Datenschutzerklaerung zu pruefen.
 
 ## Anonymisierung der Herkunft
@@ -65,13 +69,14 @@ Die Spalten `location_lat` und `location_lon` sind per Spalten-GRANT fuer die an
 Folgende technischen Tatsachen gelten bereits:
 
 - Bei einer Ablehnung wird das zugehoerige Bild sofort aus dem Storage geloescht. Die Reparaturzeile bleibt derzeit fuer die Moderationsnachvollziehbarkeit erhalten.
-- Bei einem fehlgeschlagenen Datenbankinsert wird das zuvor hochgeladene Bild wieder entfernt.
+- Die Reparaturzeile entsteht vor dem Bild-Upload; der Upload laeuft hinter der Antwort. `image_path` wird erst nach dem erfolgreichen Upload nachgetragen, damit kein Verweis auf eine nicht vorhandene Datei entsteht. Laesst sich die Datei umgekehrt nicht mit der Zeile verknuepfen, wird sie sofort wieder aus dem Storage entfernt - eine Datei ohne Verweis kaeme weder zur Moderation noch zur Loeschung.
+- Zeilen in `submission_throttle` raeumt die Zaehlfunktion selbst weg. Fuer `submission_failures` gibt es noch keine Frist; die Tabelle enthaelt keine personenbezogenen Daten, sollte aber in die untenstehende Fristenentscheidung aufgenommen werden.
 - Freigegebene Bilder bleiben derzeit bis zu einer manuellen Loeschung im privaten Bucket und sind ueber die Galerie sichtbar.
 - Es gibt noch keinen automatischen Loeschjob und kein Self-Service-Formular fuer Loeschanfragen.
 
 Vor dem oeffentlichen Start muss die verantwortliche Organisation verbindlich entscheiden und technisch umsetzen:
 
-1. Frist fuer nicht freigegebene Reparaturzeilen und Moderationskommentare.
+1. Frist fuer nicht freigegebene Reparaturzeilen, Moderationskommentare und Eintraege in `submission_failures`.
 2. Frist oder Ereignis fuer die Loeschung freigegebener Beitraege nach Ende des Weltrekordversuchs.
 3. Kontaktadresse und Prozess fuer Auskunft, Berichtigung, Widerspruch und Loeschung.
 4. Berechtigte Empfaenger*innen und sichere Ablage eines CSV-Exports.
