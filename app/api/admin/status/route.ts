@@ -97,12 +97,21 @@ export async function GET() {
       { id: "database", label: "Datenbank", ok: database.ok, ms: database.ms, detail: database.ok ? null : database.error },
       { id: "storage", label: "Datei-Speicher", ok: storage.ok, ms: storage.ms, detail: storage.ok ? null : storage.error },
       { id: "auth", label: "Anmeldung", ok: auth.ok, ms: auth.ms, detail: auth.ok ? null : auth.error },
+      /* Der Spam-Schutz gilt nur als in Ordnung, wenn er auch eingeschaltet ist
+         (Issue #59). Vorher genuegten die beiden Schluessel in der Umgebung:
+         Stand `NEXT_PUBLIC_CAPTCHA_ENABLED` auf "false" - der ausdruecklich
+         vorgesehene Notausgang -, zeigte der Systemstatus trotzdem ein gruenes
+         Feld und nur eine Randnotiz. Genau so ist der Bypass wochenlang
+         unbemerkt stehengeblieben. */
       {
         id: "captcha",
         label: "Friendly Captcha",
-        ok: Boolean(process.env.FRIENDLY_CAPTCHA_API_KEY && process.env.NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY),
+        ok: Boolean(process.env.FRIENDLY_CAPTCHA_API_KEY && process.env.NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY)
+          && process.env.NEXT_PUBLIC_CAPTCHA_ENABLED !== "false",
         ms: null,
-        detail: process.env.NEXT_PUBLIC_CAPTCHA_ENABLED === "false" ? "Captcha ist per Konfiguration abgeschaltet." : null,
+        detail: process.env.NEXT_PUBLIC_CAPTCHA_ENABLED === "false"
+          ? "Captcha ist per Konfiguration abgeschaltet (NEXT_PUBLIC_CAPTCHA_ENABLED=false). Einreichungen laufen ohne Spam-Schutz."
+          : null,
       },
     ],
     usage: usage

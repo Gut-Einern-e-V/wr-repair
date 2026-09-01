@@ -27,8 +27,8 @@ Copy `.env.example` to `.env.local` for local work. `.env.local` is intentionall
 | `SUBMISSION_END_AT` | Secret | Preview, Production | End of the validated participation window in ISO 8601 with timezone. |
 | `GEOIP_ALLOW_LOCAL` | Secret | Development only | Set to `true` only for local testing when Vercel geo headers are unavailable. Never set this in Preview or Production. |
 | `ALLOWED_ORIGINS` | Secret | Development, Preview, Production | Comma-separated allowed website origins for future API CORS checks. |
-| `SUBMISSION_RATE_LIMIT` | Secret | Optional | Submissions accepted per internet connection and window. Defaults to 30. The limit keys on the IP address, and at an event every device shares one, so raise it rather than lower it (issue #64). |
-| `SUBMISSION_RATE_WINDOW_SECONDS` | Secret | Optional | Length of that window in seconds. Defaults to 300. |
+| `SUBMISSION_RATE_LIMIT` | Secret | Optional | Submissions accepted per internet connection and window. Defaults to 40. The limit keys on the IP address, and at an event every device shares one, so raise it rather than lower it (issues #64 and #59). |
+| `SUBMISSION_RATE_WINDOW_SECONDS` | Secret | Optional | Length of that window in seconds. Defaults to 60. Keep it short: a wrongly throttled repair café waits out one window, and a script gets no further per minute either. |
 | `SUBMISSION_RATE_SALT` | Secret | Recommended | Salt for the SHA-256 fingerprint the submission counter stores instead of an IP address. Falls back to `SUPABASE_SERVICE_ROLE_KEY`. Changing it resets all running counters. |
 
 Do not set a `NODE_ENV` variable in Vercel. Next.js supplies `production` for builds and runtime automatically.
@@ -46,6 +46,17 @@ Do not set a `NODE_ENV` variable in Vercel. Next.js supplies `production` for bu
 - Create a Friendly Captcha application and register the local, preview and production hostnames before enabling the upload endpoint. Copy its `FC...` sitekey to `NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY`.
 - Create a Friendly Captcha API key and save it only as `FRIENDLY_CAPTCHA_API_KEY`. The server validates `frc-captcha-response` through `https://global.frcapi.com/api/v2/captcha/siteverify` with its `X-API-Key` header.
 - Keep `NEXT_PUBLIC_CAPTCHA_ENABLED=true` in public operation. To temporarily accept submissions while the Friendly Captcha configuration is being fixed, set it to `false` and create a new deployment. This is intentionally visible in the submission form and must be changed back to `true` before public promotion.
+
+#### Turning spam protection on (issue #59)
+
+The three captcha variables are all `NEXT_PUBLIC_`/build-time or server-read, and the browser half is **inlined at build time**. Changing them in the Vercel dashboard therefore does nothing until the next deployment — redeploy after every change.
+
+1. In the Friendly Captcha dashboard, open the application and add the production hostname (`reparatur.fab-bergisch.org`) next to `localhost` and the `*.vercel.app` preview host. A sitekey used on an unregistered host makes the widget fail with `sitekey_invalid`, which the submission form now prints verbatim.
+2. Set `NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY`, `FRIENDLY_CAPTCHA_API_KEY` and `NEXT_PUBLIC_CAPTCHA_ENABLED=true` for Production, then redeploy.
+3. Open `/admin`. The "Friendly Captcha" card now reports `Gestoert` while the bypass is active, not just a footnote, so a forgotten `false` cannot hide there.
+4. Submit one real repair from the production domain. The widget solves itself; a failure names its code.
+
+How failures are handled, deliberately: a **5xx, a timeout, or a 401/403/429 from siteverify is our problem, not the submitter's** — the submission is accepted and written to `submission_failures` (`stage: captcha`), because a rejected real repair is gone for good while a spam entry costs the moderation one click. A wrong API key therefore no longer looks like spam. Hard rejections stay hard: a definitive `success: false` (invalid, expired or reused solution — always HTTP 200) and a `400 bad_request`, because a script could provoke a 400 through the value it submits.
 - The upload endpoint accepts only requests with Vercel headers `x-vercel-ip-country=DE` and `x-vercel-ip-country-region=NW`. It does not call a separate geo provider and does not store an IP address; successful entries store only the regional label `Nordrhein-Westfalen`.
 - Requests with an unknown or inaccurate geo assignment are rejected with a VPN/proxy hint. This is deliberately fail-closed so that all accepted entries meet the participation rule.
 - Use `GEOIP_ALLOW_LOCAL=true` only in `.env.local` while testing locally. This override is limited to `NODE_ENV=development` and must not be configured in Vercel.

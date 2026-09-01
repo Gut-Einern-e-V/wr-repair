@@ -41,6 +41,31 @@ function detailText(detail: unknown): string | null {
   return text ? text.slice(0, MAX_DETAIL_LENGTH) : null;
 }
 
+/**
+ * Gruende, die in dieser Instanz schon protokolliert wurden.
+ *
+ * Fuer Fehler, die nicht einmal auftreten, sondern bei jeder Anfrage: ein
+ * fehlender Captcha-Schluessel in der Umgebung, ein Widget, das keine Token
+ * mehr liefert. Ein Eintrag je Anfrage wuerde `submission_failures` mit
+ * derselben Zeile fuellen, bis die Datenbank voll ist - genau dann, wenn ein
+ * Skript dagegen laeuft. Einmal je Serverless-Instanz genuegt: Das Muster ist
+ * im Admin-Backend sichtbar, die Menge bleibt an die Zahl der Instanzen
+ * gebunden.
+ */
+const loggedOnce = new Set<string>();
+
+/** Wie logSubmissionFailure, aber hoechstens einmal je Grund und Instanz. */
+export async function logSubmissionFailureOnce(
+  supabase: SupabaseClient | null,
+  request: Request,
+  failure: SubmissionFailure,
+) {
+  const key = `${failure.stage}/${failure.reason}`;
+  if (loggedOnce.has(key)) return;
+  loggedOnce.add(key);
+  await logSubmissionFailure(supabase, request, failure);
+}
+
 export async function logSubmissionFailure(
   supabase: SupabaseClient | null,
   request: Request,
