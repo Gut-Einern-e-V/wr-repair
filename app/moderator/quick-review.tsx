@@ -1,10 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { CategoryPictogram } from "@/components/category-pictogram";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
 import { claimNextRepair, decideRepair, releaseRepairClaim, saveRepairMetadata } from "./moderation-api";
-import { draftFromRepair, performedByLabel, type MetadataDraft, type ModerationRepair,
+import { draftFromRepair, missingImageNote, performedByLabel, type MetadataDraft, type ModerationRepair,
   originWarning,
 } from "./repair-types";
 
@@ -91,7 +92,10 @@ function QuickCard({
         {repair.imageUrl
           // eslint-disable-next-line @next/next/no-img-element -- Signierte Storage-URL ohne feste Groesse.
           ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" draggable={false} />
-          : <div className="missing-image">Kein Bild eingereicht</div>}
+          : <div className="missing-image">
+              <CategoryPictogram category={repair.category} />
+              <span>{missingImageNote(repair)}</span>
+            </div>}
         <div className="quick-body">
           <p className="section-index">
             {repairCategoryLabel(repair.category)}

@@ -66,6 +66,10 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
         </div>
       </> : repair.status === "rejected" ? <>
         <p className="repair-status-lead">Diese Einreichung konnte nicht freigegeben werden. Melde dich gerne bei uns, wenn du dazu Fragen hast.</p>
+        {/* Offen sagen, was mit dem Foto passiert ist (Issue #58). Wer sich
+            meldet, kann wieder eingesetzt werden - das Bild ist dann aber weg
+            und muesste neu hochgeladen werden. */}
+        <p className="form-notice">Das eingereichte Foto wurde dabei gelöscht. Wir bewahren keine Bilder auf, die nicht veröffentlicht werden.</p>
         <div className="repair-status-actions">
           <Link className="button button-primary" href="/mitmachen">Neue Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
           <a className="text-button" href="mailto:mail@gut-einern.org?subject=Reparaturrekord%20NRW%20Einreichung">Kontakt aufnehmen <span aria-hidden="true">&#8594;</span></a>

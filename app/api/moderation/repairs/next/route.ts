@@ -1,4 +1,4 @@
-import { CLAIM_LEASE_SECONDS, moderationColumns, requireModerationAccess, signRepairImages, toModerationRepair } from "@/lib/moderation";
+import { CLAIM_LEASE_SECONDS, getModerationColumns, requireModerationAccess, signRepairImages, toModerationRepair, type ModerationRow } from "@/lib/moderation";
 import { getAppSettings } from "@/lib/app-settings";
 import { expectedIpRegionTag } from "@/lib/origin-check";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
@@ -38,15 +38,16 @@ export async function POST(request: Request) {
   // Derselbe Tag, gegen den die Konsole "Verbindung woanders" meldet.
   const expectedIpRegion = expectedIpRegionTag(region);
 
-  const { data: claimed, error } = await supabase
+  const { data, error } = await supabase
     .rpc("claim_next_repair", {
       p_moderator: access.currentAdmin.user.id,
       p_lease_seconds: CLAIM_LEASE_SECONDS,
       p_skip: skip,
       p_expected_ip_region: expectedIpRegion,
     })
-    .select(moderationColumns)
+    .select(await getModerationColumns(supabase))
     .maybeSingle();
+  const claimed = data as unknown as ModerationRow | null;
 
   if (error) {
     return Response.json({ error: "Die naechste Einreichung konnte nicht geladen werden." }, { status: 502 });

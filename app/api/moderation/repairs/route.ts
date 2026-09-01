@@ -1,5 +1,5 @@
 import { repairCategoryValues } from "@/lib/repair-catalog";
-import { moderationColumns, requireModerationAccess, signRepairImages, toModerationRepair } from "@/lib/moderation";
+import { getModerationColumns, requireModerationAccess, signRepairImages, toModerationRepair, type ModerationRow } from "@/lib/moderation";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { getAppSettings } from "@/lib/app-settings";
 
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
   // Fuer den Herkunfts-Abgleich in der Moderation: dieselbe Gebietskonfiguration,
   // gegen die beim Einreichen geprueft wurde.
   const { region } = await getAppSettings();
-  let query = supabase.from("repairs").select(moderationColumns).eq("status", status);
+  let query = supabase.from("repairs").select(await getModerationColumns(supabase)).eq("status", status);
 
   if (category) query = query.eq("category", category);
   if (consent) query = query.eq("consent_publication", consent === "yes");
@@ -53,13 +53,14 @@ export async function GET(request: Request) {
     query = query.or(`brand_model.ilike.${pattern},story.ilike.${pattern}`);
   }
 
-  const { data: repairs, error } = await query.order("entry_time", { ascending: oldestFirst }).limit(limit);
+  const { data, error } = await query.order("entry_time", { ascending: oldestFirst }).limit(limit);
+  const repairs = (data ?? []) as unknown as ModerationRow[];
 
   if (error) {
     return Response.json({ error: "Einreichungen konnten nicht geladen werden." }, { status: 502 });
   }
 
-  const { urls, error: urlError } = await signRepairImages(supabase, repairs ?? []);
+  const { urls, error: urlError } = await signRepairImages(supabase, repairs);
   if (urlError) {
     return Response.json({ error: "Bilder konnten nicht geladen werden." }, { status: 502 });
   }
@@ -77,8 +78,8 @@ export async function GET(request: Request) {
   }
 
   return Response.json({
-    repairs: (repairs ?? []).map((repair) => toModerationRepair(repair, urls, access.currentAdmin.user.id, region)),
+    repairs: repairs.map((repair) => toModerationRepair(repair, urls, access.currentAdmin.user.id, region)),
     counts,
-    truncated: (repairs ?? []).length === limit,
+    truncated: repairs.length === limit,
   });
 }

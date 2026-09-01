@@ -800,7 +800,11 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .moderation-table strong { display: block; text-transform: none; }
 .table-sub { display: block; margin-top: 3px; font: 10px var(--mono); text-transform: uppercase; }
 .table-thumb { display: block; width: 68px; height: 51px; object-fit: cover; border: var(--line); }
-.table-thumb.is-empty { background: #e2ded3; }
+/* Fehlt das Bild, steht dort das Sinnbild der Kategorie (Issue #58) - eine
+   graue Flaeche sagte nicht, ob nie eines da war oder ob die Ablehnung es
+   geloescht hat. Den Unterschied nennt der Titel des Feldes. */
+.table-thumb.is-empty { display: grid; place-items: center; background: #e2ded3; color: var(--muted); }
+.table-thumb.is-empty svg { width: 26px; height: 26px; }
 .table-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .quick-accept {
   padding: 7px 13px; border: 0; background: var(--green-soft); color: var(--ink);
@@ -1220,3 +1224,14 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .article-figure figcaption { margin-top: 10px; font-size: 14px; line-height: 1.45; color: var(--muted); }
 .article-figure-credit { font: 11px var(--mono); letter-spacing: .04em; text-transform: uppercase; }
 @media (max-width: 720px) { .article-figure, .article-figure.is-lead { max-width: 100%; margin: 28px 0; } .article-figure.is-lead { margin-top: 8px; } }
+
+/* Fehlendes Bild in der Moderation (Issue #58): Sinnbild der Kategorie ueber
+   dem Hinweis, ob nie eines eingereicht wurde oder ob die Ablehnung es
+   geloescht hat. `.missing-image` bringt Rahmen und Seitenverhaeltnis schon
+   mit, hier kommt nur der Inhalt dazu. */
+.missing-image { gap: 12px; align-content: center; color: var(--muted); }
+.missing-image svg { width: 44px; height: 44px; }
+
+/* Rueckholung einer entschiedenen Einreichung - nur fuer Admins sichtbar. */
+.reopen-actions { margin-top: 22px; padding-top: 4px; border-top: var(--line); }
+.reopen-actions .moderator-comment { border-top: 0; }

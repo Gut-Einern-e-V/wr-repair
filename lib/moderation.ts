@@ -14,13 +14,66 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 export const CLAIM_LEASE_SECONDS = 300;
 
 /** Spalten, die das Moderationsbackend ueber eine Einreichung braucht. */
-export const moderationColumns =
+const baseModerationColumns =
   "id, category, brand_model, duration_minutes, item_value_euros, performed_by, story, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region";
 
+/**
+ * Vermerk, dass das Bild nach einer Ablehnung geloescht wurde. Kommt aus
+ * Migration 202609010001 (Issue #58).
+ */
+const IMAGE_DELETED_COLUMN = "image_deleted_at";
+
+/**
+ * Ob die Spalte schon existiert - einmal je Serverprozess geprueft.
+ *
+ * Ohne diese Pruefung wuerde die Abfrage die ganze Warteschlange abweisen,
+ * solange die Migration nicht ausgerollt ist: PostgREST antwortet auf eine
+ * unbekannte Spalte mit einem Fehler fuer die gesamte Anfrage. Genau in dieses
+ * Fenster faellt jede Vorschau-Umgebung, die gegen das Projekt ohne die neue
+ * Migration laeuft. Ein Deployment darf die Moderation nicht anhalten, bis
+ * jemand die Migration nachzieht - vgl. Issue #64 und die dort gezogene Lehre
+ * in app/api/repairs/route.ts.
+ */
+let hasImageDeletedColumn: boolean | null = null;
+
+export async function getModerationColumns(supabase: SupabaseClient) {
+  if (hasImageDeletedColumn === null) {
+    const { error } = await supabase.from("repairs").select(IMAGE_DELETED_COLUMN).limit(1);
+    hasImageDeletedColumn = !error;
+  }
+
+  return hasImageDeletedColumn ? `${baseModerationColumns}, ${IMAGE_DELETED_COLUMN}` : baseModerationColumns;
+}
+
+/**
+ * Eine Einreichung, so wie die Moderation sie liest - alle Spalten aus
+ * {@link getModerationColumns}.
+ *
+ * Ausgeschrieben statt aus der Auswahlzeichenkette abgeleitet: Die
+ * Zeichenkette steht seit Issue #58 nicht mehr fest, weil `image_deleted_at`
+ * entfaellt, solange die Migration fehlt. Der Typparser von supabase-js
+ * braucht aber ein Literal.
+ */
 export type ModerationRow = {
   id: string;
+  category: string;
+  brand_model: string | null;
+  duration_minutes: number | null;
+  item_value_euros: number | null;
+  performed_by: string | null;
+  story: string | null;
+  repair_succeeded: boolean;
   image_path: string | null;
+  image_alt_text: string | null;
+  /** Fehlt, solange Migration 202609010001 nicht gelaufen ist. */
+  image_deleted_at?: string | null;
+  tags: string[];
+  consent_publication: boolean;
   status: string;
+  location_region: string | null;
+  moderator_comment: string | null;
+  created_at: string;
+  entry_time: string | null;
   claimed_by: string | null;
   claimed_at: string | null;
   location_lat: number | string | null;
@@ -136,7 +189,7 @@ export function toModerationRepair<Row extends ModerationRow>(
   /* Die Herkunftsspalten gehen als aufbereitetes `origin`-Objekt raus, nicht
      zusaetzlich als lose Spalten - sie werden hier nur weggeschnitten. */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { image_path, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region, ...rest } = row;
+  const { image_path, image_deleted_at, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region, ...rest } = row;
   const claimedUntil = claimed_at && row.status === "pending"
     ? new Date(Date.parse(claimed_at) + CLAIM_LEASE_SECONDS * 1000).toISOString()
     : null;
@@ -145,6 +198,10 @@ export function toModerationRepair<Row extends ModerationRow>(
     ...rest,
     origin: toModerationOrigin(row, region),
     imageUrl: image_path ? (urls.get(image_path) ?? null) : null,
+    /* Kein Bild ist nicht gleich kein Bild: Ohne diesen Vermerk stuende bei
+       einer abgelehnten Einreichung "Kein Bild eingereicht", obwohl es eines
+       gab und die Ablehnung es geloescht hat (Issue #58). */
+    imageDeletedAt: image_deleted_at ?? null,
     claimedUntil: claimedUntil && Date.parse(claimedUntil) > Date.now() ? claimedUntil : null,
     claimedByMe: claimed_by === viewerId,
   };

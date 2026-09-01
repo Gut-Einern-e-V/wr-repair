@@ -1,4 +1,4 @@
-import type { MetadataDraft, ModerationRepair } from "./repair-types";
+import type { MetadataDraft, ModerationRepair, RepairStatus } from "./repair-types";
 
 export type ApiResult<T> = { ok: true; data: T } | { ok: false; error: string; conflict: boolean };
 
@@ -26,7 +26,14 @@ function json(body: unknown): RequestInit {
   return { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
 }
 
-export function decideRepair(repairId: string, status: "approved" | "rejected", comment: string) {
+/**
+ * Entscheidung ueber eine Einreichung.
+ *
+ * `pending` ist die Rueckholung einer bereits entschiedenen Einreichung und
+ * nur Admins und Superadmins erlaubt - der Server prueft das nochmals
+ * (Issue #58).
+ */
+export function decideRepair(repairId: string, status: RepairStatus, comment: string) {
   return send<{ imageDeleted?: boolean }>(
     `/api/moderation/repairs/${repairId}`,
     json({ status, moderatorComment: comment }),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildQuery, draftFromRepair, isUnderReview, type ModerationRepair } from "./repair-types";
+import { buildQuery, draftFromRepair, isUnderReview, missingImageNote, type ModerationRepair } from "./repair-types";
 
 function repair(overrides: Partial<ModerationRepair> = {}): ModerationRepair {
   return {
@@ -21,6 +21,7 @@ function repair(overrides: Partial<ModerationRepair> = {}): ModerationRepair {
     created_at: "2026-08-27T08:00:00.000Z",
     entry_time: "2026-08-27T08:00:00.000Z",
     imageUrl: null,
+    imageDeletedAt: null,
     claimedUntil: null,
     claimedByMe: false,
     ...overrides,
@@ -79,5 +80,13 @@ describe("Bearbeitbare Angaben", () => {
   it("macht aus fehlenden Angaben leere Felder statt null", () => {
     const draft = draftFromRepair(repair({ brand_model: null, story: null, performed_by: null, duration_minutes: null, item_value_euros: null }));
     expect(draft).toMatchObject({ brandModel: "", story: "", performedBy: "", durationMinutes: "", itemValueEuros: "" });
+  });
+});
+
+describe("Fehlendes Bild", () => {
+  it("unterscheidet nie eingereicht von nachtraeglich geloescht", () => {
+    expect(missingImageNote(repair())).toBe("Kein Bild eingereicht");
+    expect(missingImageNote(repair({ status: "rejected", imageDeletedAt: "2026-08-27T09:00:00.000Z" })))
+      .toBe("Bild mit der Ablehnung gelöscht");
   });
 });

@@ -23,6 +23,11 @@ export type ModerationRepair = {
   created_at: string;
   entry_time: string | null;
   imageUrl: string | null;
+  /**
+   * Wann das Bild nach einer Ablehnung geloescht wurde, sonst null (Issue #58).
+   * Unterscheidet "hat nie eins mitgebracht" von "hatte eins, ist weg".
+   */
+  imageDeletedAt: string | null;
   /** Ende des Anspruchs einer Moderationssitzung, sonst null (Issue #38). */
   claimedUntil: string | null;
   /** Der Anspruch gehoert der eigenen Sitzung. */
@@ -93,6 +98,19 @@ export function originWarning(repair: ModerationRepair): string | null {
   if (repair.origin.outside) return "Herkunft außerhalb";
   if (repair.origin.mismatch) return "Verbindung woanders";
   return null;
+}
+
+/**
+ * Was an der Stelle des Bildes steht, wenn keines da ist.
+ *
+ * Ohne Bild ist eine Einreichung nicht unvollstaendig - das Foto war schon
+ * immer freiwillig, und seit Issue #58 verliert jede abgelehnte Einreichung
+ * ihres. Beide Faelle sehen gleich aus und meinen etwas anderes.
+ */
+export function missingImageNote(repair: ModerationRepair) {
+  return repair.imageDeletedAt
+    ? "Bild mit der Ablehnung gelöscht"
+    : "Kein Bild eingereicht";
 }
 
 export function draftFromRepair(repair: ModerationRepair): MetadataDraft {
