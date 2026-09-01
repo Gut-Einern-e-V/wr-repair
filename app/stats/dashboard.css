@@ -480,23 +480,32 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
    Zeile Hoehe, die sonst der Karte fehlt. */
 .stage-credit { margin-left: 14px; color: rgba(238, 241, 247, .2); letter-spacing: .08em; text-transform: none; }
 
+ /* Karteikarte unten rechts statt mitten auf der Karte (Issue #70). In der
+   Mitte verdeckte sie das Ruhrgebiet - also genau die Ecke des Landes, in der
+   die meisten Punkte liegen -, und das ein Viertel der Zeit. Unten rechts
+   liegt der duennste Teil der Flaeche, und die Linie aus der Zeichenschleife
+   fuehrt von hier zum Punkt der Reparatur. */
 .spotlight {
+  position: absolute; right: 18px; bottom: 18px;
   display: flex; flex-direction: column; gap: 0; margin: 0;
-  max-width: min(38vw, 460px);
+  max-width: min(24vw, 280px);
   border: 2px solid rgba(255, 196, 50, .8);
   background: rgba(var(--ground), .88);
   box-shadow: 0 0 70px rgba(255, 196, 50, .28);
   animation: spotlight-in 700ms cubic-bezier(.2, .8, .3, 1);
 }
-.spotlight img { display: block; width: 100%; max-height: 46vh; object-fit: cover; }
+.spotlight img { display: block; width: 100%; max-height: 26vh; object-fit: cover; }
 /* Motiv der Kategorie statt des ersten Buchstabens (Issue #58). Die Platte
    bringt ihren eigenen hellen Grund mit, deshalb hier keine Tonung mehr. */
-.spotlight-placeholder { display: grid; place-items: center; height: 26vh; }
+.spotlight-placeholder { display: grid; place-items: center; height: 18vh; }
 .spotlight figcaption { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; }
 .spotlight figcaption span { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
 .spotlight figcaption strong { font: 700 clamp(1.1rem, 1.6vw, 1.6rem)/1.15 var(--sans); }
 
-@keyframes spotlight-in { from { opacity: 0; transform: scale(.86) translateY(24px); } to { opacity: 1; transform: none; } }
+/* Ohne `fill-mode`: Der Ruhezustand ist der richtige. Das Bild ist beim
+   Aufklappen schon geladen (siehe live-dashboard.tsx), die Karte poppt also
+   fertig auf statt leer. */
+@keyframes spotlight-in { from { opacity: 0; transform: scale(.86) translateY(24px); } }
 
 /* Laufband --------------------------------------------------------------
    Bewegt wird nur, wenn der Inhalt breiter ist als das Band - und dann hin und
@@ -546,7 +555,7 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   .dashboard-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: 56px minmax(0, 1.2fr) auto minmax(0, 1fr) 46px; grid-template-areas: "bar bar" "stage stage" "note note" "left right" "ticker ticker"; }
   /* Untereinander statt nebeneinander: Der Verlauf laeuft dann nach oben aus. */
   .panel-left, .panel-right { background: linear-gradient(0deg, rgba(var(--ground), .82) 0%, rgba(var(--ground), .7) 60%, rgba(var(--ground), 0) 100%); }
-  .spotlight { max-width: min(70vw, 340px); }
+  .spotlight { max-width: min(46vw, 280px); }
 }
 
 /* Grossbildwaende (4K und darueber) --------------------------------------
@@ -567,7 +576,7 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   .metric-tiles strong { font-size: clamp(1.7rem, 2vw, 3.4rem); }
   .counter-track { height: 1.5vh; }
   .submit-qr img { width: clamp(120px, 8vw, 200px); }
-  .spotlight { max-width: min(30vw, 900px); }
+  .spotlight { right: 1.4vw; bottom: 1.4vw; max-width: min(20vw, 560px); }
   .spotlight figcaption strong { font-size: clamp(1.6rem, 1.8vw, 3rem); }
   .stage-note { padding-bottom: 1vh; font-size: clamp(10px, .62vw, 18px); }
   .dashboard-ticker span { height: 4vh; font-size: clamp(12px, .72vw, 20px); }
@@ -627,8 +636,8 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   .stage-dayrecord-bar { height: 5px; }
   .stage-dayrecord-line { font-size: 8px; }
   .dashboard-stage { padding: 9px; }
-  .spotlight { max-width: 42%; border-width: 1px; }
-  .spotlight img { max-height: 40vmin; }
+  .spotlight { right: 9px; bottom: 9px; max-width: 32%; border-width: 1px; }
+  .spotlight img { max-height: 26vmin; }
   .spotlight figcaption { gap: 3px; padding: 6px 8px; }
   .spotlight figcaption span { font-size: 8px; }
   .spotlight figcaption strong { font-size: .85rem; }

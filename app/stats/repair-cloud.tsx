@@ -47,8 +47,13 @@ type Props = {
    * `DashboardHighlight`).
    */
   arrivals: { id: string; kreis: string | null; lat: number | null; lon: number | null }[];
-  /** Punkt, auf den die Kamera zoomen soll. */
+  /** Reparatur, die gerade als Karteikarte gezeigt wird - ihr Punkt wird markiert. */
   focusId: string | null;
+  /**
+   * Die Karteikarte selbst. Von ihr wird eine Linie zum Punkt gezogen, damit
+   * erkennbar bleibt, wo diese Reparatur stattgefunden hat (Issue #70).
+   */
+  focusAnchorRef?: RefObject<HTMLElement | null>;
   /** Zielerreichung: loest einen Konfetti-Ausbruch aus. */
   celebrating: boolean;
   /** Anonymisierte Herkunftszellen; leer heisst symbolische Verteilung. */
@@ -134,7 +139,7 @@ function ringContains(point: { x: number; y: number }, ring: { x: number; y: num
   return inside;
 }
 
-export function RepairCloud({ total, arrivals, focusId, celebrating, cells, kreisCounts, frameRef, beamer }: Props) {
+export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrating, cells, kreisCounts, frameRef, beamer }: Props) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   // Der Zeigezustand bleibt in dieser Komponente. Landete er in der Seite,
   // wuerde jede Mausbewegung das ganze Dashboard neu rendern - Kategorien,
@@ -193,6 +198,14 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
     let height = 0;
     /** Flaeche der Karte innerhalb der Canvas. */
     const frame = { left: 0, top: 0, width: 0, height: 0 };
+    /**
+     * Ecke der Karteikarte, an der die Verbindungslinie endet - in denselben
+     * Koordinaten wie `project()`. Wird nur beim Wechsel des Spotlights und
+     * nach einer Groessenaenderung gemessen: Ein `offsetLeft` in jedem Frame
+     * waere ein Layoutzugriff pro Frame, und die Karte steht still, solange
+     * sie steht.
+     */
+    let focusAnchor: { x: number; y: number } | null = null;
 
     const resize = () => {
       // clientWidth/-Height statt getBoundingClientRect(): Im erzwungenen
@@ -215,6 +228,7 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
       frame.top = stage?.offsetTop ?? 0;
       frame.width = stage?.offsetWidth ?? width;
       frame.height = stage?.offsetHeight ?? height;
+      focusAnchor = null;
     };
     resize();
 
@@ -345,6 +359,11 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
     }
 
     // --- Kamera -----------------------------------------------------------
+    /* Kamera und Ziel stehen seit Issue #70 beide fest: Der Spotlight bewegt
+       sie nicht mehr (Begruendung weiter unten in der Zeichenschleife). Die
+       Ueberblendung bleibt stehen, weil `project()` und `scale` ohnehin ueber
+       die Kamera rechnen - und weil ein spaeterer Kamerafahrt-Wunsch damit nur
+       ein gesetztes `target` braucht. */
     const camera = { x: 0.5, y: 0.5, zoom: 1 };
     const target = { x: 0.5, y: 0.5, zoom: 1 };
     let scale = 1;
@@ -499,20 +518,15 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
         pending = queueRef.current.shift();
       }
 
-      // Kameraziel bestimmen.
+      /* Die Kamera bleibt stehen (Issue #70). Vorher zoomte sie fuer die Dauer
+         eines Spotlights auf 3,4 - zusammen mit der Karteikarte in der Mitte
+         war von Nordrhein-Westfalen dann fast ein Drittel der Zeit nichts mehr
+         zu sehen. Der Punkt wird stattdessen markiert und mit der Karte
+         verbunden; die Karte bleibt dabei ganz sichtbar. */
       const focus = stateRef.current.focusId;
       if (focus !== lastFocus) {
         lastFocus = focus;
-        const index = focus ? indexById.get(focus) : undefined;
-        if (index !== undefined) {
-          target.x = baseX[index];
-          target.y = baseY[index];
-          target.zoom = 3.4;
-        } else {
-          target.x = 0.5;
-          target.y = 0.5;
-          target.zoom = 1;
-        }
+        focusAnchor = null;
       }
 
       const ease = reduceMotion ? 1 : 0.035;
@@ -668,16 +682,46 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
 
       drawPlaces(labelAlpha);
 
-      // Fokuspunkt hervorheben.
+      /* Fokuspunkt hervorheben und mit der Karteikarte verbinden.
+
+         Ohne die Linie war nach dem Wegfall des Zooms nicht mehr zu sehen,
+         welcher der tausend Punkte zu dem Bild unten rechts gehoert. Die Linie
+         endet an der oberen linken Ecke der Karte - der Ecke, die dem Land
+         zugewandt ist. */
       const focusIndex = focus ? indexById.get(focus) : undefined;
       if (focusIndex !== undefined) {
         const screen = project(baseX[focusIndex], baseY[focusIndex]);
         const pulse = 10 + Math.sin(time * 3) * 4;
+
+        if (!focusAnchor) {
+          const card = focusAnchorRef?.current;
+          // offsetLeft/-Top wie bei `frame`: Layoutwerte, unabhaengig von der
+          // Drehung der Buehne im Hochformat. Bezug ist die Buehne selbst.
+          if (card) focusAnchor = { x: frame.left + card.offsetLeft, y: frame.top + card.offsetTop };
+        }
+
+        if (focusAnchor) {
+          context.beginPath();
+          context.moveTo(screen.x, screen.y);
+          context.lineTo(focusAnchor.x, focusAnchor.y);
+          context.strokeStyle = "rgba(255, 196, 50, 0.45)";
+          context.lineWidth = 1.5;
+          context.setLineDash([5, 5]);
+          context.stroke();
+          context.setLineDash([]);
+        }
+
         context.beginPath();
         context.arc(screen.x, screen.y, pulse, 0, Math.PI * 2);
         context.strokeStyle = "rgba(255, 196, 50, 0.9)";
         context.lineWidth = 2.5;
         context.stroke();
+        // Gefuellter Kern: Bei stehender Kamera ist der Punkt selbst so klein,
+        // dass der Ring allein ins Leere zeigen wuerde.
+        context.beginPath();
+        context.arc(screen.x, screen.y, 3.5, 0, Math.PI * 2);
+        context.fillStyle = "rgba(255, 196, 50, 0.95)";
+        context.fill();
       }
 
       if (stateRef.current.celebrating && !wasCelebrating) burstConfetti();
@@ -721,7 +765,7 @@ export function RepairCloud({ total, arrivals, focusId, celebrating, cells, krei
         stage.removeEventListener("pointerleave", onPointerLeave);
       }
     };
-  }, [frameRef]);
+  }, [frameRef, focusAnchorRef]);
 
   const hovered = hover ? kreisCounts[hover.name] ?? 0 : 0;
   const share = hover && total > 0 ? (hovered / total) * 100 : 0;

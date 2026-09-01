@@ -49,8 +49,9 @@ Teilnehmen kann jede Person in Nordrhein-Westfalen, kostenlos und ohne Konto. Es
 - [Reparatur eintragen](${siteUrl}/mitmachen): Formular fuer die eigene Reparatur, auf das Smartphone ausgelegt.
 - [Live-Stand](${siteUrl}/stats): Aktuelle Zahlen des Rekordversuchs, auch als Buehnenansicht fuer Veranstaltungen.
 - [Repair Cafes in NRW](${siteUrl}/repair-cafes): Orte und Termine der Reparatur-Initiativen im Land.
+- [Gewinnspiel](${siteUrl}/gewinnspiel): Verlosung unter allen Einreichungen, mit Teilnahmebedingungen.
 - [Ueber das Projekt](${siteUrl}/about): Hintergrund, Ziel und die Regeln der Zaehlung.
-- [Unterstuetzer](${siteUrl}/supporters): Partner und Foerderer des Rekordversuchs.
+- [Unterstuetzung](${siteUrl}/supporters): Die Organisationen, die den Rekordversuch tragen und foerdern.
 
 ## Reparaturgeschichten
 

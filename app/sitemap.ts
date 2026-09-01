@@ -23,6 +23,7 @@ const staticPages: StaticEntry[] = [
   { path: "/stats", changeFrequency: "hourly", priority: 0.8 },
   { path: "/stories", changeFrequency: "weekly", priority: 0.8 },
   { path: "/repair-cafes", changeFrequency: "weekly", priority: 0.7 },
+  { path: "/gewinnspiel", changeFrequency: "weekly", priority: 0.7 },
   { path: "/about", changeFrequency: "monthly", priority: 0.6 },
   { path: "/supporters", changeFrequency: "monthly", priority: 0.5 },
   { path: "/privacy", changeFrequency: "yearly", priority: 0.2 },

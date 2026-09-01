@@ -131,7 +131,9 @@ h2 { margin-bottom: 0; font-size: clamp(2rem, 4vw, 3.6rem); line-height: .96; le
 
 .mobile-navigation { display: none; }.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
-@media (max-width: 720px) { .site-header { position: relative; }.mobile-navigation { display: block; margin-left: auto; }.mobile-navigation.is-open { position: relative; z-index: 30; }.mobile-nav-toggle { display: grid; gap: 5px; width: 42px; height: 42px; padding: 10px; border: var(--line); border-radius: 0; background: var(--yellow); }.mobile-nav-toggle i { display: block; width: 100%; height: 2px; background: var(--ink); }.mobile-nav-backdrop { position: fixed; z-index: 20; inset: 0; border: 0; background: rgba(16, 22, 38, 0.7); }.site-header .mobile-nav-panel { position: absolute; z-index: 21; top: calc(100% + 2px); right: 0; display: grid; width: min(280px, calc(100vw - 32px)); border: var(--line); background: var(--paper); box-shadow: 5px 5px 0 var(--ink); }.mobile-nav-panel a { display: flex; align-items: center; min-height: 58px; padding: 14px 16px; border-bottom: var(--line); font: 500 12px var(--mono); text-decoration: none; text-transform: uppercase; }.mobile-nav-panel a:last-child { border-bottom: 0; }.mobile-nav-panel a:hover { background: var(--yellow); }.mobile-nav-toggle:focus-visible, .mobile-nav-panel a:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; } }
+/* Das ausgefahrene Menue selbst steht am Ende der Datei (Issue #56); hier
+   bleibt nur, was die Schaltflaeche im Kopf betrifft. */
+@media (max-width: 720px) { .site-header { position: relative; }.mobile-navigation { display: block; margin-left: auto; }.mobile-nav-toggle { display: grid; gap: 5px; width: 42px; height: 42px; padding: 10px; border: var(--line); border-radius: 0; background: var(--yellow); }.mobile-nav-toggle i { display: block; width: 100%; height: 2px; background: var(--ink); }.mobile-nav-toggle:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; } }
 
 .campaign-window { max-width: 1240px; margin: 0 auto; padding: 72px 24px; border-bottom: var(--line); background: linear-gradient(135deg, rgba(149, 212, 187, 0.5), transparent 62%), var(--paper); }.campaign-window h2 { max-width: 670px; margin-bottom: 18px; }.campaign-window > p:not(.section-index):not(.campaign-window-links) { max-width: 610px; font-size: 18px; line-height: 1.5; }.campaign-window-links { display: flex; flex-wrap: wrap; gap: 22px; margin: 0; }.campaign-window-links a { font: 500 12px var(--mono); text-underline-offset: 4px; text-transform: uppercase; }
 
@@ -258,7 +260,6 @@ select:focus-visible, textarea:focus-visible {
 }
 .icon-button { background: var(--yellow); }
 .mobile-nav-toggle { background: var(--yellow); }
-.mobile-nav-panel a:hover { background: var(--mint); }
 
 /* --- Papier-Grundflaeche statt technischem Raster ---------- */
 .page-shell::before {
@@ -1242,7 +1243,7 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
    Grund mit Markenkontur, damit jedes Motiv auf demselben Weiss sitzt, auf dem
    es gerendert wurde - auch auf der dunklen Buehne und auf den farbigen
    Kategorie-Kacheln. Begruendung in components/category-motif.tsx. */
-.category-motif { display: grid; place-items: center; flex: none; border: var(--line); background: var(--paper); color: var(--ink); }
+.category-motif { display: grid; place-items: center; flex: none; width: var(--motif-size); height: var(--motif-size); border: var(--line); background: var(--paper); color: var(--ink); }
 .category-motif img { width: 84%; height: 84%; object-fit: contain; }
 /* Das Rueckfall-Zeichen ist eine Strichzeichnung und braucht mehr Luft als ein
    Motiv, das seinen Rand selbst mitbringt. */
@@ -1263,3 +1264,193 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
    keines gezeigt wird - vor der Freigabe, nach einer Ablehnung und bei
    Einreichungen ohne Bild. */
 .repair-status .category-motif { margin: 8px 0 26px; }
+
+/* ============================================================
+   Kategorie-Kacheln, Mitmachen-Schritte, Gewinnspiel (Issue #70)
+   ============================================================ */
+
+/* Das Motiv sass links ueber dem Namen und schob ihn nach unten. Rechts oben
+   steht es neben dem Text statt vor ihm: Die Kachel liest sich dann von links
+   nach rechts wie eine Zeile - Name, Zahl, Knopf - und das Bild ist das
+   Erkennungszeichen am Rand. Feste Rasterplaetze, weil das Motiv im Markup
+   vorne steht (es soll vor dem Namen geladen werden, nicht danach). */
+.category-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto 1fr auto;
+  align-items: start;
+  gap: 6px 12px;
+}
+.category-card .category-motif { grid-area: 1 / 2 / 3 / 3; margin-bottom: 0; }
+.category-card strong { grid-area: 1 / 1 / 2 / 2; align-self: start; }
+.category-card .category-card-count { grid-area: 2 / 1 / 3 / 2; }
+.category-card .category-card-action { grid-area: 4 / 1 / 5 / 2; justify-self: start; margin-top: 0; }
+
+/* Zeichen je Schritt. Es steht dem Nummernaufkleber gegenueber, damit der Kopf
+   der Kachel auf beiden Seiten eine Marke hat und die Zeile darunter frei
+   bleibt. */
+.steps .step-icon { position: absolute; top: 16px; right: 15px; width: 30px; height: 30px; color: var(--ink); opacity: .55; }
+
+/* Der Hinweis auf das Gewinnspiel gehoert zu den Schritten, ist aber keiner:
+   Er ist freiwillig und aendert nichts daran, ob eine Reparatur zaehlt.
+   Deshalb steht er unter der Reihe, in eigener Farbe. */
+.how-it-works-steps { display: grid; gap: 4px; }
+.how-it-works-bonus {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center;
+  padding: 18px 20px; background: var(--yellow); color: var(--ink); text-decoration: none;
+  transition: box-shadow 120ms ease;
+}
+.how-it-works-bonus .step-icon { width: 30px; height: 30px; opacity: 1; }
+.how-it-works-bonus > span { display: grid; gap: 5px; }
+.how-it-works-bonus strong { font-size: 17px; line-height: 1.15; letter-spacing: -.01em; }
+.how-it-works-bonus span span { font-size: 15px; line-height: 1.45; }
+.how-it-works-bonus i { font-size: 21px; font-style: normal; }
+.how-it-works-bonus:hover, .how-it-works-bonus:focus-visible { box-shadow: inset 0 0 0 4px var(--ink); }
+
+/* Gewinnspielseite: Bedingungen und die noch unvollstaendige Preisliste. */
+.legal-terms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+.legal-terms > section { padding: 24px 22px; background: var(--paper); }
+.legal-terms h3 { margin: 0 0 10px; font-size: 19px; line-height: 1.15; }
+.legal-terms p { max-width: 52ch; margin: 0; font-size: 15px; line-height: 1.55; }
+.prize-placeholder { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0 0 18px; padding: 0; list-style: none; }
+.prize-placeholder li { display: grid; align-content: start; gap: 8px; padding: 24px 22px; background: var(--mint-soft); }
+.prize-placeholder strong { font-size: 19px; line-height: 1.15; letter-spacing: -.01em; }
+.prize-placeholder p { max-width: 40ch; margin: 0; font-size: 15px; line-height: 1.5; }
+
+@media (max-width: 900px) {
+  .legal-terms, .prize-placeholder { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================
+   Telefon: Aufkleber-Headlines, Schritte, Menue (Issue #56)
+   ============================================================ */
+
+@media (max-width: 720px) {
+  /* Die Aufkleber liegen uebereinander, sobald einer umbricht: Die Zeilenhoehe
+     der Headline ist kleiner als 1, die Kaesten sind durch ihre Polsterung
+     hoeher als ihre Zeile, und die Drehung kippt die Ecken zusaetzlich
+     ineinander. Auf dem schmalen Bildschirm bricht fast jeder Aufkleber um,
+     also: mehr Abstand, gerade Zeilen im Kasten und deutlich weniger Drehung. */
+  /* Lange Komposita passen auf 375 Pixeln in keine Zeile. "Gemeinschaftsarbeit"
+     und "Einreichungszeitraum" ragten deshalb aus ihrem Kasten heraus und
+     machten die Seite quer scrollbar. `hyphens: auto` trennt sie am
+     Wortbaustein (die Seite ist als `lang="de"` ausgezeichnet), das
+     Umbrechen ist die Rueckfallebene fuer Browser ohne Trennmuster. Damit die
+     Rasterspalte nicht trotzdem auf die Wortbreite waechst, bekommen die
+     zweispaltigen Textraster ausdruecklich eine Mindestbreite von null. */
+  h1, h2, h3 { hyphens: auto; }
+  /* Lange Beschriftungen wie "Repair Café auf der Karte suchen" passen auf
+     einem 320er Bildschirm in keine Zeile; dort darf der Knopf umbrechen. */
+  .text-button { white-space: normal; }
+
+  .sticker-head { gap: .2em; }
+  /* Und eine Spur kleiner: Bei 2,4rem passte "Gemeinsam zum" auf einem 375er
+     Bildschirm nicht mehr in eine Zeile, der Aufkleber wurde zweizeilig und
+     lief rechts ins Leere. Der Deckel von 2,6rem haelt den Sprung zur
+     naechsten Stufe bei 720px klein. */
+  .hero-poster h1, .content-hero h1 { font-size: clamp(1.9rem, 8.4vw, 2.6rem); }
+  .sticker-head .sticker { line-height: 1.04; hyphens: auto; overflow-wrap: break-word; }
+  .sticker-head .sticker:nth-child(1) { transform: rotate(-.6deg); }
+  .sticker-head .sticker:nth-child(2) { margin-left: 0; transform: rotate(.5deg); }
+  .sticker-head .sticker:nth-child(3) { transform: rotate(-.3deg); }
+  .sticker-head .sticker:nth-child(4) { margin-left: 0; transform: rotate(.4deg); }
+
+  /* Die Nummer stand senkrecht in der Mitte der Kachel und damit neben nichts.
+     Jetzt liegt sie oben in der Ecke, das Zeichen gegenueber, der Text
+     darunter - dasselbe Bild wie auf dem grossen Bildschirm. */
+  .steps li { display: block; min-height: 0; padding: 62px 16px 20px; }
+  .steps .step-number { top: 17px; left: 16px; transform: rotate(-3deg); }
+  .steps .step-icon { top: 16px; right: 16px; width: 26px; height: 26px; }
+  .how-it-works-bonus { grid-template-columns: auto minmax(0, 1fr); gap: 12px 14px; padding: 18px 16px; }
+  .how-it-works-bonus i { display: none; }
+
+  /* Zwei Kacheln nebeneinander lassen neben dem Motiv keine 70 Pixel fuer den
+     Namen - "Computer und Zubehoer/Handys" stand dort auf fuenf Zeilen. Auf dem
+     Telefon steht das Motiv deshalb ueber dem Text, aber weiter rechts
+     ausgerichtet. */
+  .category-card { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto 1fr auto; }
+  .category-card .category-motif { grid-area: 1 / 1 / 2 / 2; justify-self: end; width: 46px; height: 46px; }
+  .category-card strong { grid-area: 2 / 1 / 3 / 2; }
+  .category-card .category-card-count { grid-area: 3 / 1 / 4 / 2; }
+  .category-card .category-card-action { grid-area: 5 / 1 / 6 / 2; }
+}
+
+/* --- Menue als ausfahrende Flaeche ------------------------- */
+
+/* Die Flaeche haengt am <body>-Rand, nicht am Kopf: Sie soll ueber die ganze
+   Bildschirmhoehe gehen und beim Scrollen stehen bleiben. `100dvh`, damit die
+   Adressleiste von Chrome sie nicht unten abschneidet. */
+.mobile-nav-backdrop {
+  position: fixed; z-index: 60; inset: 0; border: 0;
+  background: rgba(16, 22, 38, .62);
+  /* Ohne `fill-mode`: Der Ruhezustand ist der richtige, die Keyframes
+     beschreiben nur den Weg dorthin. Laeuft die Animation nicht - abgeschaltete
+     Bewegung, Hintergrundtab -, steht die Flaeche trotzdem an ihrem Platz. */
+  animation: mobile-nav-fade 160ms ease;
+}
+.mobile-nav-panel {
+  position: fixed; z-index: 61; top: 0; right: 0;
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(360px, 88vw); height: 100dvh;
+  border-left: var(--line);
+  background: var(--yellow); color: var(--ink);
+  animation: mobile-nav-slide 220ms cubic-bezier(.2, .8, .3, 1);
+}
+
+/* Kopf: der Stand des Rekordversuchs, damit die Zahl auch hier greifbar ist. */
+.mobile-nav-top { display: flex; gap: 14px; align-items: start; justify-content: space-between; padding: 18px 18px 16px; border-bottom: 2px solid var(--ink); }
+.mobile-nav-status { display: grid; gap: 2px; }
+.mobile-nav-status-label, .mobile-nav-brand { margin: 0; font: 800 10px/1.3 var(--sans); letter-spacing: .1em; text-transform: uppercase; }
+.mobile-nav-status-number { margin: 0; font: 900 34px/1 var(--sans); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.mobile-nav-status-time { margin: 2px 0 0; font: 800 11px/1.3 var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.mobile-nav-close {
+  display: grid; place-items: center; width: 42px; height: 42px; flex: none;
+  padding: 0; border: var(--line); border-radius: 0; background: var(--paper); color: var(--ink);
+  font-size: 26px; line-height: 1;
+}
+
+/* Seiten oben, Rechtstexte unten - dazwischen darf gescrollt werden, falls
+   das Geraet sehr niedrig ist.
+
+   Zwei Klassen im Selektor, weil `.site-header nav` auf dem Telefon alles
+   ausblendet, was ein <nav> im Kopf ist - und die Flaeche haengt im Markup am
+   Kopf. */
+.mobile-nav-panel .mobile-nav-pages { display: grid; gap: 0; align-content: start; overflow-y: auto; padding: 0; }
+.mobile-nav-pages a {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  min-height: 58px; padding: 12px 18px;
+  border-bottom: 1px solid rgba(16, 22, 38, .22);
+  color: inherit; font: 800 15px/1.1 var(--sans); letter-spacing: .06em; text-decoration: none; text-transform: uppercase;
+}
+.mobile-nav-pages a:last-child { border-bottom: 0; }
+.mobile-nav-pages a i { font-size: 18px; font-style: normal; opacity: .5; }
+.mobile-nav-pages a:hover, .mobile-nav-pages a:focus-visible { background: var(--ink); color: var(--paper); }
+.mobile-nav-pages a:hover i, .mobile-nav-pages a:focus-visible i { opacity: 1; }
+
+.mobile-nav-legal { display: flex; flex-wrap: wrap; gap: 8px 16px; padding: 16px 18px calc(16px + env(safe-area-inset-bottom)); border-top: 2px solid var(--ink); }
+.mobile-nav-legal a, .mobile-nav-legal .consent-settings-link { color: inherit; font: 700 12px/1.3 var(--sans); letter-spacing: .04em; text-decoration: underline; text-underline-offset: 4px; }
+
+.mobile-nav-close:focus-visible, .mobile-nav-pages a:focus-visible, .mobile-nav-legal a:focus-visible, .mobile-nav-legal .consent-settings-link:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; }
+
+@keyframes mobile-nav-fade { from { opacity: 0; } }
+@keyframes mobile-nav-slide { from { transform: translateX(100%); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-nav-panel, .mobile-nav-backdrop { animation: none; }
+}
+
+/* Lange deutsche Komposita brechen keine Zeile von allein: "Gemeinschaftsarbeit"
+   und "Einreichungszeitraum" ragten aus ihrem Kasten heraus und machten die
+   Seite quer scrollbar (Issue #56). Zwei Massnahmen, weil eine allein nicht
+   reicht: Die Ueberschrift darf im Wort umbrechen, und die Rasterspalten
+   duerfen nicht mehr auf die Breite ihres laengsten Wortes wachsen - genau das
+   tut eine `1fr`-Spalte ohne ausdrueckliche Mindestbreite. Die Silbentrennung
+   selbst steht im Block fuer schmale Bildschirme: Auf dem grossen Bildschirm
+   passen die Woerter, und eine Trennung mitten in einer Plakatzeile waere
+   dort ein Rueckschritt. */
+h1, h2, h3 { overflow-wrap: break-word; }
+.two-column-copy, .contribution-grid { grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); }
+.contribution-grid ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 720px) {
+  .two-column-copy, .contribution-grid, .contribution-grid ol { grid-template-columns: minmax(0, 1fr); }
+}

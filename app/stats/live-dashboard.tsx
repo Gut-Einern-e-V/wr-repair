@@ -81,9 +81,17 @@ export default function LiveDashboard() {
   // Die Intervall-Callbacks werden nur einmal registriert und lesen den
   // aktuellen Stand deshalb ueber eine Ref statt ueber die Closure.
   const totalRef = useRef(0);
+  /* Die Spotlight-Schleife wird nur einmal aufgesetzt und darf die Liste
+     deshalb nicht aus der Closure lesen - sonst zeigt sie nach dem ersten
+     Delta noch die Reparaturen von vorhin. */
+  const highlightsRef = useRef<DashboardSnapshot["highlights"]>([]);
   useEffect(() => {
     totalRef.current = snapshot?.total ?? 0;
+    highlightsRef.current = snapshot?.highlights ?? [];
   }, [snapshot]);
+  /* Die Karte zeichnet eine Linie vom Punkt zur Karteikarte; dafuer muss sie
+     wissen, wo die Karte gerade steht. */
+  const spotlightRef = useRef<HTMLElement | null>(null);
 
   const loadSnapshot = useCallback(async () => {
     try {
@@ -172,19 +180,54 @@ export default function LiveDashboard() {
     return () => window.clearTimeout(timer);
   }, [laps]);
 
-  // Spotlight: alle 20 Sekunden faehrt die Kamera fuenf Sekunden auf ein Bild.
-  // Sind die Einzelbilder aus, laeuft der Zyklus nicht; ein zurueckgesetzter
-  // Zustand ist dann nicht noetig, weil `featured` weiter unten ohnehin sperrt.
+  /* Spotlight: alle 20 Sekunden steht fuenf Sekunden lang eine Reparatur als
+     Karteikarte unten rechts. Sind die Einzelbilder aus, laeuft der Zyklus
+     nicht; ein zurueckgesetzter Zustand ist dann nicht noetig, weil `featured`
+     weiter unten ohnehin sperrt.
+
+     Das Bild wird vorher geladen (Issue #70). Vorher klappte die Karte auf und
+     blieb eine gute Sekunde leer, bis die signierte Supabase-URL da war - auf
+     einer Buehne sieht das nach einem Fehler aus. Kommt das Bild nicht, wird
+     dieser Durchgang uebersprungen statt einen leeren Rahmen zu zeigen; der
+     naechste Takt nimmt die naechste Reparatur. */
   const highlightCount = showSpotlight ? snapshot?.highlights.length ?? 0 : 0;
   useEffect(() => {
     if (highlightCount === 0) return;
 
     let index = 0;
     let hold = 0;
-    const cycle = () => {
-      setSpotlight(index % highlightCount);
-      index += 1;
+    let pending: HTMLImageElement | null = null;
+
+    const show = (position: number) => {
+      // Braucht ein Bild laenger als der Takt, laeuft sonst noch die
+      // Ausblendung des vorigen und raeumt die frisch gezeigte Karte weg.
+      window.clearTimeout(hold);
+      setSpotlight(position);
       hold = window.setTimeout(() => setSpotlight(null), SPOTLIGHT_HOLD_MS);
+    };
+
+    const cycle = () => {
+      const position = index % highlightCount;
+      index += 1;
+
+      // Ohne Bild steht dort das Motiv der Kategorie - das ist sofort da.
+      const url = highlightsRef.current[position]?.imageUrl;
+      if (!url) {
+        show(position);
+        return;
+      }
+
+      const image = new Image();
+      pending = image;
+      image.onload = () => {
+        if (pending !== image) return;
+        pending = null;
+        show(position);
+      };
+      image.onerror = () => {
+        if (pending === image) pending = null;
+      };
+      image.src = url;
     };
 
     const timer = window.setInterval(cycle, SPOTLIGHT_CYCLE_MS);
@@ -193,6 +236,7 @@ export default function LiveDashboard() {
       window.clearInterval(timer);
       window.clearTimeout(initial);
       window.clearTimeout(hold);
+      pending = null;
     };
   }, [highlightCount]);
 
@@ -251,6 +295,7 @@ export default function LiveDashboard() {
         beamer={beamer}
         celebrating={celebrating}
         cells={snapshot.cells}
+        focusAnchorRef={spotlightRef}
         focusId={featured?.id ?? null}
         frameRef={stageRef}
         kreisCounts={kreisCounts}
@@ -296,7 +341,7 @@ export default function LiveDashboard() {
 
         <section className="dashboard-stage" aria-label="Karte der Reparaturen" ref={stageRef}>
           {featured && (
-            <figure className="spotlight">
+            <figure className="spotlight" ref={spotlightRef}>
               {featured.imageUrl
                 // Signierte Supabase-URLs laufen ab und wuerden vom Next-Optimizer zusaetzlich gecacht.
                 // eslint-disable-next-line @next/next/no-img-element

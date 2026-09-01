@@ -30,7 +30,7 @@ export function SiteFooter({ funding = true }: { funding?: boolean } = {}) {
     {funding && <FundingStrip />}
     <footer className="site-footer">
       <p><strong>Reparaturrekord NRW</strong><br />Ein Projekt der FAB Region Bergisches Land.</p>
-      <div><Link href="/privacy">{messages.footer.privacy}</Link><Link href="/imprint">{messages.footer.imprint}</Link><Link href="/accessibility">{messages.footer.accessibility}</Link><ConsentSettingsLink /></div>
+      <div><Link href="/gewinnspiel">{messages.navigation.lottery}</Link><Link href="/privacy">{messages.footer.privacy}</Link><Link href="/imprint">{messages.footer.imprint}</Link><Link href="/accessibility">{messages.footer.accessibility}</Link><ConsentSettingsLink /></div>
       <p>Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
     </footer>
   </>;

@@ -45,7 +45,7 @@ export async function POST(request: Request) {
   }
 
   if (!eligible || eligible.length === 0) {
-    return Response.json({ error: "Keine Teilnehmer fuer die Verlosung vorhanden." }, { status: 409 });
+    return Response.json({ error: "Fuer die Verlosung liegt keine Anmeldung vor." }, { status: 409 });
   }
 
   const winner = eligible[Math.floor(Math.random() * eligible.length)];

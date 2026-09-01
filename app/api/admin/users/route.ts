@@ -26,7 +26,7 @@ export async function GET() {
   ]);
 
   if (authError || profileError || roleError) {
-    return errorResponse("Benutzer konnten nicht geladen werden.", 502);
+    return errorResponse("Konten konnten nicht geladen werden.", 502);
   }
 
   const names = new Map((profiles ?? []).map((profile) => [profile.id, profile.display_name]));
@@ -100,7 +100,7 @@ export async function PATCH(request: Request) {
   const isSuperadmin = authorization.currentAdmin.roles.includes("superadmin");
   const body = await request.json() as { userId?: string; role?: AppRole };
   if (!body.userId || !body.role || !roles.has(body.role)) {
-    return errorResponse("Ungueltige Benutzer- oder Rollenangabe.", 400);
+    return errorResponse("Ungueltige Konto- oder Rollenangabe.", 400);
   }
 
   if (body.userId === authorization.currentAdmin.user.id) {
@@ -136,7 +136,7 @@ export async function DELETE(request: Request) {
 
   const userId = new URL(request.url).searchParams.get("id");
   if (!userId) {
-    return errorResponse("Benutzer fehlt.", 400);
+    return errorResponse("Konto fehlt.", 400);
   }
 
   if (userId === authorization.currentAdmin.user.id) {
