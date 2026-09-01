@@ -27,10 +27,28 @@ export const MOTIF_DIRECTORY = "categories";
  */
 export const MOTIF_SOURCE_SIZE = 512;
 
-/** Kategorien, fuer die eine Datei vorliegt. */
+/**
+ * Kategorien, fuer die eine Datei vorliegt.
+ *
+ * Zurzeit alle zwoelf - allerdings noch als Platzhalter, erzeugt von
+ * scripts/build-category-motifs.mjs. Sie zeigen dasselbe Strichzeichen wie der
+ * Rueckfall, in der Groesse und Ausrichtung, die ein echtes Motiv haben muss.
+ * Wird eine Datei durch das gerenderte Motiv ersetzt, aendert sich sonst
+ * nichts.
+ */
 export const categoriesWithMotif = new Set<string>([
-  // Sobald die freigestellten Dateien in public/categories/ liegen, hier den
-  // Kategoriewert eintragen, z. B. "bicycle".
+  "bicycle",
+  "computers_and_phones",
+  "photo_video_car",
+  "household_appliances",
+  "furniture",
+  "sharpening",
+  "jewelry_glasses",
+  "toys",
+  "textiles",
+  "watches",
+  "tools",
+  "other",
 ]);
 
 export function hasCategoryMotif(category: string) {

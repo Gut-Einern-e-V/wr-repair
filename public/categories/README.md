@@ -1,5 +1,10 @@
 # Motive der Reparaturkategorien
 
+> **Zurzeit stehen hier Platzhalter.** Sie zeigen dasselbe Strichzeichen wie
+> die Oberfläche selbst und sind mit `node scripts/build-category-motifs.mjs`
+> erzeugt. Sie sind da, damit die Bildstrecke vollständig steht — ersetzt
+> werden sie durch die gerenderten Motive, siehe unten.
+
 Hier liegt je Kategorie ein freigestelltes Bild. Es erscheint auf den
 Kategorie-Kacheln der Startseite, im Danke-Bildschirm nach dem Eintragen, auf
 der Statusseite einer Reparatur ohne Foto, in der Moderation und auf der
@@ -38,16 +43,30 @@ Beschriftung:
 - **Unter 150 KB.** Die Startseite lädt zwölf davon, und die Moderation läuft
   am Handy im Repair Café.
 
-## Eintragen
+## Einen Platzhalter ersetzen
 
-Eine Datei allein reicht nicht – ihr Kategoriewert muss zusätzlich in
-`categoriesWithMotif` in `lib/category-motifs.ts` stehen. Der Grund steht dort
-im Kommentar: Die Motive werden in Client-Komponenten gebraucht, die zur
-Laufzeit nicht in diesen Ordner sehen können.
-
-Eine Kategorie ohne Eintrag fällt automatisch auf die Strichzeichnung aus
-`components/category-pictogram.tsx` zurück, im selben Rahmen. Es darf also
-erst ein Teil der Motive vorliegen.
+Die neue Datei über die alte legen, gleicher Name. Mehr ist nicht zu tun: Alle
+zwölf Kategorien stehen bereits in `categoriesWithMotif` in
+`lib/category-motifs.ts`, und die Rahmen in der Oberfläche haben schon ihre
+endgültige Größe.
 
 `npm test` prüft beide Richtungen: dass jede eingetragene Kategorie eine Datei
 hat und dass keine Datei ohne Eintrag herumliegt.
+
+## Eine Kategorie ohne Datei
+
+Fehlt eine Datei und steht ihr Wert nicht in `categoriesWithMotif`, zeigt die
+Oberfläche im selben Rahmen die Strichzeichnung aus
+`components/category-pictogram.tsx`. Es darf also auch nur ein Teil der Motive
+vorliegen — der Grund für die Liste steht dort im Kommentar: Die Motive werden
+in Client-Komponenten gebraucht, die zur Laufzeit nicht in diesen Ordner sehen
+können.
+
+## Platzhalter neu erzeugen
+
+```bash
+node scripts/build-category-motifs.mjs
+```
+
+Das Skript überschreibt **alle** zwölf Dateien mit dem Strichzeichen. Nach dem
+Einsetzen echter Motive also nicht mehr aufrufen, sonst sind sie wieder weg.
