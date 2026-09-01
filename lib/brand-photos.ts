@@ -2,6 +2,8 @@
    Quellen sind Pexels beziehungsweise KI-generiert; die Urheberhinweise stehen
    laut Styleguide im Dateinamen und werden hier zusaetzlich als Credit gefuehrt. */
 
+import type { StoryImage } from "./stories";
+
 export type BrandPhoto = {
   src: string;
   alt: string;
@@ -44,4 +46,17 @@ export const storyPhotoOrder = [
 
 export function storyPhoto(index: number): BrandPhoto {
   return storyPhotoOrder[index % storyPhotoOrder.length];
+}
+
+/**
+ * Aufmacher einer Geschichte fuer Kacheln und Karten.
+ *
+ * Bringt die Geschichte ein eigenes Bild mit (Frontmatter `image:`, siehe
+ * lib/stories.ts), gewinnt das. Sonst greift wie bisher die Markenbildwelt,
+ * reihum nach Position in der Liste - so bleibt eine Uebersicht auch dann
+ * bebildert, wenn erst ein Teil der Geschichten eigene Fotos hat (Issue #60).
+ */
+export function storyCover(story: { image: StoryImage | null }, index: number): BrandPhoto {
+  if (!story.image) return storyPhoto(index);
+  return { src: story.image.src, alt: story.image.alt, credit: story.image.credit ?? "" };
 }

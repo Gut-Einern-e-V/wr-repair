@@ -74,7 +74,13 @@ describe("readPublicStats", () => {
         pending: 12,
         today: 7,
         bestDay: { date: "2026-10-17", total: 41 },
+        succeeded: 170,
+        withStory: 46,
+        minutesSaved: 5_512,
+        valueSavedEuros: 19_400,
+        performedBy: { alone: 100, with_support: 84 },
         categories: { textiles: 2 },
+        categoryMinutes: { textiles: 90 },
         kreise: { Wuppertal: 9, "Kreis Kleve": 1 },
         timeline: [{ date: "2026-10-01", total: 3 }, { date: "2026-10-02", total: 0 }],
       },
@@ -88,10 +94,32 @@ describe("readPublicStats", () => {
       today: 7,
       bestDay: { date: "2026-10-17", total: 41 },
       dayRecord: 412,
+      succeeded: 170,
+      withStory: 46,
+      minutesSaved: 5_512,
+      valueSavedEuros: 19_400,
+      performedBy: { alone: 100, with_support: 84 },
       categories: { textiles: 2 },
+      categoryMinutes: { textiles: 90 },
       kreise: { Wuppertal: 9, "Kreis Kleve": 1 },
       timeline: [{ date: "2026-10-01", total: 3 }, { date: "2026-10-02", total: 0 }],
       campaign: { startAt: "2026-10-01T06:00:00.000Z", endAt: "2026-10-31T20:00:00.000Z" },
+    });
+  });
+
+  it("bleibt brauchbar, solange die Datenbankfunktion die Rueckblick-Felder noch nicht kennt", () => {
+    /* Zwischen Deployment und Migration 202609010002 fehlen sie. Der
+       Rueckblick zeigt dann null statt eine kaputte Antwort (Issue #66). */
+    const stats = readPublicStats({ total: 184, categories: { toys: 2 } }, context);
+
+    expect(stats).toMatchObject({
+      total: 184,
+      succeeded: 0,
+      withStory: 0,
+      minutesSaved: 0,
+      valueSavedEuros: 0,
+      performedBy: {},
+      categoryMinutes: {},
     });
   });
 

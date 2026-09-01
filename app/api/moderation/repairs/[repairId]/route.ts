@@ -3,6 +3,17 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { repairCategoryValues } from "@/lib/repair-catalog";
 
 const statuses = new Set(["approved", "rejected"]);
+
+/**
+ * Zusaetzlich fuer Admins und Superadmins: eine bereits entschiedene
+ * Einreichung wieder oeffnen oder umentscheiden (Issue #58).
+ *
+ * Eine Ablehnung ist damit keine Sackgasse mehr. Wer sich beschwert, kann
+ * wieder eingesetzt werden - das Bild ist dann zwar geloescht, die Reparatur
+ * zaehlt aber trotzdem. Fuer Moderator*innen bleibt es bei der einen
+ * Entscheidung: Sonst haette jede Ablehnung eine offene Gegentuer.
+ */
+const adminStatuses = new Set(["approved", "rejected", "pending"]);
 const categoriesSet = new Set(repairCategoryValues as string[]);
 const validPerformedBy = new Set(["alone", "with_support", "by_someone"]);
 
@@ -72,7 +83,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
   const body = await request.json() as { status?: string; moderatorComment?: string; metadata?: Metadata };
   const moderatorComment = typeof body.moderatorComment === "string" ? body.moderatorComment.trim() : "";
 
-  if (body.status !== undefined && (!statuses.has(body.status) || !isOptionalString(body.moderatorComment, 1000))) {
+  const allowedStatuses = access.isAdmin ? adminStatuses : statuses;
+  if (body.status !== undefined && (!allowedStatuses.has(body.status) || !isOptionalString(body.moderatorComment, 1000))) {
     return Response.json({ error: "Ungueltige Moderationsdaten." }, { status: 400 });
   }
 
@@ -110,8 +122,14 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     return Response.json({ error: "Einreichung nicht gefunden." }, { status: 404 });
   }
 
-  if (body.status && repair.status !== "pending") {
+  /* Moderator*innen entscheiden nur ueber Offenes; Admins duerfen auch eine
+     getroffene Entscheidung wieder aufmachen. */
+  if (body.status && repair.status !== "pending" && !access.isAdmin) {
     return Response.json({ error: decidedElsewhere(repair.status) }, { status: 409 });
+  }
+
+  if (body.status && body.status === repair.status) {
+    return Response.json({ error: "Diese Einreichung steht bereits auf diesem Stand." }, { status: 409 });
   }
 
   if (body.status === "approved" && !repair.consent_publication) {
@@ -147,7 +165,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     return Response.json({ ok: true });
   }
 
-  // Die Bedingung `status = 'pending'` entscheidet das Rennen zweier
+  // Die Bedingung auf den zuvor gelesenen Stand entscheidet das Rennen zweier
   // gleichzeitiger Sitzungen: Nur die erste Entscheidung aendert eine Zeile,
   // die zweite bekommt 409 statt die erste zu ueberschreiben (Issue #38).
   // Mit der Entscheidung faellt auch der Anspruch.
@@ -156,13 +174,16 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     .update({
       status: body.status,
       moderator_comment: moderatorComment || null,
+      /* Auch beim Zurueckholen fortgeschrieben: Wer eine Einreichung wieder
+         geoeffnet hat, ist der letzte Stand der Bearbeitung. Die Pruefspalten
+         verlangen die beiden Angaben ohnehin, sobald wieder entschieden wird. */
       moderated_by: access.currentAdmin.user.id,
       moderated_at: new Date().toISOString(),
       claimed_by: null,
       claimed_at: null,
     })
     .eq("id", repairId)
-    .eq("status", "pending")
+    .eq("status", repair.status)
     .select("id");
 
   if (updateError) {
@@ -179,9 +200,35 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     if (storageError) {
       return Response.json({ ok: true, imageDeleted: false });
     }
+
+    await forgetImage(supabase, repairId);
   }
 
   return Response.json({ ok: true, imageDeleted: true });
+}
+
+/**
+ * Den Verweis auf das geloeschte Bild aus der Zeile nehmen (Issue #58).
+ *
+ * Ohne das bliebe `image_path` auf einer Datei stehen, die es nicht mehr gibt:
+ * Die Moderation bekaeme eine signierte Adresse ins Leere und damit ein
+ * kaputtes Bild. `image_deleted_at` haelt fest, dass es einmal ein Bild gab -
+ * sonst waere eine geloeschte nicht von einer bildlosen Einreichung zu
+ * unterscheiden.
+ *
+ * Fehlt die Spalte, weil Migration 202609010001 noch nicht gelaufen ist, wird
+ * wenigstens der tote Verweis geloescht. Die Ablehnung selbst steht zu diesem
+ * Zeitpunkt schon und darf daran nicht mehr scheitern.
+ */
+async function forgetImage(supabase: ReturnType<typeof createSupabaseAdminClient>, repairId: string) {
+  const { error } = await supabase
+    .from("repairs")
+    .update({ image_path: null, image_deleted_at: new Date().toISOString() })
+    .eq("id", repairId);
+
+  if (error) {
+    await supabase.from("repairs").update({ image_path: null }).eq("id", repairId);
+  }
 }
 
 function decidedElsewhere(status: string) {

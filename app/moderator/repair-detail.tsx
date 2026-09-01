@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CategoryMotif } from "@/components/category-motif";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
 import OriginMap from "./origin-map";
@@ -8,12 +9,14 @@ import RepairExif from "./repair-exif";
 import {
   draftFromRepair,
   isUnderReview,
+  missingImageNote,
   originSourceLabel,
   originWarning,
   performedByLabel,
   repairStatusLabels,
   type MetadataDraft,
   type ModerationRepair,
+  type RepairStatus,
 } from "./repair-types";
 
 /**
@@ -22,12 +25,15 @@ import {
  */
 export default function RepairDetail({
   repair,
+  isAdmin,
   onDecide,
   onSaveMetadata,
   onDelete,
 }: {
   repair: ModerationRepair;
-  onDecide: (repairId: string, status: "approved" | "rejected", comment: string) => Promise<void>;
+  /** Admins und Superadmins duerfen eine Entscheidung wieder aufmachen (Issue #58). */
+  isAdmin: boolean;
+  onDecide: (repairId: string, status: RepairStatus, comment: string) => Promise<void>;
   onSaveMetadata: (repairId: string, draft: MetadataDraft) => Promise<void>;
   onDelete: (repairId: string) => Promise<void>;
 }) {
@@ -40,7 +46,10 @@ export default function RepairDetail({
       {repair.imageUrl
         // eslint-disable-next-line @next/next/no-img-element -- Signierte Storage-URL ohne feste Groesse.
         ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" />
-        : <div className="missing-image">Kein Bild eingereicht</div>}
+        : <div className="missing-image">
+            <CategoryMotif category={repair.category} size={96} />
+            <span>{missingImageNote(repair)}</span>
+          </div>}
       <div>
         <p className="section-index">{repairCategoryLabel(repair.category)} <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span></p>
         <h3>{repair.brand_model || "Marke/Modell unbekannt"}</h3>
@@ -103,6 +112,33 @@ export default function RepairDetail({
             </div>
             {!repair.consent_publication && <p className="moderator-comment">Ohne Veröffentlichungszustimmung ist nur eine Ablehnung möglich.</p>}
           </>
+        )}
+        {/* Eine Ablehnung ist keine Sackgasse: Wer sich beschwert, kann von der
+            Administration wieder eingesetzt werden. Das Bild ist dann geloescht,
+            die Reparatur zaehlt aber (Issue #58). */}
+        {isAdmin && repair.status !== "pending" && (
+          <div className="reopen-actions">
+            <p className="moderator-comment">
+              {repair.status === "rejected"
+                ? "Diese Einreichung wurde abgelehnt. Du kannst sie zurück in die Prüfung holen oder direkt freigeben – das gelöschte Bild kommt dabei nicht zurück."
+                : "Diese Einreichung ist freigegeben. Du kannst sie zurück in die Prüfung holen; sie zählt dann vorerst nicht mehr."}
+            </p>
+            <label className="comment-label">Moderationskommentar<textarea value={comment} maxLength={1000} onChange={(event) => setComment(event.target.value)} /></label>
+            <div className="review-actions">
+              <button className="button button-secondary" type="button" onClick={() => void onDecide(repair.id, "pending", comment)}>Zurück in die Prüfung</button>
+              {repair.status === "rejected" && (
+                <button
+                  className="button button-primary"
+                  type="button"
+                  disabled={!repair.consent_publication}
+                  title={repair.consent_publication ? "Ohne Umweg über die Warteschlange freigeben" : "Ohne Veröffentlichungszustimmung nicht möglich"}
+                  onClick={() => void onDecide(repair.id, "approved", comment)}
+                >
+                  Doch freigeben
+                </button>
+              )}
+            </div>
+          </div>
         )}
         {repair.moderator_comment && <p className="moderator-comment">Kommentar: {repair.moderator_comment}</p>}
         <div className="review-actions">

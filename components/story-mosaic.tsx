@@ -1,6 +1,6 @@
 import Link from "next/link";
 import NextImage from "next/image";
-import { storyPhoto } from "@/lib/brand-photos";
+import { storyCover } from "@/lib/brand-photos";
 import type { StoryTeaser } from "@/lib/stories";
 
 /* Wie viele Kacheln die Startseite anreisst. Es werden nur vorhandene
@@ -29,7 +29,7 @@ export function StoryMosaic({ stories, limit = MOSAIC_LIMIT }: StoryMosaicProps)
 
   return <div className={`story-mosaic ${visible.length >= MOSAIC_MIN_TILES ? "is-mosaic" : "is-row"}`}>
     {visible.map((story, index) => {
-      const photo = storyPhoto(index);
+      const photo = storyCover(story, index);
       return <Link className="story-tile" href={`/stories/${story.slug}`} key={story.slug}>
         <NextImage src={photo.src} alt="" fill sizes="(max-width: 720px) 100vw, (max-width: 1100px) 50vw, 33vw" />
         <span className="story-tile-tag">{story.category}</span>

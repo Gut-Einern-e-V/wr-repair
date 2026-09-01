@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { CategoryPictogram } from "@/components/category-pictogram";
 import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
 import { useJsonResource } from "@/lib/use-json-resource";
 import { decideRepair, deleteRepair, saveRepairMetadata } from "./moderation-api";
@@ -8,6 +9,7 @@ import RepairDetail from "./repair-detail";
 import {
   buildQuery,
   isUnderReview,
+  missingImageNote,
   repairStatusLabels,
   type MetadataDraft,
   type ModerationFilters,
@@ -19,6 +21,12 @@ import {
 type LoadResponse = { repairs: ModerationRepair[]; counts: Record<string, number> | null; truncated: boolean };
 
 const emptyFilters: ModerationFilters = { status: "pending", category: "", consent: "", search: "", sort: "oldest" };
+
+const decisionNotices: Record<RepairStatus, string> = {
+  approved: "Einreichung wurde freigegeben.",
+  rejected: "Einreichung wurde abgelehnt.",
+  pending: "Einreichung liegt wieder in der Warteschlange.",
+};
 
 /**
  * Listenpruefung: filterbare Uebersicht mit Vollansicht. Freigeben geht direkt
@@ -46,7 +54,7 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
   const counts = data?.counts ?? null;
   const error = actionError || loadError;
 
-  async function decide(repairId: string, status: "approved" | "rejected", comment: string) {
+  async function decide(repairId: string, status: RepairStatus, comment: string) {
     setBusyId(repairId);
     setNotice("");
     setActionError("");
@@ -60,7 +68,7 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
       }
 
       setNotice(result.ok
-        ? (status === "approved" ? "Einreichung wurde freigegeben." : "Einreichung wurde abgelehnt.")
+        ? decisionNotices[status]
         : result.error);
       if (result.ok && result.data.imageDeleted === false) {
         setActionError("Die Einreichung wurde abgelehnt, aber das Bild muss noch manuell gelöscht werden.");
@@ -68,13 +76,19 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
 
       // Die entschiedene Zeile verschwindet sofort - auch bei 409, denn dann
       // hat sie jemand anderes entschieden und sie gehoert nicht mehr hierher.
-      patch((current) => ({
-        ...current,
-        repairs: current.repairs.filter((repair) => repair.id !== repairId),
-        counts: current.counts && result.ok
-          ? { ...current.counts, pending: Math.max(current.counts.pending - 1, 0), [status]: (current.counts[status] ?? 0) + 1 }
-          : current.counts,
-      }));
+      patch((current) => {
+        // Der bisherige Stand ist der Filter der Liste; genau dort geht die
+        // Einreichung weg. Frueher stand hier fest "pending", was seit der
+        // Rueckholung nicht mehr stimmt (Issue #58).
+        const previous = filters.status;
+        return {
+          ...current,
+          repairs: current.repairs.filter((repair) => repair.id !== repairId),
+          counts: current.counts && result.ok
+            ? { ...current.counts, [previous]: Math.max((current.counts[previous] ?? 0) - 1, 0), [status]: (current.counts[status] ?? 0) + 1 }
+            : current.counts,
+        };
+      });
       setSelectedId((current) => (current === repairId ? null : current));
     } finally {
       setBusyId(null);
@@ -164,7 +178,7 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
                     <td>{repair.imageUrl
                       // eslint-disable-next-line @next/next/no-img-element -- Signierte Storage-URL ohne feste Groesse.
                       ? <img className="table-thumb" src={repair.imageUrl} alt="" />
-                      : <span className="table-thumb is-empty" aria-label="Kein Bild" />}</td>
+                      : <span className="table-thumb is-empty" title={missingImageNote(repair)}><CategoryPictogram category={repair.category} /></span>}</td>
                     <td><strong>{repair.brand_model || "Marke/Modell unbekannt"}</strong><span className="table-sub">{repairCategoryLabel(repair.category)}</span></td>
                     <td>{new Date(repair.entry_time ?? repair.created_at).toLocaleString("de-DE")}</td>
                     <td>
@@ -188,6 +202,17 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
                           Freigeben
                         </button>
                       )}
+                      {isAdmin && repair.status === "rejected" && (
+                        <button
+                          className="quick-accept"
+                          type="button"
+                          disabled={busyId === repair.id}
+                          title="Zurück in die Warteschlange holen"
+                          onClick={() => void decide(repair.id, "pending", "")}
+                        >
+                          Zurückholen
+                        </button>
+                      )}
                       <button className="text-button" type="button" onClick={() => setSelectedId(repair.id === selectedId ? null : repair.id)}>{repair.id === selectedId ? "Schließen" : "Prüfen"}</button>
                     </td>
                   </tr>
@@ -199,6 +224,7 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
           {selected && (
             <RepairDetail
               repair={selected}
+              isAdmin={isAdmin}
               onDecide={(repairId, status, comment) => decide(repairId, status, comment)}
               onSaveMetadata={saveMetadata}
               onDelete={removeRepair}

@@ -39,6 +39,9 @@ summary: Ein gerissener Riemen, ein Nachmittag im Repair Café und ein Gerät, d
 category: Anderes
 date: 2026-10-14
 readingTime: 3 min
+image: naehmaschine-laeuft-wieder.jpg
+imageAlt: Eine geöffnete Nähmaschine steht auf einem Werktisch, daneben liegt der gerissene Riemen.
+imageCredit: Foto: Repair Café Wuppertal
 ---
 ```
 
@@ -49,6 +52,14 @@ readingTime: 3 min
 | `category`    | Frei wählbar, am besten eine der Kategorien aus dem Einreichungsformular (siehe unten).        |
 | `date`        | Veröffentlichungsdatum im Format `JJJJ-MM-TT`. Sortiert die Übersicht, neueste Geschichte oben.|
 | `readingTime` | Geschätzte Lesedauer, z. B. `3 min`.                                                           |
+
+Die drei Bildfelder sind **freiwillig** (siehe Abschnitt „Bilder“):
+
+| Feld           | Bedeutung                                                                                  |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| `image`        | Aufmacherbild. Dateiname aus `public/stories/`.                                             |
+| `imageAlt`     | Bildbeschreibung für Menschen, die das Bild nicht sehen können. Bei `image` bitte ausfüllen.|
+| `imageCredit`  | Bildnachweis, z. B. `Foto: Repair Café Wuppertal`. Gilt für alle Bilder der Geschichte.     |
 
 Umlaute und `ß` bitte direkt schreiben (`Nähmaschine`, nicht `Naehmaschine`).
 Die Dateien sind UTF-8.
@@ -78,16 +89,60 @@ Leerzeichen zusammengezogen – der Absatz fließt also.
 ```
 
 Was **nicht** unterstützt wird: `#` (die H1 kommt aus `title`), `###` und
-tiefer, Fettung/Kursiv, Links, Bilder, Tabellen, Zitate, Code-Blöcke. Solche
-Zeichen erscheinen als normaler Text. Wer mehr braucht, muss `parseBlocks()` in
+tiefer, Fettung/Kursiv, Links, Tabellen, Zitate, Code-Blöcke. Solche Zeichen
+erscheinen als normaler Text. Wer mehr braucht, muss `parseBlocks()` in
 `lib/stories.ts` erweitern.
 
 ## 4. Bilder
 
-Geschichten bringen **keine eigenen Bilder** mit. Die Kacheln und Karten nutzen
-automatisch die Motive aus der Markenbildwelt (`lib/brand-photos.ts`), reihum
-nach Position in der Liste. Ein neues Motiv also dort ergänzen, nicht in der
-Markdown-Datei.
+Bilder liegen **im Repository**, im Ordner `public/stories/`. Es braucht also
+weder ein Admin-Panel noch einen Bilderdienst: Bild in den Ordner legen,
+Dateinamen eintragen, zusammen mit dem Text committen. Ein extra Deploy
+entsteht dadurch nicht – die Geschichte selbst braucht ohnehin einen.
+
+Bilder von außerhalb (z. B. an ein GitHub-Issue angehängte Dateien) gehen
+bewusst nicht: Sie können verschwinden, während der Text stehen bleibt, und
+lägen außerhalb der Versionsverwaltung.
+
+### Aufmacherbild
+
+Steht im Frontmatter und erscheint auf der Kachel, in der Übersicht, oben im
+Artikel und als Vorschaubild beim Teilen:
+
+```md
+image: naehmaschine-laeuft-wieder.jpg
+imageAlt: Eine geöffnete Nähmaschine steht auf einem Werktisch.
+imageCredit: Foto: Repair Café Wuppertal
+```
+
+Ohne `image` greift wie bisher die Markenbildwelt (`lib/brand-photos.ts`),
+reihum nach Position in der Liste. Ein Motiv von dort lässt sich auch direkt
+angeben, dann mit führendem Schrägstrich: `image: /photos/dateiname.jpg`.
+
+### Bilder im Text
+
+Ein Bild mitten im Text steht **allein in seinem Absatz**, in der üblichen
+Markdown-Schreibweise. Die Bildunterschrift ist freiwillig und steht in
+Anführungszeichen dahinter:
+
+```md
+![Der gerissene Riemen liegt neben der Maschine.](naehmaschine-riemen.jpg)
+
+![Nahaufnahme des neuen Riemens.](naehmaschine-neu.jpg "Der neue Riemen sitzt.")
+```
+
+Der Bildnachweis aus `imageCredit` erscheint auch unter diesen Bildern.
+
+### Worauf zu achten ist
+
+- **Beschreibung nicht vergessen.** Der Text in den eckigen Klammern bzw. in
+  `imageAlt` wird vorgelesen, wenn das Bild nicht sichtbar ist.
+- **Rechte klären.** Nur Bilder verwenden, die veröffentlicht werden dürfen.
+  Sind Personen erkennbar, braucht es deren Einverständnis.
+- **Datei klein halten.** Höchstens rund 1600 Pixel an der langen Kante, unter
+  500 KB. Details stehen in `public/stories/README.md`.
+- **Tippfehler brechen den Build ab.** Fehlt die Datei, meldet `npm run build`
+  genau, welches Bild in welcher Geschichte nicht gefunden wurde.
 
 ## 5. Prüfen und veröffentlichen
 

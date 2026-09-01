@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
 import { CampaignWindowNotice } from "@/components/campaign-window-notice";
+import { CategoryMotif } from "@/components/category-motif";
 import { ConsentSettingsLink } from "@/components/consent-settings-link";
 import { FundingStrip } from "@/components/funding-strip";
 import { HeroCountdown } from "@/components/hero-countdown";
@@ -11,6 +12,7 @@ import { MobileNavigation } from "@/components/mobile-navigation";
 import { RepairSubmissionForm } from "@/components/repair-submission-form";
 import { StoryMosaic } from "@/components/story-mosaic";
 import { brandPhotos } from "@/lib/brand-photos";
+import { campaignPhaseAt, type CampaignDates, type CampaignPhase } from "@/lib/campaign-phase";
 import { repairCategories, repairCategoryLabel, type RepairCategory } from "@/lib/repair-catalog";
 import { faqEntries, repairRecords } from "@/lib/repair-records";
 import type { StoryTeaser } from "@/lib/stories";
@@ -21,10 +23,43 @@ type RepairStats = {
   categories: Record<string, number>;
 };
 
-type CampaignStatus = {
-  status: "open" | "before" | "after" | "invalid";
-  startAt: string | null;
-  endAt: string | null;
+/**
+ * Was die Startseite je nach Phase sagt (Issue #66).
+ *
+ * "invalid" traegt bewusst denselben Text wie die laufende Aktion: So steht er
+ * beim ersten Rendern und beim Server-Rendern schon richtig da, statt fuer
+ * einen Moment etwas anderes zu behaupten.
+ */
+const heroCopy: Record<CampaignPhase, {
+  kicker: string;
+  intro: string;
+  counterLabel: string;
+  categoryLead: string;
+}> = {
+  invalid: {
+    kicker: "Den ganzen Oktober lang reparieren …",
+    intro: "Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.",
+    counterLabel: "Reparaturen in Nordrhein-Westfalen",
+    categoryLead: "Ein Klick auf eine Kategorie öffnet direkt das Einreichungsformular – die Kategorie ist dann schon ausgewählt. Die Zahl darunter zeigt, wie viele Reparaturen dort bisher gezählt wurden.",
+  },
+  open: {
+    kicker: "Den ganzen Oktober lang reparieren …",
+    intro: "Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.",
+    counterLabel: "Reparaturen in Nordrhein-Westfalen",
+    categoryLead: "Ein Klick auf eine Kategorie öffnet direkt das Einreichungsformular – die Kategorie ist dann schon ausgewählt. Die Zahl darunter zeigt, wie viele Reparaturen dort bisher gezählt wurden.",
+  },
+  before: {
+    kicker: "Bald zählt jede Reparatur …",
+    intro: "Ganz NRW zeigt, was noch funktioniert. Sammle schon jetzt, was bei dir auf eine Reparatur wartet – eintragen kannst du es, sobald der Zeitraum beginnt.",
+    counterLabel: "Reparaturen in Nordrhein-Westfalen",
+    categoryLead: "Das wird gezählt. Sobald der Zeitraum läuft, öffnet ein Klick auf eine Kategorie direkt das Einreichungsformular.",
+  },
+  after: {
+    kicker: "Ein Monat lang hat NRW repariert …",
+    intro: "Danke an alle, die mitgemacht haben. Das ist der Endstand – jede Zahl darin war einmal ein Gegenstand, der sonst weggeworfen worden wäre.",
+    counterLabel: "Endstand in Nordrhein-Westfalen",
+    categoryLead: "So verteilen sich die gezählten Reparaturen auf die Kategorien.",
+  },
 };
 
 function useAnimatedCounter(value: number | null) {
@@ -63,7 +98,14 @@ export function HomeView({ stories }: HomeViewProps) {
   const [repairStats, setRepairStats] = useState<RepairStats | null>(null);
   const [statsState, setStatsState] = useState<"loading" | "ready" | "unavailable">("loading");
   const [statsUpdatedAt, setStatsUpdatedAt] = useState<Date | null>(null);
-  const [campaign, setCampaign] = useState<CampaignStatus>({ status: "invalid", startAt: null, endAt: null });
+  /* Nur die beiden Zeitpunkte; wo wir darin stehen, rechnet der Browser aus. */
+  const [campaign, setCampaign] = useState<CampaignDates>({ startAt: null, endAt: null });
+  /* Die Phase aus der Uhr des Browsers statt aus der Antwort vom Laden der
+     Seite: Sonst behauptet eine offen gebliebene Seite nach Ablauf der Frist
+     weiter, es laufe noch (Issue #66). Sekundentakt, damit der Text im selben
+     Moment umspringt wie die Uhr im Hero. Bleibt die Phase gleich, verwirft
+     React die Aktualisierung, es rendert also nichts neu. */
+  const [phase, setPhase] = useState<CampaignPhase>("invalid");
   const animatedRepairCount = useAnimatedCounter(repairCount);
 
   useEffect(() => {
@@ -94,15 +136,22 @@ export function HomeView({ stories }: HomeViewProps) {
       try {
         const response = await fetch("/api/campaign", { cache: "no-store" });
         if (!response.ok) throw new Error("Kampagnenstatus nicht verfuegbar");
-        const data = await response.json() as CampaignStatus;
-        setCampaign(data);
+        const data = await response.json() as CampaignDates;
+        setCampaign({ startAt: data.startAt, endAt: data.endAt });
       } catch {
-        setCampaign({ status: "invalid", startAt: null, endAt: null });
+        setCampaign({ startAt: null, endAt: null });
       }
     }
 
     void loadCampaign();
   }, []);
+
+  useEffect(() => {
+    const tick = () => setPhase(campaignPhaseAt(campaign, Date.now()));
+    tick();
+    const interval = window.setInterval(tick, 1_000);
+    return () => window.clearInterval(interval);
+  }, [campaign]);
 
   function closeSubmission() {
     setIsFormOpen(false);
@@ -110,7 +159,7 @@ export function HomeView({ stories }: HomeViewProps) {
 
   function startSubmission(categoryValue?: RepairCategory) {
     if (categoryValue) setCategory(categoryValue);
-    if (campaign.status !== "open") {
+    if (phase !== "open") {
       document.getElementById("campaign-window")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -120,6 +169,10 @@ export function HomeView({ stories }: HomeViewProps) {
   const topCategories = Object.entries(repairStats?.categories ?? {})
     .sort(([, left], [, right]) => right - left)
     .slice(0, 3);
+
+  const copy = heroCopy[phase];
+  const goal = repairStats?.goal ?? 10_000;
+  const isDone = phase === "after";
 
   return (
     <main className="page-shell">
@@ -143,42 +196,46 @@ export function HomeView({ stories }: HomeViewProps) {
         </div>
         <div className="hero-poster-inner">
           <div className="hero-copy">
-            <p className="brand-kicker">Den ganzen Oktober lang reparieren &hellip;</p>
+            <p className="brand-kicker">{copy.kicker}</p>
             <h1 className="sticker-head is-mint" id="hero-title">
               <span className="sticker">Gemeinsam zum</span>
               <span className="sticker">Reparatur-</span>
               <span className="sticker">Weltrekord</span>
             </h1>
-            <p className="hero-intro">
-              Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.
-            </p>
+            <p className="hero-intro">{copy.intro}</p>
             <div className="hero-actions">
-              <button className="button button-primary" type="button" onClick={() => startSubmission()}>
-                {campaign.status === "open" ? "Reparatur einreichen" : "Mehr zum Rekordversuch"} <span aria-hidden="true">&#8594;</span>
-              </button>
-              <Link className="button button-secondary" href="/stats">Live-Stand <span aria-hidden="true">&#8594;</span></Link>
+              {/* Nach dem Zeitraum fuehrt der Hauptweg nicht mehr ins Formular,
+                  sondern zum Rueckblick - der ist dann das, was es zu sehen gibt. */}
+              {isDone
+                ? <Link className="button button-primary" href="/stats">Rückblick ansehen <span aria-hidden="true">&#8594;</span></Link>
+                : <button className="button button-primary" type="button" onClick={() => startSubmission()}>
+                    {phase === "open" ? "Reparatur einreichen" : "Mehr zum Rekordversuch"} <span aria-hidden="true">&#8594;</span>
+                  </button>}
+              <Link className="button button-secondary" href={isDone ? "/stories" : "/stats"}>
+                {isDone ? "Geschichten lesen" : "Live-Stand"} <span aria-hidden="true">&#8594;</span>
+              </Link>
             </div>
           </div>
 
           <div className="hero-side">
             <aside className="hero-facts" id="counter">
               <div>
-                <p className="counter-label">Reparaturen in Nordrhein-Westfalen</p>
+                <p className="counter-label">{copy.counterLabel}</p>
                 <p className={`counter-number ${animatedRepairCount === null ? "is-loading" : ""}`} aria-live="polite" aria-label={animatedRepairCount === null ? "Reparaturen werden geladen" : `${animatedRepairCount} Reparaturen`}>{animatedRepairCount === null ? "..." : animatedRepairCount.toLocaleString("de-DE")}</p>
                 <div className="counter-meta">
-                  <span>Unser Ziel: {(repairStats?.goal ?? 10_000).toLocaleString("de-DE")}</span>
-                  <span>{((repairCount ?? 0) / (repairStats?.goal ?? 10_000) * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
+                  <span>{isDone ? "Ziel war" : "Unser Ziel"}: {goal.toLocaleString("de-DE")}</span>
+                  <span>{((repairCount ?? 0) / goal * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
                 </div>
-                <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / (repairStats?.goal ?? 10_000) * 100, 100)}%` }} /></div>
-                <p className="counter-note">{statsState === "unavailable" ? "Der Live-Stand ist gerade nicht verfügbar." : statsUpdatedAt ? `Aktualisiert um ${statsUpdatedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.` : "Live-Stand wird geladen."}</p>
+                <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / goal * 100, 100)}%` }} /></div>
+                <p className="counter-note">{counterNote(phase, statsState, statsUpdatedAt)}</p>
               </div>
-              <HeroCountdown status={campaign.status} startAt={campaign.startAt} endAt={campaign.endAt} />
+              <HeroCountdown campaign={campaign} total={repairCount} goal={repairStats?.goal ?? null} />
             </aside>
           </div>
         </div>
       </section>
 
-      {campaign.status !== "open" && <CampaignWindowNotice status={campaign.status} startAt={campaign.startAt} />}
+      {phase !== "open" && <CampaignWindowNotice status={phase} startAt={campaign.startAt} />}
 
       <section className="how-it-works" aria-labelledby="how-title">
         <div>
@@ -226,18 +283,18 @@ export function HomeView({ stories }: HomeViewProps) {
       </section>
 
       <section className="home-stats-preview" aria-labelledby="home-stats-title">
-        <div><p className="section-index">Live-Auswertung</p><h2 id="home-stats-title">Was gerade repariert wird.</h2><p>Gezählt wird, was die Moderation geprüft hat. Aus Datenschutzgründen werden keine Orte auf einer Karte dargestellt.</p><Link className="text-button" href="/stats">Alle Statistiken <span aria-hidden="true">&#8594;</span></Link></div>
-        <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? "Die Statistik wird während des Weltrekordversuchs freigeschaltet." : "Die ersten Reparaturen erscheinen hier."}</li>}</ol>
+        <div><p className="section-index">Live-Auswertung</p><h2 id="home-stats-title">{isDone ? "Was repariert wurde." : "Was gerade repariert wird."}</h2><p>Gezählt wird, was die Moderation geprüft hat. Aus Datenschutzgründen werden keine Orte auf einer Karte dargestellt.</p><Link className="text-button" href="/stats">{isDone ? "Zum Rückblick" : "Alle Statistiken"} <span aria-hidden="true">&#8594;</span></Link></div>
+        <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? "Die Statistik wird mit dem Start des Weltrekordversuchs freigeschaltet." : "Die ersten Reparaturen erscheinen hier."}</li>}</ol>
       </section>
 
       <section className="category-section" aria-labelledby="category-title">
         <div className="section-heading">
           <div>
-            <p className="section-index">Reparatur eintragen</p>
-            <h2 id="category-title">Kategorie wählen und Reparatur eintragen.</h2>
-            <p className="section-lead">Ein Klick auf eine Kategorie öffnet direkt das Einreichungsformular &ndash; die Kategorie ist dann schon ausgewählt. Die Zahl darunter zeigt, wie viele Reparaturen dort bisher gezählt wurden.</p>
+            <p className="section-index">{isDone ? "Nach Kategorien" : "Reparatur eintragen"}</p>
+            <h2 id="category-title">{isDone ? "Das wurde repariert." : "Kategorie wählen und Reparatur eintragen."}</h2>
+            <p className="section-lead">{copy.categoryLead}</p>
           </div>
-          <button className="text-button" type="button" onClick={() => startSubmission()}>{campaign.status === "open" ? "Ohne Kategorie starten" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span></button>
+          <button className="text-button" type="button" onClick={() => startSubmission()}>{phase === "open" ? "Ohne Kategorie starten" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span></button>
         </div>
         <div className="category-grid">
           {repairCategories.map((item, index) => (
@@ -248,6 +305,9 @@ export function HomeView({ stories }: HomeViewProps) {
               onClick={() => startSubmission(item.value)}
               aria-label={`Reparatur in der Kategorie ${item.label} eintragen`}
             >
+              {/* Das Motiv steht oben, der Name bleibt unten am Fuss der
+                  Kachel (`margin-top: auto`). */}
+              <CategoryMotif category={item.value} size={56} />
               <strong>{item.label}</strong>
               <span className="category-card-count">{(repairStats?.categories[item.value] ?? 0).toLocaleString("de-DE")} Reparaturen</span>
               <span className="category-card-action"><i aria-hidden="true">+</i>Eintragen</span>
@@ -310,4 +370,20 @@ export function HomeView({ stories }: HomeViewProps) {
       )}
     </main>
   );
+}
+
+/**
+ * Der Satz unter dem Zaehler. Nach dem Zeitraum ist die Zahl kein Live-Stand
+ * mehr, sondern das Ergebnis - und "Aktualisiert um 14:07 Uhr" waere dort
+ * die falsche Auskunft (Issue #66).
+ */
+function counterNote(phase: CampaignPhase, statsState: "loading" | "ready" | "unavailable", updatedAt: Date | null) {
+  if (statsState === "unavailable") {
+    if (phase === "before") return "Gezählt wird ab dem Start der Reparaturphase.";
+    return phase === "after" ? "Der Endstand ist gerade nicht verfügbar." : "Der Live-Stand ist gerade nicht verfügbar.";
+  }
+  if (!updatedAt) return "Live-Stand wird geladen.";
+  if (phase === "after") return "Endstand nach der Prüfung durch die Moderation.";
+
+  return `Aktualisiert um ${updatedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.`;
 }

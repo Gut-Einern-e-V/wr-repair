@@ -1,4 +1,5 @@
 import { HomeView } from "./home-view";
+import { SiteStructuredData } from "@/components/structured-data";
 import { getStoryTeasers } from "@/lib/stories";
 
 /* Die Startseite wird statisch vorgerendert: Die Blog-Uebersicht kommt aus den
@@ -6,5 +7,8 @@ import { getStoryTeasers } from "@/lib/stories";
    Beitraege erscheinen mit dem naechsten Deploy, ein Seitenaufruf loest dafuer
    keine zusaetzliche Anfrage aus. */
 export default async function Home() {
-  return <HomeView stories={await getStoryTeasers()} />;
+  return <>
+    <SiteStructuredData />
+    <HomeView stories={await getStoryTeasers()} />
+  </>;
 }

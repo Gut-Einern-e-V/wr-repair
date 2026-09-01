@@ -489,7 +489,9 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   animation: spotlight-in 700ms cubic-bezier(.2, .8, .3, 1);
 }
 .spotlight img { display: block; width: 100%; max-height: 46vh; object-fit: cover; }
-.spotlight-placeholder { display: grid; place-items: center; height: 26vh; background: rgba(149, 212, 187, .12); font: 800 5rem var(--sans); color: var(--stage-mint); }
+/* Motiv der Kategorie statt des ersten Buchstabens (Issue #58). Die Platte
+   bringt ihren eigenen hellen Grund mit, deshalb hier keine Tonung mehr. */
+.spotlight-placeholder { display: grid; place-items: center; height: 26vh; }
 .spotlight figcaption { display: flex; flex-direction: column; gap: 6px; padding: 14px 18px; }
 .spotlight figcaption span { font: 500 11px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
 .spotlight figcaption strong { font: 700 clamp(1.1rem, 1.6vw, 1.6rem)/1.15 var(--sans); }
