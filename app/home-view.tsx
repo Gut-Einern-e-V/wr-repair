@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
 import { CampaignWindowNotice } from "@/components/campaign-window-notice";
+import { CategoryMotif } from "@/components/category-motif";
 import { ConsentSettingsLink } from "@/components/consent-settings-link";
 import { FundingStrip } from "@/components/funding-strip";
 import { HeroCountdown } from "@/components/hero-countdown";
@@ -304,6 +305,9 @@ export function HomeView({ stories }: HomeViewProps) {
               onClick={() => startSubmission(item.value)}
               aria-label={`Reparatur in der Kategorie ${item.label} eintragen`}
             >
+              {/* Das Motiv steht oben, der Name bleibt unten am Fuss der
+                  Kachel (`margin-top: auto`). */}
+              <CategoryMotif category={item.value} size={56} />
               <strong>{item.label}</strong>
               <span className="category-card-count">{(repairStats?.categories[item.value] ?? 0).toLocaleString("de-DE")} Reparaturen</span>
               <span className="category-card-action"><i aria-hidden="true">+</i>Eintragen</span>

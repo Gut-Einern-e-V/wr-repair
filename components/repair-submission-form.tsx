@@ -2,6 +2,7 @@
 
 import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { CategoryMotif } from "@/components/category-motif";
 import { FriendlyCaptcha } from "@/components/friendly-captcha";
 import { RepairCategorySelect } from "@/components/repair-form-fields";
 import { repairCategories, type RepairCategory } from "@/lib/repair-catalog";
@@ -608,6 +609,9 @@ export function RepairSubmissionForm({
   if (isSubmitted) {
     return (
       <div className="success-state">
+        {/* Das Motiv der gewaehlten Kategorie: Der Danke-Bildschirm bestaetigt
+            damit nebenbei, was eingereicht wurde. */}
+        <CategoryMotif category={category} size={88} />
         <p className="section-index">Eingereicht</p>
         <h2 id={headingId}>Danke. Deine Reparatur wird geprüft und zählt dann zum Rekord!</h2>
         <p>Sobald die Moderation deine Reparatur freigegeben hat, zählt sie zum Rekord und du kannst sie teilen.</p>

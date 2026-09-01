@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { CategoryMotif } from "@/components/category-motif";
 import { ShareButton } from "@/components/share-button";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { getPublicRepairStatus } from "@/lib/repair-status";
@@ -48,11 +49,11 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
 
       {isApproved ? <>
         <p className="repair-status-lead">Deine Reparatur ist freigegeben und zählt zum Weltrekordversuch. Jetzt darfst du sie teilen.</p>
-        {repair.imageUrl && <>
+        {repair.imageUrl ? <>
           {/* Signed URLs from the private bucket cannot use Next.js image optimization. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="repair-status-image" src={repair.imageUrl} alt={`Freigegebene Reparatur aus der Kategorie ${categoryLabel}`} />
-        </>}
+        </> : <CategoryMotif category={repair.category} size={140} priority />}
         {repair.productName && <p className="repair-status-meta">{repair.productName}</p>}
         {repair.story && <p className="repair-status-story">{repair.story}</p>}
         <div className="repair-status-actions">
@@ -66,6 +67,7 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
         </div>
       </> : repair.status === "rejected" ? <>
         <p className="repair-status-lead">Diese Einreichung konnte nicht freigegeben werden. Melde dich gerne bei uns, wenn du dazu Fragen hast.</p>
+        <CategoryMotif category={repair.category} size={140} priority />
         {/* Offen sagen, was mit dem Foto passiert ist (Issue #58). Wer sich
             meldet, kann wieder eingesetzt werden - das Bild ist dann aber weg
             und muesste neu hochgeladen werden. */}
@@ -76,6 +78,9 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
         </div>
       </> : <>
         <p className="repair-status-lead">Danke! Deine Reparatur liegt bei der Moderation. Sobald sie freigegeben ist, zählt sie zum Rekord und du kannst sie hier teilen.</p>
+        {/* Solange nichts freigegeben ist, wird kein eingereichtes Bild
+            gezeigt - das Motiv der Kategorie steht dafuer. */}
+        <CategoryMotif category={repair.category} size={140} priority />
         <p className="form-notice">Teilen ist erst nach der Freigabe möglich – so landet nichts Ungeprüftes in den sozialen Netzwerken. Speichere dir diese Seite als Lesezeichen und schau später wieder vorbei.</p>
         <div className="repair-status-actions">
           <Link className="button button-primary" href="/mitmachen">Noch eine Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>

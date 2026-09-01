@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
-import { CategoryPictogram } from "@/components/category-pictogram";
+import { CategoryMotif } from "@/components/category-motif";
 import { goalLaps, mergeDashboardDelta, type DashboardDelta, type DashboardSnapshot } from "@/lib/dashboard";
 import { rankKreise } from "@/lib/nrw-map";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
@@ -301,10 +301,10 @@ export default function LiveDashboard() {
                 // Signierte Supabase-URLs laufen ab und wuerden vom Next-Optimizer zusaetzlich gecacht.
                 // eslint-disable-next-line @next/next/no-img-element
                 ? <img alt={featured.imageAltText ?? ""} src={featured.imageUrl} />
-                // Ohne Bild das Zeichen der Kategorie statt ihres ersten
+                // Ohne Bild das Motiv der Kategorie statt ihres ersten
                 // Buchstabens - seit Issue #58 gibt es Einreichungen ohne Bild
                 // regelmaessig, und ein "H" sagt auf einer Buehne nichts.
-                : <div className="spotlight-placeholder"><CategoryPictogram category={featured.category} /></div>}
+                : <div className="spotlight-placeholder"><CategoryMotif category={featured.category} size={168} /></div>}
               <figcaption>
                 <span style={{ color: categoryColor(featured.category) }}>{repairCategoryLabel(featured.category)}</span>
                 <strong>{featured.brandModel ?? "Frisch repariert"}</strong>

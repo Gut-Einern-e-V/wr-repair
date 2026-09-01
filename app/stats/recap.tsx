@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import "./recap.css";
-import { CategoryPictogram } from "@/components/category-pictogram";
+import { CategoryMotif } from "@/components/category-motif";
 import type { CampaignDates } from "@/lib/campaign-phase";
 import { formatMinutes } from "@/lib/dashboard";
 import type { PublicStats } from "@/lib/public-stats";
@@ -165,7 +165,7 @@ export default function Recap({ campaign }: { campaign: CampaignDates }) {
           <ol className="recap-time-list">
             {derived.categoryMinutes.slice(0, 6).map(([category, minutes]) => (
               <li key={category}>
-                <CategoryPictogram category={category} />
+                <CategoryMotif category={category} size={64} />
                 <span className="recap-time-label">{repairCategoryLabel(category)}</span>
                 <strong>{formatMinutes(minutes)}</strong>
               </li>

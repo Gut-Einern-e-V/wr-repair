@@ -1225,13 +1225,41 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .article-figure-credit { font: 11px var(--mono); letter-spacing: .04em; text-transform: uppercase; }
 @media (max-width: 720px) { .article-figure, .article-figure.is-lead { max-width: 100%; margin: 28px 0; } .article-figure.is-lead { margin-top: 8px; } }
 
-/* Fehlendes Bild in der Moderation (Issue #58): Sinnbild der Kategorie ueber
-   dem Hinweis, ob nie eines eingereicht wurde oder ob die Ablehnung es
-   geloescht hat. `.missing-image` bringt Rahmen und Seitenverhaeltnis schon
-   mit, hier kommt nur der Inhalt dazu. */
-.missing-image { gap: 12px; align-content: center; color: var(--muted); }
-.missing-image svg { width: 44px; height: 44px; }
+/* Fehlendes Bild in der Moderation (Issue #58): Motiv der Kategorie ueber dem
+   Hinweis, ob nie eines eingereicht wurde oder ob die Ablehnung es geloescht
+   hat. `.missing-image` bringt Rahmen und Seitenverhaeltnis schon mit, hier
+   kommt nur der Inhalt dazu. */
+.missing-image { gap: 14px; align-content: center; color: var(--muted); }
 
 /* Rueckholung einer entschiedenen Einreichung - nur fuer Admins sichtbar. */
 .reopen-actions { margin-top: 22px; padding-top: 4px; border-top: var(--line); }
 .reopen-actions .moderator-comment { border-top: 0; }
+
+/* Motivplatte je Kategorie (Issue #58, Bildwelt-Umstellung).
+
+   Die Kantenlaenge setzt die Komponente als Inline-Stil, weil sie je
+   Einbaustelle anders ist. Hier steht nur, wie die Platte aussieht: heller
+   Grund mit Markenkontur, damit jedes Motiv auf demselben Weiss sitzt, auf dem
+   es gerendert wurde - auch auf der dunklen Buehne und auf den farbigen
+   Kategorie-Kacheln. Begruendung in components/category-motif.tsx. */
+.category-motif { display: grid; place-items: center; flex: none; border: var(--line); background: var(--paper); color: var(--ink); }
+.category-motif img { width: 84%; height: 84%; object-fit: contain; }
+/* Das Rueckfall-Zeichen ist eine Strichzeichnung und braucht mehr Luft als ein
+   Motiv, das seinen Rand selbst mitbringt. */
+.category-motif svg { width: 56%; height: 56%; }
+
+/* Kategorie-Kachel mit Motiv: Die Kacheln waren reiner Text. Das Motiv sitzt
+   oben, der Name bleibt unten am Fuss - deshalb bekommt die Kachel etwas mehr
+   Hoehe, statt den Namen nach oben zu druecken. */
+.category-card { min-height: 196px; gap: 12px; }
+.category-card .category-motif { margin-bottom: 2px; }
+@media (max-width: 720px) { .category-card { min-height: 178px; } }
+
+/* Danke-Bildschirm: Das Motiv steht ueber der Ueberschrift und bestaetigt,
+   welche Kategorie eingereicht wurde. */
+.success-state .category-motif { margin-bottom: 22px; }
+
+/* Statusseite einer Reparatur: Das Motiv nimmt den Platz des Fotos ein, wo
+   keines gezeigt wird - vor der Freigabe, nach einer Ablehnung und bei
+   Einreichungen ohne Bild. */
+.repair-status .category-motif { margin: 8px 0 26px; }

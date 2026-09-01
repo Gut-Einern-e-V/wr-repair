@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CategoryPictogram } from "@/components/category-pictogram";
+import { CategoryMotif } from "@/components/category-motif";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
 import OriginMap from "./origin-map";
@@ -47,7 +47,7 @@ export default function RepairDetail({
         // eslint-disable-next-line @next/next/no-img-element -- Signierte Storage-URL ohne feste Groesse.
         ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" />
         : <div className="missing-image">
-            <CategoryPictogram category={repair.category} />
+            <CategoryMotif category={repair.category} size={96} />
             <span>{missingImageNote(repair)}</span>
           </div>}
       <div>
