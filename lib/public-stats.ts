@@ -22,7 +22,23 @@ export type PublicStats = {
   bestDay: PublicStatsDay | null;
   /** Bisheriger Rekord aus frueheren Aktionen, sofern eingetragen. */
   dayRecord: number | null;
+  /* Ab hier die Groessen fuer den Rueckblick nach dem Zeitraum (Issue #66).
+     Sie stehen auch waehrend der Aktion in der Antwort - eine Schnittstelle,
+     die je nach Datum andere Felder liefert, waere fuer angeschlossene Geraete
+     eine Zumutung. */
+  /** Reparaturen, die geglueckt sind. */
+  succeeded: number;
+  /** Einreichungen mit erzaehlter Geschichte. */
+  withStory: number;
+  /** Summe der angegebenen Reparaturzeit in Minuten. */
+  minutesSaved: number;
+  /** Summe des angegebenen Gegenstandswerts in Euro. */
+  valueSavedEuros: number;
+  /** Wer repariert hat: allein, mit Unterstuetzung, oder jemand anderes. */
+  performedBy: Record<string, number>;
   categories: Record<string, number>;
+  /** Reparaturzeit je Kategorie in Minuten - wie viel Zeit steckte in Uhren? */
+  categoryMinutes: Record<string, number>;
   /** Alle Kreise und kreisfreien Staedte mit mindestens einer Reparatur. */
   kreise: Record<string, number>;
   /** Ein Eintrag je Tag des Einreichungszeitraums, Luecken als 0. */
@@ -126,7 +142,13 @@ export function readPublicStats(aggregate: unknown, context: PublicStatsContext)
     today: toNumber(record.today),
     bestDay: toDay(record.bestDay),
     dayRecord: context.dayRecord,
+    succeeded: toNumber(record.succeeded),
+    withStory: toNumber(record.withStory),
+    minutesSaved: toNumber(record.minutesSaved),
+    valueSavedEuros: toNumber(record.valueSavedEuros),
+    performedBy: toCounts(record.performedBy),
     categories: toCounts(record.categories),
+    categoryMinutes: toCounts(record.categoryMinutes),
     kreise: toCounts(record.kreise),
     timeline: toTimeline(record.timeline),
     campaign: {

@@ -16,9 +16,13 @@ import { readPublicStats, timelineRange } from "@/lib/public-stats";
 export async function GET(request: Request) {
   const settings = await getAppSettings();
   const campaign = settings.submissionWindow;
-  if (campaign.status !== "open") {
+  /* Waehrend und nach dem Zeitraum. Vorher gibt es nichts zu zeigen, und die
+     Zahl null als "Live-Stand" waere irrefuehrend; danach ist die Zahl das
+     Ergebnis und bleibt offen - die Startseite und der Rueckblick unter /stats
+     leben davon (Issue #66). */
+  if (campaign.status !== "open" && campaign.status !== "after") {
     return Response.json(
-      { error: "Die oeffentliche Statistik ist nur waehrend des Weltrekordversuchs verfuegbar.", code: "outside-campaign-window" },
+      { error: "Die oeffentliche Statistik ist ab dem Start des Weltrekordversuchs verfuegbar.", code: "outside-campaign-window" },
       { status: 403, headers: { "Cache-Control": "no-store" } },
     );
   }
@@ -38,8 +42,8 @@ export async function GET(request: Request) {
     return Response.json({ error: "Der Statistikdienst ist noch nicht konfiguriert." }, { status: 503 });
   }
 
-  // `status === "open"` garantiert beide Grenzen; das Fallback haelt nur den
-  // Typ zufrieden.
+  // Beide Status garantieren beide Grenzen; das Fallback haelt nur den Typ
+  // zufrieden.
   const range = timelineRange(campaign.startAt ?? new Date(), campaign.endAt ?? new Date());
   const { data, error } = await supabase.rpc("public_stats", { range_start: range.start, range_end: range.end });
 
@@ -53,5 +57,9 @@ export async function GET(request: Request) {
     campaign: { startAt: campaign.startAt, endAt: campaign.endAt },
   });
 
-  return Response.json(stats, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=60" } });
+  /* Nach dem Zeitraum kommt nur noch dazu, was die Moderation nachtraeglich
+     freigibt - deutlich seltener als waehrend der Aktion. Ein laengeres
+     Zwischenlager spart Abfragen, ohne dass jemand etwas davon merkt. */
+  const maxAge = campaign.status === "after" ? 1_800 : 300;
+  return Response.json(stats, { headers: { "Cache-Control": `public, s-maxage=${maxAge}, stale-while-revalidate=60` } });
 }

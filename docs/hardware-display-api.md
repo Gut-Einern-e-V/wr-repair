@@ -1,6 +1,6 @@
 # Öffentliche Statistik auf einem Display anzeigen
 
-Während des aktiven Kampagnenzeitraums kann ein Display die öffentliche Statistik direkt abrufen:
+Ab dem Start des Kampagnenzeitraums kann ein Display die öffentliche Statistik direkt abrufen — auch nach dessen Ende, damit ein Gerät das Ergebnis stehen lassen kann:
 
 ```text
 GET https://DEINE-DOMAIN.example/api/stats
@@ -20,9 +20,22 @@ Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visua
   "today": 23,
   "bestDay": { "date": "2026-10-17", "total": 41 },
   "dayRecord": 412,
+  "succeeded": 171,
+  "withStory": 46,
+  "minutesSaved": 8832,
+  "valueSavedEuros": 18768,
+  "performedBy": {
+    "alone": 74,
+    "with_support": 88,
+    "by_someone": 22
+  },
   "categories": {
     "electronics": 72,
     "household": 45
+  },
+  "categoryMinutes": {
+    "electronics": 3456,
+    "household": 2700
   },
   "kreise": {
     "Wuppertal": 31,
@@ -46,7 +59,13 @@ Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visua
 | `today` | Stand des laufenden Tages. |
 | `bestDay` | Bester Tag dieser Aktion vor heute, oder `null`, solange es keinen gibt. |
 | `dayRecord` | Bisheriger Tagesrekord aus früheren Aktionen, oder `null`, wenn keiner hinterlegt ist. |
+| `succeeded` | Reparaturen, die geglückt sind. |
+| `withStory` | Einreichungen, zu denen eine Geschichte erzählt wurde. |
+| `minutesSaved` | Summe der angegebenen Reparaturzeit in Minuten. Nicht jede Einreichung macht eine Angabe. |
+| `valueSavedEuros` | Summe des angegebenen Gegenstandswerts in Euro. Ebenfalls freiwillig. |
+| `performedBy` | Wer repariert hat: `alone`, `with_support`, `by_someone`. |
 | `categories` | Kategoriename und Gesamtzahl. |
+| `categoryMinutes` | Reparaturzeit je Kategorie in Minuten. |
 | `kreise` | Alle Kreise und kreisfreien Städte mit mindestens einer Reparatur, nicht nur die vordersten. |
 | `timeline` | Ein Eintrag je Tag, Tage ohne Reparatur als `0`. |
 | `campaign` | Anfang und Ende des Einreichungszeitraums als ISO-Zeitstempel. |
@@ -55,9 +74,13 @@ Ein Tagesrekord besteht aus drei Werten: `today` ist der laufende Tag, `bestDay`
 
 ### Welchen Zeitraum die Zeitachse abdeckt
 
-`timeline` folgt dem Einreichungszeitraum: Sie beginnt an dessen erstem Tag und endet am heutigen Tag — die Route antwortet ohnehin nur innerhalb des Zeitraums. Der Zeitraum ist im Backend einstellbar, die Zahl der Einträge also nicht fest: Ein Gerät sollte über die Liste laufen und sich nicht auf 30 Einträge verlassen. Bei einem Zeitraum von mehr als 366 Tagen werden nur dessen letzte 366 Tage geliefert.
+`timeline` folgt dem Einreichungszeitraum: Sie beginnt an dessen erstem Tag und endet am heutigen Tag, längstens aber am letzten Tag des Zeitraums. Der Zeitraum ist im Backend einstellbar, die Zahl der Einträge also nicht fest: Ein Gerät sollte über die Liste laufen und sich nicht auf 30 Einträge verlassen. Bei einem Zeitraum von mehr als 366 Tagen werden nur dessen letzte 366 Tage geliefert.
 
 Gezählt wird der Tag der Einreichung, nicht der Tag der Freigabe: Ein Tag ist der Tag, an dem repariert wurde, sonst hinge die Zeitachse daran, wann die Moderation Zeit hatte. Alle Tagesgrenzen liegen in der Zeitzone Europa/Berlin. Alle anderen Zahlen (`total`, `categories`, `kreise`) sind Gesamtwerte der Aktion; da Einreichungen nur innerhalb des Zeitraums möglich sind, decken sie genau ihn ab.
+
+### Wann die Route antwortet
+
+Vor dem Start des Zeitraums antwortet sie mit `403` — es gibt nichts zu zählen, und eine Null wäre eine falsche Auskunft. Ab dem Start und **auch nach dem Ende** liefert sie Zahlen: Nach dem Zeitraum ist `today` in aller Regel `0`, `total` steht still, und ein Display kann das Ergebnis stehen lassen. Genau diese Zahlen zeigt auch der Rückblick unter `/stats`.
 
 ## ESP32 oder Arduino mit WLAN
 

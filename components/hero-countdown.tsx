@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { campaignPhaseAt, type CampaignDates } from "@/lib/campaign-phase";
 
 export type HeroCountdownProps = {
-  status: "open" | "before" | "after" | "invalid";
-  startAt: string | null;
-  endAt: string | null;
+  campaign: CampaignDates;
+  /** Endstand und Ziel, sobald sie geladen sind - fuer die Bilanz nach dem Ende. */
+  total: number | null;
+  goal: number | null;
 };
 
 type CountdownParts = { days: number; hours: number; minutes: number; seconds: number };
@@ -20,33 +22,59 @@ function splitDuration(milliseconds: number): CountdownParts {
   };
 }
 
-/* Waehrend der Reparaturphase laeuft der Timer auf das Ende, davor auf den Start.
-   Beim Server-Rendering ist der Kampagnenstatus noch "invalid" - dort greift der
-   Zweig ohne Uhr, deshalb kann `now` gefahrlos direkt initialisiert werden. */
-export function HeroCountdown({ status, startAt, endAt }: HeroCountdownProps) {
-  const [now, setNow] = useState(() => Date.now());
-  const target = status === "before" ? startAt : status === "open" ? endAt : null;
-  const targetTime = target ? new Date(target).valueOf() : Number.NaN;
-  const hasTarget = !Number.isNaN(targetTime);
+const dateTimeFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeStyle: "short" });
+const dateFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "long" });
+
+/**
+ * Uhr im Hero.
+ *
+ * Vor der Reparaturphase laeuft sie auf den Start, waehrenddessen auf das Ende,
+ * danach steht statt der Uhr die Bilanz.
+ *
+ * Die Phase wird hier aus den beiden Zeitpunkten abgeleitet und nicht vom
+ * Server uebernommen (siehe lib/campaign-phase.ts). Vorher blieb ein offener
+ * Browser beim Ablauf der Frist auf 00:00:00 stehen - der Zustand vom Laden
+ * der Seite galt weiter (Issue #66).
+ *
+ * Vor dem ersten Uhrentakt ist die Phase "invalid"; dort greift der Zweig ohne
+ * Uhr, deshalb kann `now` gefahrlos mit 0 starten und Server und erster
+ * Browser-Durchlauf zeigen dasselbe.
+ */
+export function HeroCountdown({ campaign, total, goal }: HeroCountdownProps) {
+  const [now, setNow] = useState(0);
 
   useEffect(() => {
-    if (!hasTarget) return;
-    const interval = window.setInterval(() => setNow(Date.now()), 1_000);
+    const tick = () => setNow(Date.now());
+    tick();
+    const interval = window.setInterval(tick, 1_000);
     return () => window.clearInterval(interval);
-  }, [hasTarget, targetTime]);
+  }, []);
 
-  if (!hasTarget) {
-    return <div className="hero-countdown is-quiet">
-      <p className="hero-countdown-label">Reparaturphase</p>
+  const phase = campaignPhaseAt(campaign, now);
+
+  if (phase === "after") {
+    return <div className="hero-countdown is-done">
+      <p className="hero-countdown-label">Reparaturphase beendet</p>
+      <p className="hero-countdown-result">{resultLine(total, goal)}</p>
       <p className="hero-countdown-note">
-        {status === "after"
-          ? "Der Einreichungszeitraum ist beendet. Danke an alle, die mitgemacht haben."
-          : "Der genaue Zeitraum wird gerade festgelegt."}
+        {campaign.endAt
+          ? <>Letzter Eintrag: <time dateTime={campaign.endAt}>{dateFormat.format(new Date(campaign.endAt))}</time>. Danke an alle, die mitgemacht haben.</>
+          : "Danke an alle, die mitgemacht haben."}
       </p>
     </div>;
   }
 
-  const label = status === "before" ? "Reparaturphase startet in" : "Noch Zeit zum Einreichen";
+  const target = phase === "before" ? campaign.startAt : phase === "open" ? campaign.endAt : null;
+  const targetTime = target ? new Date(target).valueOf() : Number.NaN;
+
+  if (Number.isNaN(targetTime)) {
+    return <div className="hero-countdown is-quiet">
+      <p className="hero-countdown-label">Reparaturphase</p>
+      <p className="hero-countdown-note">Der genaue Zeitraum wird gerade festgelegt.</p>
+    </div>;
+  }
+
+  const label = phase === "before" ? "Reparaturphase startet in" : "Noch Zeit zum Einreichen";
   const parts = splitDuration(targetTime - now);
   const units: Array<[keyof CountdownParts, string]> = [
     ["days", "Tage"],
@@ -54,7 +82,6 @@ export function HeroCountdown({ status, startAt, endAt }: HeroCountdownProps) {
     ["minutes", "Min"],
     ["seconds", "Sek"],
   ];
-  const spokenTarget = new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeStyle: "short" }).format(new Date(targetTime));
 
   return <div className="hero-countdown">
     <p className="hero-countdown-label">{label}</p>
@@ -72,7 +99,22 @@ export function HeroCountdown({ status, startAt, endAt }: HeroCountdownProps) {
       ))}
     </div>
     <p className="hero-countdown-note">
-      {status === "before" ? "Start" : "Einreichen bis"}: <time dateTime={target ?? undefined}>{spokenTarget} Uhr</time>
+      {phase === "before" ? "Start" : "Einreichen bis"}: <time dateTime={target ?? undefined}>{dateTimeFormat.format(new Date(targetTime))} Uhr</time>
     </p>
   </div>;
+}
+
+/**
+ * Die eine Zeile, die nach dem Ende zaehlt: Ist das Ziel gefallen oder nicht?
+ *
+ * Solange die Zahlen noch laden, bleibt es bei der neutralen Aussage - eine
+ * Ueberschrift, die von "Ziel knapp verfehlt" auf "Ziel geknackt" springt,
+ * sobald die Antwort da ist, waere schlimmer als eine Sekunde ohne Wertung.
+ */
+function resultLine(total: number | null, goal: number | null) {
+  if (total === null || !goal) return "Alle Reparaturen sind gezählt.";
+  if (total >= goal) return `Ziel geknackt: ${total.toLocaleString("de-DE")} von ${goal.toLocaleString("de-DE")} Reparaturen.`;
+
+  const percent = Math.round((total / goal) * 100);
+  return `${percent} % des Ziels: ${total.toLocaleString("de-DE")} von ${goal.toLocaleString("de-DE")} Reparaturen.`;
 }
