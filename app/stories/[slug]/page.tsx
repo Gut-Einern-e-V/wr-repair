@@ -1,9 +1,10 @@
 import Link from "next/link";
+import NextImage from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { StoryStructuredData } from "@/components/structured-data";
-import { getStories, getStory } from "@/lib/stories";
+import { getStories, getStory, type StoryImage } from "@/lib/stories";
 
 type StoryPageProps = { params: Promise<{ slug: string }> };
 
@@ -28,6 +29,8 @@ export async function generateMetadata({ params }: StoryPageProps): Promise<Meta
       url: `/stories/${story.slug}`,
       publishedTime: story.date,
       section: story.category,
+      // Ohne eigenes Bild bleibt die Karte der Startseite stehen (app/opengraph-image.tsx).
+      ...(story.image ? { images: [{ url: story.image.src, alt: story.image.alt }] } : {}),
     },
   };
 }
@@ -41,12 +44,48 @@ export default async function StoryPage({ params }: StoryPageProps) {
     <article className="article-shell">
       <Link className="back-link" href="/stories">&#8592; Alle Geschichten</Link><p className="eyebrow">{story.category} / {story.readingTime}</p><h1>{story.title}</h1><p className="article-lead">{story.summary}</p>
       <time className="article-date" dateTime={story.date}>{new Intl.DateTimeFormat("de-DE", { dateStyle: "long" }).format(new Date(`${story.date}T12:00:00`))}</time>
+      {story.image && <StoryFigure image={story.image} lead priority />}
       <div className="article-body">{story.blocks.map((block, index) => {
         if (block.type === "heading") return <h2 key={index}>{block.content}</h2>;
         if (block.type === "list") return <ul key={index}>{block.items.map((item) => <li key={item}>{item}</li>)}</ul>;
+        if (block.type === "image") return <StoryFigure key={index} image={block.image} />;
         return <p key={index}>{block.content}</p>;
       })}</div>
     </article>
     <SiteFooter />
   </main>;
+}
+/* Hoechste Hoehe eines Bildes im Artikel. Ein Hochkantfoto wuerde sonst den
+   ganzen Bildschirm fuellen und den Text auseinanderreissen. Begrenzt wird
+   ueber die Breite, weil die Masse der Datei bekannt sind - siehe die
+   Begruendung bei `.article-figure img` in app/globals.css. */
+const MAX_FIGURE_HEIGHT = 720;
+
+/**
+ * Bild einer Geschichte samt Unterschrift und Nachweis (Issue #60).
+ *
+ * Breite und Hoehe kommen aus dem Dateikopf (siehe lib/image-dimensions.ts),
+ * deshalb steht der Platz von Anfang an fest und der Text rutscht beim Laden
+ * nicht nach unten. Der Aufmacher steht ueber dem Text und wird bevorzugt
+ * geladen; Bilder im Fliesstext kommen nach.
+ */
+function StoryFigure({ image, lead = false, priority = false }: { image: StoryImage; lead?: boolean; priority?: boolean }) {
+  const widthAtMaxHeight = Math.round((MAX_FIGURE_HEIGHT * image.width) / image.height);
+
+  return <figure className={`article-figure${lead ? " is-lead" : ""}`}>
+    <NextImage
+      src={image.src}
+      alt={image.alt}
+      width={image.width}
+      height={image.height}
+      priority={priority}
+      style={{ maxWidth: widthAtMaxHeight }}
+      sizes={lead ? "(max-width: 860px) 100vw, 820px" : "(max-width: 720px) 100vw, 680px"}
+    />
+    {(image.caption || image.credit) && <figcaption>
+      {image.caption}
+      {image.caption && image.credit && " "}
+      {image.credit && <span className="article-figure-credit">{image.credit}</span>}
+    </figcaption>}
+  </figure>;
 }

@@ -24,6 +24,33 @@ describe("Reparaturgeschichten", () => {
     expect([...dates].sort((left, right) => right.localeCompare(left))).toEqual(dates);
   });
 
+  it("loest Bilder samt Massen und Nachweis auf", async () => {
+    /* Mindestens eine Geschichte bringt ein eigenes Bild mit; alle Bilder
+       muessen aufgeloest sein, sonst haette der Aufruf geworfen (Issue #60). */
+    const stories = await getStories();
+    const images = stories.flatMap((story) => [
+      ...(story.image ? [story.image] : []),
+      ...story.blocks.flatMap((block) => (block.type === "image" ? [block.image] : [])),
+    ]);
+
+    expect(images.length).toBeGreaterThan(0);
+    for (const image of images) {
+      expect(image.src.startsWith("/")).toBe(true);
+      expect(image.width).toBeGreaterThan(0);
+      expect(image.height).toBeGreaterThan(0);
+      // Ohne Bildbeschreibung waere das Bild fuer Screenreader nicht erfassbar.
+      expect(image.alt.trim()).not.toBe("");
+    }
+  });
+
+  it("haelt das Aufmacherbild im Teaser, die Textbloecke nicht", async () => {
+    const teasers = await getStoryTeasers();
+    const stories = await getStories();
+    for (const teaser of teasers) {
+      expect(teaser.image).toEqual(stories.find((story) => story.slug === teaser.slug)?.image);
+    }
+  });
+
   it("laesst die Textbloecke aus den Teasern weg", async () => {
     const teasers = await getStoryTeasers();
     expect(teasers).toHaveLength((await getStories()).length);
