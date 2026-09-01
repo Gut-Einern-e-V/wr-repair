@@ -1,6 +1,6 @@
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 
-export const metadata = { title: "Impressum | Reparaturrekord NRW" };
+export const metadata = { title: "Impressum" };
 
 export default function ImprintPage() {
   return <main className="page-shell content-page"><SiteHeader /><article className="legal-page">

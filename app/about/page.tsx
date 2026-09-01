@@ -4,7 +4,7 @@ import { PartnerLogoGrid } from "@/components/partner-logo-grid";
 import { brandPhotos } from "@/lib/brand-photos";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 
-export const metadata = { title: "Über das Projekt | Reparaturrekord NRW" };
+export const metadata = { title: "Über das Projekt" };
 
 export default function AboutPage() {
   return <main className="page-shell content-page">

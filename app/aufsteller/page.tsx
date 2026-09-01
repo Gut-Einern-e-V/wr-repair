@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { getSiteUrl } from "@/lib/share";
 
 export const metadata = {
-  title: "Aufsteller mit QR-Code | Reparaturrekord NRW",
+  title: "Aufsteller mit QR-Code",
   description: "Druckvorlage mit QR-Code, der direkt zur Schnell-Eintragung führt.",
   robots: { index: false, follow: false },
 };

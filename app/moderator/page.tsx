@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 // Eigene installierbare App statt der Hauptseite (siehe lib/app-manifests.ts).
 // Auf iOS ist das Voraussetzung fuer Push-Benachrichtigungen.
 export const metadata = {
-  title: "Moderation | Reparaturrekord NRW",
+  title: "Moderation",
   robots: { index: false, follow: false },
   manifest: "/moderator/manifest.webmanifest",
 };

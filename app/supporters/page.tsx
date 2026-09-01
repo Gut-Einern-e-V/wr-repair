@@ -2,7 +2,7 @@ import NextImage from "next/image";
 import { PartnerLogoGrid } from "@/components/partner-logo-grid";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 
-export const metadata = { title: "Unterstützung | Reparaturrekord NRW" };
+export const metadata = { title: "Unterstützung" };
 
 /* Die Foerderlogos liegen als dunkle Variante in public/funding/ und stammen aus
    dem offiziellen Abbinder der FAB Region. Weil sie hier gross im Inhalt stehen,

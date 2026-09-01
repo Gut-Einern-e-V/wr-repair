@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 // Backend gehoert in keinen Suchindex (Issue #67), wie schon bei /moderator.
 export const metadata = {
-  title: "Administration | Reparaturrekord NRW",
+  title: "Administration",
   robots: { index: false, follow: false },
 };
 

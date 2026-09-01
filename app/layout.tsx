@@ -29,9 +29,10 @@ const playfairDisplay = Playfair_Display({
    und Beschreibung; alles andere - Vorschaubild, Sprache, Indexierung - gilt
    von hier aus fuer die ganze Seite.
 
-   `title.template` haengt den Projektnamen an, wo eine Seite nur ihr eigenes
-   Thema angibt. Die bereits vorhandenen Titel tragen ihn selbst und bleiben
-   deshalb unveraendert. */
+   `title.template` haengt den Projektnamen an jeden Seitentitel an. Die Seiten
+   nennen deshalb nur ihr eigenes Thema - schreiben sie den Namen selbst mit
+   hinein, steht er zweimal im Titel. Wo eine Seite ihn gar nicht tragen soll,
+   umgeht `title: { absolute: "..." }` das Template. */
 export const metadata: Metadata = {
   // Ohne metadataBase wuerden geteilte Links und Bilder relativ bleiben.
   metadataBase: new URL(getSiteUrl() || "http://localhost:3000"),

@@ -5,7 +5,7 @@ import { brandPhotos } from "@/lib/brand-photos";
 import { cityEventsUrl, repairCafeCities, repairCafeDirectories } from "@/lib/repair-cafes";
 
 export const metadata = {
-  title: "Repair Café finden | Reparaturrekord NRW",
+  title: "Repair Café finden",
   description: "Wo es in Nordrhein-Westfalen Hilfe beim Reparieren gibt: Termine der Reparatur-Initiativen, Repair Cafés in den großen Städten und die Termine im Rekordmonat.",
 };
 

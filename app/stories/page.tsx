@@ -5,7 +5,7 @@ import { brandPhotos, storyCover } from "@/lib/brand-photos";
 import { getStoryTeasers } from "@/lib/stories";
 
 export const metadata = {
-  title: "Reparaturgeschichten | Reparaturrekord NRW",
+  title: "Reparaturgeschichten",
   description: "Reparaturen aus Nordrhein-Westfalen, ausführlich erzählt: was kaputt war, wie es wieder funktioniert und was dabei hängen geblieben ist.",
 };
 

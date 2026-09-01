@@ -1,6 +1,6 @@
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 
-export const metadata = { title: "Barrierefreiheit | Reparaturrekord NRW" };
+export const metadata = { title: "Barrierefreiheit" };
 
 export default function AccessibilityPage() {
   return <main className="page-shell content-page"><SiteHeader /><article className="legal-page">
