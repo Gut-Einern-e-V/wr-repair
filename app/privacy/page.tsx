@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 
-export const metadata = { title: "Datenschutz | Reparaturrekord NRW" };
+export const metadata = { title: "Datenschutz" };
 
 export default function PrivacyPage() {
   return <main className="page-shell content-page"><SiteHeader /><article className="legal-page">

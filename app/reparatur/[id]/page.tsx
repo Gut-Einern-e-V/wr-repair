@@ -16,11 +16,11 @@ export async function generateMetadata({ params }: RepairPageProps): Promise<Met
   const repair = await getPublicRepairStatus((await params).id);
 
   if (!repair || repair.status !== "approved") {
-    return { title: "Deine Reparatur | Reparaturrekord NRW", robots: { index: false, follow: false } };
+    return { title: "Deine Reparatur", robots: { index: false, follow: false } };
   }
 
   return {
-    title: `${repairCategoryLabel(repair.category)} repariert | Reparaturrekord NRW`,
+    title: `${repairCategoryLabel(repair.category)} repariert`,
     description: buildShareText(repairCategoryLabel(repair.category)),
     openGraph: {
       title: `${repairCategoryLabel(repair.category)} repariert`,
