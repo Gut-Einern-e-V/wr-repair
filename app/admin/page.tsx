@@ -6,6 +6,12 @@ import type { AdminSettings } from "./campaign-panel";
 
 export const dynamic = "force-dynamic";
 
+// Backend gehoert in keinen Suchindex (Issue #67), wie schon bei /moderator.
+export const metadata = {
+  title: "Administration | Reparaturrekord NRW",
+  robots: { index: false, follow: false },
+};
+
 export default async function AdminPage() {
   const currentAdmin = await getCurrentAdmin();
 
