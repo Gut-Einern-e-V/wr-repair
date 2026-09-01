@@ -15,7 +15,7 @@ export default function RepairCafesPage() {
 
     <section className="content-hero" aria-labelledby="cafes-title">
       <p className="brand-kicker">Hilfe beim Reparieren</p>
-      <h1 className="sticker-head is-mint" id="cafes-title"><span className="sticker">Du brauchst</span><span className="sticker">Werkzeug und</span><span className="sticker">Mitstreiter:innen</span></h1>
+      <h1 className="sticker-head is-mint" id="cafes-title"><span className="sticker">Du brauchst</span><span className="sticker">Werkzeug und</span><span className="sticker">Mitstreitende</span></h1>
       <p>In Repair Cafés und offenen Werkstätten sitzen Menschen, die schon hunderte Dinge wieder zum Laufen gebracht haben. Werkzeug ist da, Kaffee auch, und die Hilfe kostet nichts. Repariert wird gemeinsam &ndash; nicht für dich, sondern mit dir.</p>
     </section>
 

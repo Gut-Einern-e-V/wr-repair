@@ -5,7 +5,7 @@ import { useJsonResource } from "@/lib/use-json-resource";
 
 type LotteryEntry = { id: string; repair_id: string; name: string; email: string; winner: boolean; drawn_at: string | null; created_at: string };
 
-/** Verlosung unter den angemeldeten Teilnehmer*innen. Nur Superadmins. */
+/** Verlosung unter allen angemeldeten Personen. Nur Superadmins. */
 export default function LotteryPanel({ onStatus, onError }: { onStatus: (message: string) => void; onError: (message: string) => void }) {
   const { data, error, isLoading, reload } = useJsonResource<{ entries: LotteryEntry[] }>("/api/admin/lottery", "Verlosungseintraege konnten nicht geladen werden.");
   const [winner, setWinner] = useState<LotteryEntry | null>(null);
@@ -41,18 +41,18 @@ export default function LotteryPanel({ onStatus, onError }: { onStatus: (message
   return (
     <div className="admin-stack">
       {error && <p className="form-error" role="alert">{error}</p>}
-      <p className="form-notice">{isLoading ? "Verlosung wird geladen." : `${entries.length} Teilnehmer*innen haben sich fuer die Verlosung angemeldet, ${drawn.length} davon wurden bereits gezogen.`}</p>
-      <button className="button button-primary" type="button" disabled={isDrawing || isLoading} onClick={() => void draw()}>{isDrawing ? "Lost aus ..." : "Gewinner*in auslosen"}</button>
+      <p className="form-notice">{isLoading ? "Verlosung wird geladen." : `${entries.length} Anmeldungen fuer die Verlosung, davon ${drawn.length} bereits gezogen.`}</p>
+      <button className="button button-primary" type="button" disabled={isDrawing || isLoading} onClick={() => void draw()}>{isDrawing ? "Lost aus ..." : "Gewinn auslosen"}</button>
       {winner && (
         <div className="lottery-winner">
-          <p className="section-index">Gewinner*in</p>
+          <p className="section-index">Gezogen</p>
           <p><strong>{winner.name}</strong> &mdash; {winner.email}</p>
           <p>Ausgelost am {winner.drawn_at ? new Date(winner.drawn_at).toLocaleString("de-DE") : "–"}</p>
         </div>
       )}
       {drawn.length > 0 && (
         <div className="lottery-winners-list">
-          <p className="section-index">Bisherige Gewinner*innen</p>
+          <p className="section-index">Bisher gezogen</p>
           {drawn.map((entry) => (
             <div key={entry.id} className="user-row">
               <div><strong>{entry.name}</strong><span>{entry.email}</span></div>

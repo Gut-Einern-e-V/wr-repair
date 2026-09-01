@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import NextImage from "next/image";
 import { CategoryPictogram } from "./category-pictogram";
 import { categoryMotifSrc, MOTIF_SOURCE_SIZE } from "@/lib/category-motifs";
@@ -38,7 +39,10 @@ export function CategoryMotif({ category, size, className, priority = false }: C
   const src = categoryMotifSrc(category);
 
   return (
-    <span className={`category-motif${className ? ` ${className}` : ""}`} style={{ width: size, height: size }}>
+    /* Die Kantenlaenge kommt als Variable, nicht als width/height: Ein Inline-Stil
+       laesst sich per Media Query nicht zuruecknehmen, und auf schmalen Kacheln
+       braucht die Platte weniger Platz (Issue #70). */
+    <span className={`category-motif${className ? ` ${className}` : ""}`} style={{ "--motif-size": `${size}px` } as CSSProperties}>
       {src
         ? <NextImage
             src={src}

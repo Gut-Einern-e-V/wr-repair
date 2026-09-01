@@ -10,6 +10,7 @@ import { FundingStrip } from "@/components/funding-strip";
 import { HeroCountdown } from "@/components/hero-countdown";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { RepairSubmissionForm } from "@/components/repair-submission-form";
+import { StepIcon } from "@/components/step-icons";
 import { StoryMosaic } from "@/components/story-mosaic";
 import { brandPhotos } from "@/lib/brand-photos";
 import { campaignPhaseAt, type CampaignDates, type CampaignPhase } from "@/lib/campaign-phase";
@@ -184,7 +185,7 @@ export function HomeView({ stories }: HomeViewProps) {
         <nav aria-label="Hauptnavigation">
           <Link href="/stories">Geschichten</Link>
           <Link href="/about">Projekt</Link>
-          <Link href="/supporters">Unterstützer</Link>
+          <Link href="/supporters">Unterstützung</Link>
         </nav>
         <Link className="header-link" href="/stats">Live-Stand</Link>
         <MobileNavigation />
@@ -243,11 +244,24 @@ export function HomeView({ stories }: HomeViewProps) {
           <h2 id="how-title">Wir in NRW schaffen die meisten reparierten Gegenstände in einem Monat.</h2>
           <p className="how-it-works-lead">So einfach geht&rsquo;s:</p>
         </div>
-        <ol className="steps">
-          <li><span className="step-number" aria-hidden="true">01</span><div><strong>Reparieren</strong><p>Es zählt alles, was vorher kaputt, d.&#8239;h. nur eingeschränkt oder nicht nutzbar war.</p></div></li>
-          <li><span className="step-number" aria-hidden="true">02</span><div><strong>Hochladen</strong><p>Ein Foto machen und ein paar Fragen beantworten.</p></div></li>
-          <li><span className="step-number" aria-hidden="true">03</span><div><strong>Weltrekordhalter:in werden!</strong><p>Nach Prüfung wird dein Beitrag gezählt.</p></div></li>
-        </ol>
+        {/* Ein Zeichen je Schritt und der Hinweis auf das Gewinnspiel (Issue #70).
+            Das Gewinnspiel ist bewusst kein vierter Schritt: Es ist freiwillig
+            und aendert nichts daran, ob eine Reparatur zaehlt. */}
+        <div className="how-it-works-steps">
+          <ol className="steps">
+            <li><span className="step-number" aria-hidden="true">01</span><StepIcon className="step-icon" name="repair" /><div><strong>Reparieren</strong><p>Es zählt alles, was vorher kaputt, d.&#8239;h. nur eingeschränkt oder nicht nutzbar war.</p></div></li>
+            <li><span className="step-number" aria-hidden="true">02</span><StepIcon className="step-icon" name="upload" /><div><strong>Hochladen</strong><p>Ein Foto machen und ein paar Fragen beantworten.</p></div></li>
+            <li><span className="step-number" aria-hidden="true">03</span><StepIcon className="step-icon" name="record" /><div><strong>Teil des Weltrekords werden!</strong><p>Nach Prüfung wird dein Beitrag gezählt.</p></div></li>
+          </ol>
+          <Link className="how-it-works-bonus" href="/gewinnspiel">
+            <StepIcon className="step-icon" name="gift" />
+            <span>
+              <strong>Und dann ist da noch das Gewinnspiel.</strong>
+              <span>Beim Eintragen kannst du mit einem Häkchen an der Verlosung teilnehmen &ndash; kostenlos, und auch dann, wenn die Reparatur nicht geklappt hat.</span>
+            </span>
+            <i aria-hidden="true">&#8594;</i>
+          </Link>
+        </div>
       </section>
 
       <section className="record-facts" id="zahlen-und-fakten" aria-labelledby="record-facts-title">
@@ -274,7 +288,7 @@ export function HomeView({ stories }: HomeViewProps) {
       </section>
 
       <section className="participation-section" aria-labelledby="participation-title">
-        <div className="participation-heading"><p className="section-index">Dein Weg zur Reparatur</p><h2 id="participation-title">Mach aus einer Reparatur einen sichtbaren Beitrag.</h2><p>Du musst kein Profi sein. Wichtig ist nur: Die Reparatur ist echt, du beschreibst sie kurz und reichst sie während des Teilnahmezeitraums ein.</p></div>
+        <div className="participation-heading"><p className="section-index">Dein Weg zur Reparatur</p><h2 id="participation-title">Mach aus einer Reparatur einen sichtbaren Beitrag.</h2><p>Fachkenntnisse brauchst du dafür nicht. Wichtig ist nur: Die Reparatur ist echt, du beschreibst sie kurz und reichst sie während des Teilnahmezeitraums ein.</p></div>
         <div className="participation-options">
           <article><div className="participation-photo"><NextImage src={brandPhotos.secondLife.src} alt={brandPhotos.secondLife.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Einreichen</span></div><h3>Selbst repariert?</h3><p>Mach ein Foto, wähle die Kategorie und erzähle in wenigen Sätzen, was wieder funktioniert.</p><button className="text-button" type="button" onClick={() => startSubmission()}>Reparatur einreichen <span aria-hidden="true">&#8594;</span></button></article>
           <article><div className="participation-photo"><NextImage src={brandPhotos.bicycle.src} alt={brandPhotos.bicycle.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Mitmachen</span></div><h3>Du brauchst Hilfe?</h3><p>In Repair Cafés und offenen Werkstätten findest du Menschen, Werkzeuge und Zeit für die nächste Reparatur &ndash; in ganz NRW und kostenlos.</p><Link className="text-button" href="/repair-cafes">Repair Café finden <span aria-hidden="true">&#8594;</span></Link></article>
@@ -356,7 +370,7 @@ export function HomeView({ stories }: HomeViewProps) {
 
       <footer className="site-footer">
         <p><strong>Reparaturrekord NRW</strong><br />Ein Projekt der FAB Region Bergisches Land.</p>
-        <div><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link><ConsentSettingsLink /></div>
+        <div><Link href="/gewinnspiel">Gewinnspiel</Link><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link><ConsentSettingsLink /></div>
         <p>Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
       </footer>
 

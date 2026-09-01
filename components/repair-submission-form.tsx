@@ -701,7 +701,7 @@ export function RepairSubmissionForm({
 
       <label className="choice consent"><input name="consent" type="checkbox" value="true" required /> <span>Ich bin einverstanden, dass meine Angaben nach der Prüfung anonym veröffentlicht werden.</span></label>
 
-      <label className="choice lottery-opt-in"><input type="checkbox" checked={enterLottery} onChange={(event) => setEnterLottery(event.target.checked)} /> <span>Ich möchte am Gewinnspiel teilnehmen <small>(Daten nur für die Verlosung / wird nicht veröffentlicht)</small></span></label>
+      <label className="choice lottery-opt-in"><input type="checkbox" checked={enterLottery} onChange={(event) => setEnterLottery(event.target.checked)} /> <span>Ich möchte am <Link href="/gewinnspiel" target="_blank">Gewinnspiel</Link> teilnehmen <small>(Daten nur für die Verlosung / wird nicht veröffentlicht)</small></span></label>
       {enterLottery && (
         <fieldset className="lottery-fields">
           <legend>Angaben für die Verlosung</legend>

@@ -10,11 +10,11 @@ type UsersResponse = { users: ManagedUser[]; currentUserId: string; canManageAdm
 const roleLabels: Record<Role, string> = { moderator: "Moderation", admin: "Admin", superadmin: "Superadmin" };
 
 /**
- * Konten anlegen und Rollen vergeben. Admins laden Moderator*innen ein,
+ * Konten anlegen und Rollen vergeben. Admins legen Moderationskonten an,
  * Admin- und Superadmin-Rechte bleiben Superadmins vorbehalten.
  */
 export default function TeamSettings({ onStatus, onError }: { onStatus: (message: string) => void; onError: (message: string) => void }) {
-  const { data, error, isLoading, reload } = useJsonResource<UsersResponse>("/api/admin/users", "Benutzer konnten nicht geladen werden.");
+  const { data, error, isLoading, reload } = useJsonResource<UsersResponse>("/api/admin/users", "Konten konnten nicht geladen werden.");
   const users = data?.users ?? [];
   const canManageAdmins = data?.canManageAdmins ?? false;
   const currentUserId = data?.currentUserId ?? "";
@@ -27,7 +27,7 @@ export default function TeamSettings({ onStatus, onError }: { onStatus: (message
     const payload = await response.json() as { error?: string };
 
     if (!response.ok) {
-      onError(payload.error ?? "Benutzer konnte nicht angelegt werden.");
+      onError(payload.error ?? "Konto konnte nicht angelegt werden.");
       return;
     }
 
@@ -80,11 +80,11 @@ export default function TeamSettings({ onStatus, onError }: { onStatus: (message
         </label>
         <button className="button button-primary" type="submit">Konto anlegen</button>
       </form>
-      {data && !canManageAdmins && <p className="form-notice">Als Admin kannst du Moderator*innen einladen. Admin- und Superadmin-Rechte vergibt eine Superadministration.</p>}
+      {data && !canManageAdmins && <p className="form-notice">Als Admin kannst du Konten fuer die Moderation anlegen. Admin- und Superadmin-Rechte vergibt eine Superadministration.</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
 
       {isLoading ? <p className="queue-empty">Team wird geladen.</p> : (
-        <div className="user-table" role="region" aria-label="Benutzer und Rollen">
+        <div className="user-table" role="region" aria-label="Konten und Rollen">
           {users.map((user) => {
             const role = user.roles[0] ?? "moderator";
             const locked = user.id === currentUserId || (!canManageAdmins && user.roles.some((value) => value !== "moderator"));

@@ -44,7 +44,7 @@ export type FaqEntry = { question: string; answer: string };
 export const faqEntries: FaqEntry[] = [
   {
     question: "Wer darf mitmachen?",
-    answer: "Alle, die in Nordrhein-Westfalen etwas repariert haben – privat, im Repair Café, in der Schule, im Verein oder in der Werkstatt. Du musst kein Profi sein.",
+    answer: "Alle, die in Nordrhein-Westfalen etwas repariert haben – privat, im Repair Café, in der Schule, im Verein oder in der Werkstatt. Fachkenntnisse brauchst du dafür nicht.",
   },
   {
     question: "Was zählt als Reparatur?",

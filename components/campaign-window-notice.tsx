@@ -34,12 +34,12 @@ export function CampaignWindowNotice({ status, startAt }: CampaignWindowNoticePr
         ? "Danke an alle Menschen, die Reparatur sichtbar gemacht haben. Die veröffentlichten Geschichten bleiben Teil des Projekts."
         : hasStart
           ? <>Einreichungen öffnen am <time dateTime={startAt ?? undefined}>{dateFormat.format(new Date(startTime))} Uhr</time>. Bis dahin lohnt ein Blick hinter das Projekt.</>
-          : "Der genaue Zeitraum wird gerade eingerichtet. Bis dahin kannst du das Projekt, die Partner und die ersten Reparaturgeschichten entdecken."}
+          : "Der genaue Zeitraum wird gerade eingerichtet. Bis dahin kannst du das Projekt, die beteiligten Organisationen und die ersten Reparaturgeschichten entdecken."}
     </p>
     <p className="campaign-window-links">
       <Link href="/about">Mehr über das Projekt <span aria-hidden="true">&#8594;</span></Link>
       <Link href="/stories">Geschichten lesen <span aria-hidden="true">&#8594;</span></Link>
-      <Link href="/supporters">Partner kennenlernen <span aria-hidden="true">&#8594;</span></Link>
+      <Link href="/supporters">Unterstützung kennenlernen <span aria-hidden="true">&#8594;</span></Link>
     </p>
   </section>;
 }
