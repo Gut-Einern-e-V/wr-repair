@@ -33,7 +33,7 @@ function QuickCard({
 }: {
   repair: ModerationRepair;
   isBusy: boolean;
-  onDecide: (status: Decision, comment: string) => void;
+  onDecide: (status: Decision, comment: string, deleteImage?: boolean) => void;
   onLater: () => void;
   onSaveMetadata: (draft: MetadataDraft) => Promise<boolean>;
   /** Foto entfernen und die Reparatur trotzdem freigeben koennen (Issue #49). */
@@ -153,6 +153,27 @@ function QuickCard({
 
       {!repair.consent_publication && <p className="moderator-comment">Ohne Veröffentlichungszustimmung ist nur eine Ablehnung möglich.</p>}
 
+      {/* Die dritte Entscheidung: Die Reparatur stimmt, das Foto soll nicht
+          oeffentlich werden (Issue #49). Ein Handgriff, weil zwei - erst
+          loeschen, dann freigeben - das Bild fuer die Dauer der zweiten
+          Anfrage sichtbar machen wuerden. Steht ueber der Knopfleiste und
+          nicht in ihr: Es ist der seltene Fall, und ein Fehlgriff kostet ein
+          Bild, das niemand zurueckholen kann. */}
+      {repair.imageUrl && repair.consent_publication && (
+        <button
+          className="text-button quick-approve-without-photo"
+          type="button"
+          disabled={isBusy}
+          onClick={() => {
+            if (window.confirm("Ohne Foto freigeben? Die Reparatur zählt für den Rekord, das Bild wird endgültig gelöscht.")) {
+              onDecide("approved", comment, true);
+            }
+          }}
+        >
+          Ohne Foto freigeben
+        </button>
+      )}
+
       <div className="quick-actions">
         <button className="button button-secondary" type="button" disabled={isBusy} onClick={() => onDecide("rejected", comment)}>Ablehnen</button>
         <button className="button button-secondary" type="button" disabled={isBusy} onClick={onLater}>Später</button>
@@ -219,7 +240,7 @@ export default function QuickReview({ showProgress, onOpenTable }: { showProgres
     return () => { window.removeEventListener("pagehide", release); release(); };
   }, []);
 
-  const decide = useCallback(async (status: Decision, comment: string) => {
+  const decide = useCallback(async (status: Decision, comment: string, deleteImage = false) => {
     const current = held.current;
     if (!current) return;
 
@@ -228,7 +249,7 @@ export default function QuickReview({ showProgress, onOpenTable }: { showProgres
     setNotice("");
 
     try {
-      const result = await decideRepair(current, status, comment);
+      const result = await decideRepair(current, status, comment, deleteImage);
 
       if (!result.ok && !result.conflict) {
         setError(result.error);
@@ -237,7 +258,7 @@ export default function QuickReview({ showProgress, onOpenTable }: { showProgres
 
       held.current = null;
       setNotice(result.ok
-        ? (status === "approved" ? "Freigegeben." : "Abgelehnt.")
+        ? (status === "approved" ? (deleteImage ? "Ohne Foto freigegeben. Das Bild ist gelöscht." : "Freigegeben.") : "Abgelehnt.")
         : result.error);
       if (result.ok && result.data.imageDeleted === false) {
         setError("Die Einreichung wurde abgelehnt, aber das Bild muss noch manuell gelöscht werden.");
@@ -347,7 +368,7 @@ export default function QuickReview({ showProgress, onOpenTable }: { showProgres
           key={queue.repair.id}
           repair={queue.repair}
           isBusy={isBusy}
-          onDecide={(status, comment) => void decide(status, comment)}
+          onDecide={(status, comment, deleteImage) => void decide(status, comment, deleteImage)}
           onLater={() => void later()}
           onSaveMetadata={saveMetadata}
           onDeletePhoto={deletePhoto}

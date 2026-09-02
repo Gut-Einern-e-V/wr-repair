@@ -157,7 +157,7 @@ h2 { margin-bottom: 0; font-size: clamp(2rem, 4vw, 3.6rem); line-height: .96; le
 .partner-admin-list > div { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 12px 0; border-bottom: var(--line); }
 .moderator-feedback { max-width: 1120px; margin-right: auto; margin-left: auto; }
 
-@media (max-width: 720px) { .campaign-form, .partner-form { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .campaign-form, .partner-form, .prize-form { grid-template-columns: 1fr; } }
 
 /* Keep interactive feedback inside the outlined tiles instead of shifting over adjacent borders. */
 .button:hover, .category-card:hover, .supporter-card:hover { transform: none; }
@@ -177,14 +177,14 @@ h2 { margin-bottom: 0; font-size: clamp(2rem, 4vw, 3.6rem); line-height: .96; le
 
 .page-shell { position: relative; isolation: isolate; }
 .page-shell::before { content: ""; position: fixed; z-index: -1; inset: 0; opacity: .35; pointer-events: none; background-image: linear-gradient(90deg, rgba(16, 22, 38, 0.055) 1px, transparent 1px), linear-gradient(0deg, rgba(16, 22, 38, 0.055) 1px, transparent 1px), repeating-linear-gradient(135deg, transparent 0 36px, rgba(255, 196, 50, 0.16) 36px 38px); background-size: 42px 42px, 42px 42px, 180px 180px; animation: workshop-grid 24s linear infinite; }
-.participation-section { max-width: 1240px; margin: 0 auto; padding: 76px 24px; border-bottom: var(--line); background: rgba(255, 196, 50, 0.14); }.participation-heading { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 28px 50px; margin-bottom: 36px; }.participation-heading .section-index { grid-column: 1 / -1; margin-bottom: 0; }.participation-heading h2 { max-width: 560px; }.participation-heading > p:last-child { max-width: 520px; margin: 4px 0 0; font-size: 18px; line-height: 1.5; }.participation-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: var(--line); border-right: 0; border-bottom: 0; }.participation-options article { min-height: 280px; display: flex; flex-direction: column; align-items: flex-start; padding: 22px; border-right: var(--line); border-bottom: var(--line); background: var(--paper); }.participation-options h3 { margin: 18px 0 12px; font-size: 25px; line-height: 1; }.participation-options p { max-width: 280px; line-height: 1.45; }.participation-options .text-button { margin-top: auto; }
+.participation-section { max-width: 1240px; margin: 0 auto; padding: 76px 24px; border-bottom: var(--line); background: rgba(255, 196, 50, 0.14); }.participation-heading { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 28px 50px; margin-bottom: 36px; }.participation-heading .section-index { grid-column: 1 / -1; margin-bottom: 0; }.participation-heading h2 { max-width: 560px; }.participation-heading > p:last-child { max-width: 520px; margin: 4px 0 0; font-size: 18px; line-height: 1.5; }.participation-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: var(--line); border-right: 0; border-bottom: 0; }.participation-options article { min-height: 220px; border-right: var(--line); border-bottom: var(--line); background: var(--paper); }.participation-options p { line-height: 1.45; }
 
 .project-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr); gap: 36px; align-items: stretch; }.project-hero-visual { position: relative; min-height: 320px; overflow: hidden; border: var(--line); background: repeating-linear-gradient(135deg, transparent 0 18px, rgba(16, 22, 38, 0.12) 18px 20px), var(--mint); }.project-facts, .project-supporters { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 50px; }.project-facts > div:last-child { max-width: 620px; font-size: 17px; line-height: 1.5; }.project-facts .text-button { display: inline-block; margin-top: 10px; }.project-supporters > div:first-child > p:not(.section-index) { max-width: 420px; margin-top: 20px; line-height: 1.45; }.project-contact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; }
 .content-callout .button-secondary { color: var(--ink); }
 
 .steps li { position: relative; min-height: 190px; padding-top: 72px; }.steps .step-number { position: absolute; top: 17px; left: 15px; display: grid; place-items: center; width: 40px; height: 40px; border: var(--line); border-radius: 50%; background: var(--yellow); color: var(--ink); font: 500 11px var(--mono); }.steps li:nth-child(2) .step-number { background: var(--green); }.steps li:nth-child(3) .step-number { background: var(--blue); color: var(--paper); }
 
-@media (max-width: 720px) { .page-shell::before { animation-duration: 36s; background-size: 30px 30px, 30px 30px, 140px 140px; }.participation-section { padding: 52px 16px; }.participation-heading, .participation-options, .project-hero, .project-facts, .project-supporters { grid-template-columns: 1fr; gap: 26px; }.participation-options article { min-height: 210px; }.project-hero-visual { min-height: 240px; }.project-supporters { padding-top: 52px; padding-bottom: 52px; }.steps li { min-height: 100px; padding: 18px 15px 18px 72px; }.steps .step-number { top: 50%; left: 15px; transform: translateY(-50%); }.steps p { margin: 0; } }
+@media (max-width: 720px) { .page-shell::before { animation-duration: 36s; background-size: 30px 30px, 30px 30px, 140px 140px; }.participation-section { padding: 52px 16px; }.participation-heading, .participation-options, .project-hero, .project-facts, .project-supporters { grid-template-columns: 1fr; gap: 26px; }.participation-options article { min-height: 0; grid-template-columns: 88px minmax(0, 1fr); column-gap: 14px; padding: 16px; }.participation-photo { width: 88px; height: 88px; }.project-hero-visual { min-height: 240px; }.project-supporters { padding-top: 52px; padding-bottom: 52px; }.steps li { min-height: 100px; padding: 18px 15px 18px 72px; }.steps .step-number { top: 50%; left: 15px; transform: translateY(-50%); }.steps p { margin: 0; } }
 .gallery-mini-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: var(--line); border-right: 0; border-bottom: 0; }
 .gallery-mini-card { min-width: 0; border-right: var(--line); border-bottom: var(--line); background: var(--bg); }
 .gallery-mini-card > img, .gallery-placeholder { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
@@ -332,18 +332,29 @@ nav a:hover, .header-link:hover { text-decoration: underline; text-decoration-th
 .photo-frame { position: relative; overflow: hidden; border: var(--line); background: var(--ink); }
 .photo-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
 
-/* Teilnahme-Karten bekommen je ein Foto aus der Bildwelt. */
-.participation-options article { padding: 0; overflow: hidden; }
-.participation-photo { position: relative; height: 172px; border-bottom: var(--line); background: var(--ink); }
+/* Teilnahme-Karten: kleines Foto links, Text rechts (Issue #81).
+   Bis dahin sassen die Fotos gross ueber dem Text - dieselbe Form wie die
+   Geschichtskacheln weiter unten, sodass die Startseite denselben Abschnitt
+   zweimal zu zeigen schien. Die quere Karte ist als Bauteil sofort von einer
+   Bildkachel zu unterscheiden. */
+.participation-options article {
+  display: grid; grid-template-columns: 104px minmax(0, 1fr);
+  grid-template-rows: auto auto 1fr auto; column-gap: 18px;
+  padding: 20px; overflow: hidden;
+}
+.participation-photo {
+  grid-column: 1; grid-row: 1 / -1; align-self: start;
+  position: relative; width: 104px; height: 104px;
+  border: var(--line); background: var(--ink);
+}
 .participation-photo img { width: 100%; height: 100%; object-fit: cover; }
-.participation-photo span {
-  position: absolute; bottom: 0; left: 0; padding: 7px 12px 8px;
-  background: var(--yellow); color: var(--ink);
+.participation-kicker {
+  grid-column: 2; margin: 0 0 8px;
   font-size: 11px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase;
 }
-.participation-options article > :not(.participation-photo) { margin-left: 22px; margin-right: 22px; }
-.participation-options h3 { margin-top: 20px; }
-.participation-options .text-button { margin-bottom: 22px; }
+.participation-options h3 { grid-column: 2; margin: 0 0 10px; font-size: clamp(1.25rem, 1.7vw, 1.6rem); line-height: 1.05; }
+.participation-options p:not(.participation-kicker) { grid-column: 2; max-width: none; margin: 0; }
+.participation-options .text-button { grid-column: 2; margin: 16px 0 0; align-self: end; }
 
 /* Statement-Band mit Festivalfoto. */
 .project-banner, .content-callout { position: relative; overflow: hidden; }
@@ -439,10 +450,6 @@ nav a:hover, .header-link:hover { text-decoration: underline; text-decoration-th
 @media (max-width: 720px) { .story-grid { grid-template-columns: 1fr; } .story-card .story-art { height: 210px; } }
 
 /* --- Korrekturen -------------------------------------------- */
-/* Die Teilnahme-Karten sind Flex-Spalten mit align-items: flex-start;
-   der Bildblock muss die volle Kartenbreite belegen. */
-.participation-photo { width: 100%; align-self: stretch; }
-
 /* Versalien bleiben der Plakatstimme von h1/h2 vorbehalten. */
 h3, h4, h5, h6 { text-transform: none; letter-spacing: -.01em; }
 .story-card h2 { text-transform: none; letter-spacing: -.01em; }
@@ -857,6 +864,10 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
   padding: 10px 0 calc(10px + env(safe-area-inset-bottom, 0px)); background: var(--bg);
 }
 .quick-actions .button { flex: 1; min-height: 48px; margin: 0; padding: 12px 8px; font-size: 13px; }
+/* Die Freigabe ohne Foto steht bewusst nicht in der Knopfleiste (Issue #49):
+   Sie loescht ein Bild endgueltig und darf nicht neben "Freigeben" liegen,
+   wo im Sekundentakt getippt wird. */
+.quick-approve-without-photo { justify-self: start; }
 .quick-hint { margin: 0; font: 11px/1.5 var(--mono); }
 
 @media (min-width: 720px) {
@@ -891,6 +902,34 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .admin-links .button { margin: 0; }
 .logo-preview { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; padding: 14px 16px; border: var(--line); background: var(--bg); }
 .logo-preview img { max-width: 220px; max-height: 80px; object-fit: contain; }
+
+/* Gewinnspiel im Backend (Issue #45). Das Formular fuer einen Preis hat mehr
+   Felder als das der Partner und braucht deshalb Platz fuer den Fliesstext -
+   Beschreibung und Hinweis stehen ueber die volle Breite. */
+.prize-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: end; padding: 18px; border: var(--line); background: var(--bg); }
+.prize-form label { display: grid; gap: 6px; font: 11px var(--mono); text-transform: uppercase; }
+.prize-form input:not([type="checkbox"]), .prize-form select, .prize-form textarea {
+  width: 100%; min-height: 44px; padding: 9px; border: var(--line); border-radius: 0;
+  background: var(--paper); color: var(--ink); font: 15px var(--sans);
+}
+.prize-form textarea { min-height: 66px; resize: vertical; }
+.prize-form small { font: 10px/1.35 var(--mono); text-transform: none; }
+.prize-form label:nth-of-type(2), .prize-form .choice, .prize-form button { grid-column: 1 / -1; }
+.prize-form .choice { display: flex; gap: 10px; align-items: start; font: 14px/1.45 var(--sans); text-transform: none; }
+.prize-form .choice input { width: 20px; min-height: 20px; }
+.prize-form button { justify-self: start; margin: 0; }
+.prize-admin-list { display: grid; gap: 14px; }
+
+/* Ein Preis in der Ziehung, mit allem, was zu ihm gezogen wurde. */
+.lottery-prize { margin-top: 22px; padding-top: 18px; border-top: var(--line); }
+.lottery-prize h4 { margin: 0; font-size: 19px; }
+.lottery-prize > .button { margin: 12px 0 0; }
+.lottery-winner { margin: 12px 0; padding: 14px 16px; border: var(--line); background: var(--bg); }
+.lottery-winner p { margin: 0 0 6px; line-height: 1.45; }
+.lottery-winner-repair { font: 12px var(--mono); }
+.lottery-winner-story { max-width: 68ch; font-size: 15px; }
+.lottery-winner-actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; }
+.lottery-winner-actions .text-button { margin: 0; font-size: 11px; }
 
 /* Zweiter Abschnitt innerhalb einer Karte - fuer die Freigabeliste unter der
    Drosselung (Issue #80). Die Linie darueber trennt die beiden Themen, ohne
@@ -1012,6 +1051,20 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 /* Blog-Mosaik. Es werden nur vorhandene Geschichten gezeigt: Die Leitkachel
    belegt zwei Spalten und zwei Reihen, jede weitere zwei Spalten - bei ungerader
    Kachelzahl schliesst das Raster damit glatt ab. */
+/* Bilderwand der Startseite (Issue #81). Bewusst ein enges Raster ohne
+   Beschriftung: Es soll als Menge wirken, nicht als Katalog - die einzelne
+   Reparatur hat ihren Platz in den Geschichten und auf /stats. */
+.repair-wall { display: grid; gap: 12px; align-content: start; }
+.repair-wall-grid {
+  display: grid; gap: 3px;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+}
+.repair-wall-grid img {
+  display: block; width: 100%; aspect-ratio: 1; object-fit: cover;
+  background: #e2ded3;
+}
+.repair-wall-note { margin: 0; font: 11px/1.5 var(--mono); }
+
 .story-mosaic { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 208px; gap: 4px; }
 .story-mosaic.is-mosaic > :first-child { grid-column: span 2; grid-row: span 2; }
 .story-mosaic.is-mosaic > :not(:first-child) { grid-column: span 2; }
@@ -1327,8 +1380,23 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .prize-placeholder strong { font-size: 19px; line-height: 1.15; letter-spacing: -.01em; }
 .prize-placeholder p { max-width: 40ch; margin: 0; font-size: 15px; line-height: 1.5; }
 
+/* Die gestifteten Preise aus dem Backend (Issue #45). Dieselbe Kachelform wie
+   der Platzhalter darueber - beide stehen an derselben Stelle der Seite, und
+   ein Wechsel der Gestalt beim Eintragen des ersten Preises waere nur
+   Unruhe. */
+.prize-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; margin: 0 0 18px; padding: 0; list-style: none; }
+.prize-card { position: relative; display: grid; align-content: start; gap: 8px; padding: 24px 22px; background: var(--mint-soft); }
+/* Der Hauptpreis ist der, um den es auf der Buehne geht - er darf sich vom
+   Rest abheben, ohne eine eigene Bauform zu bekommen. */
+.prize-card.is-main { background: var(--yellow); }
+.prize-badge { font: 800 10px/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; }
+.prize-card strong { font-size: 19px; line-height: 1.15; letter-spacing: -.01em; }
+.prize-card p { max-width: 40ch; margin: 0; font-size: 15px; line-height: 1.5; }
+.prize-sponsor { display: flex; align-items: center; gap: 10px; margin-top: 4px; font: 12px var(--mono); }
+.prize-sponsor img { max-height: 34px; max-width: 96px; width: auto; }
+
 @media (max-width: 900px) {
-  .legal-terms, .prize-placeholder { grid-template-columns: minmax(0, 1fr); }
+  .legal-terms, .prize-placeholder, .prize-list { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ============================================================

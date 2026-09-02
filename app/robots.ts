@@ -26,6 +26,8 @@ import { getSiteUrl } from "@/lib/share";
 const closedPaths = [
   "/admin",
   "/moderator",
+  // Die Buehnenziehung des Gewinnspiels (Issue #45) - Backend im Vollbild.
+  "/tombola",
   "/login",
   "/api/",
   "/reparatur/",

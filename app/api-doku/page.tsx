@@ -31,6 +31,7 @@ const routes: { path: string; content: string; cache: string; limit: number }[] 
   { path: "/api/campaign", content: "Zeitraum und Zielzahl – die einzige Route, die auch vor dem Start antwortet.", cache: "ohne Cache", limit: 240 },
   { path: "/api/partners", content: "Logos und Links der unterstützenden Organisationen.", cache: "5 Minuten", limit: 120 },
   { path: "/api/gallery", content: "Die sechs jüngsten freigegebenen Reparaturen mit Bild-URL.", cache: "1 Minute", limit: 120 },
+  { path: "/api/mosaic", content: "Die Bilderwand der Startseite: die 40 jüngsten freigegebenen Fotos samt Gesamtzahl.", cache: "10 Minuten", limit: 120 },
 ];
 
 const phases: { status: string; meaning: string; effect: string }[] = [

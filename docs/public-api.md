@@ -19,6 +19,7 @@ Dieselbe Übersicht steht auch als Seite auf der Website unter `/api-doku`.
 | `GET /api/campaign` | Zeitraum und Zielzahl — die einzige Route, die **vor** dem Start antwortet | ohne Cache | 240/min je IP |
 | `GET /api/partners` | Logos und Links der unterstützenden Organisationen | 5 Minuten | 120/min je IP |
 | `GET /api/gallery` | die sechs jüngsten freigegebenen Reparaturen mit Bild-URL | 1 Minute | 120/min je IP |
+| `GET /api/mosaic` | die Bilderwand der Startseite: die 40 jüngsten freigegebenen Fotos samt Gesamtzahl | 10 Minuten | 120/min je IP |
 
 **Faustregel:** Soll eine Zahl auf ein Display, nimm `/api/stats`. Brauchst du wirklich die einzelnen Einträge — für ein Laufband, eine Karte, eine eigene Visualisierung —, nimm `/api/dashboard`. Die Antwort ist dort ein Vielfaches größer.
 

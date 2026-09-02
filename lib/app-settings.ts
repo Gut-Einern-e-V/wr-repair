@@ -31,10 +31,26 @@ export type AppSettings = {
   publicThrottle: PublicThrottle;
   logoUrl: string | null;
   logoPath: string | null;
+  /**
+   * Wer das Gewinnspiel veranstaltet (Issue #45).
+   *
+   * Steht in den Teilnahmebedingungen und ist noch nicht abschliessend
+   * geklaert. Deshalb aus dem Backend und nicht aus dem Quelltext: Sobald
+   * Name, Anschrift und Kontaktadresse feststehen, werden sie eingetragen -
+   * ohne Deployment. Null heisst nicht "Vorgabe", sondern "steht noch nicht
+   * fest"; die oeffentliche Seite sagt dann genau das.
+   */
+  lotteryOrganizer: LotteryOrganizer;
   /** False when the settings row could not be read, e.g. before the migration ran. */
   persisted: boolean;
   /** The stored overrides themselves, so callers can tell stored from inherited. */
   row: SettingsRow | null;
+};
+
+export type LotteryOrganizer = {
+  name: string | null;
+  address: string | null;
+  email: string | null;
 };
 
 export type SettingsRow = {
@@ -54,10 +70,24 @@ export type SettingsRow = {
   rate_limit_enabled: boolean | null;
   rate_limit_per_minute: number | null;
   rate_limit_allowlist: string[] | null;
+  /* Fehlen, solange Migration 202609030001 nicht gelaufen ist. */
+  lottery_organizer_name?: string | null;
+  lottery_organizer_address?: string | null;
+  lottery_organizer_email?: string | null;
 };
 
-const settingsColumns =
-  "submission_start_at, submission_end_at, record_goal, day_record, logo_path, region_enabled, region_label, region_ip_country, region_ip_region, region_lat_min, region_lat_max, region_lon_min, region_lon_max, rate_limit_enabled, rate_limit_per_minute, rate_limit_allowlist";
+/**
+ * Bewusst alle Spalten statt einer Liste.
+ *
+ * Eine feste Liste bricht die gesamte Abfrage, sobald sie eine Spalte nennt,
+ * die es in dieser Datenbank noch nicht gibt - PostgREST antwortet dann mit
+ * einem Fehler fuer die ganze Anfrage. Genau in dieses Fenster faellt jede
+ * Umgebung zwischen einem Deployment und der zugehoerigen Migration: Die
+ * Einstellungen waeren dort nicht "teilweise", sondern gar nicht lesbar, und
+ * die Seite fiele auf die Umgebungsvariablen zurueck. Mit `*` kommt schlicht
+ * das, was da ist (Issue #45, dieselbe Lehre wie in lib/moderation.ts).
+ */
+const settingsColumns = "*";
 
 export function parseWindow(startAt: string | null, endAt: string | null): SubmissionWindow | null {
   const start = new Date(startAt ?? "");
@@ -162,6 +192,11 @@ export function buildAppSettings(row: SettingsRow | null): AppSettings {
     publicThrottle: mergeThrottle(row),
     logoPath: row?.logo_path ?? null,
     logoUrl: publicLogoUrl(row?.logo_path ?? null),
+    lotteryOrganizer: {
+      name: row?.lottery_organizer_name?.trim() || null,
+      address: row?.lottery_organizer_address?.trim() || null,
+      email: row?.lottery_organizer_email?.trim() || null,
+    },
     persisted: row !== null,
     row,
   };

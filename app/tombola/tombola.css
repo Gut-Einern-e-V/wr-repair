@@ -1,0 +1,68 @@
+/* Buehnenziehung (Issue #45).
+   Dieselbe Haltung wie das Buehnen-Dashboard: eigenes dunkles Bild, weil die
+   Seite auf einer Leinwand vor Publikum laeuft und nicht im Backend. Alles ist
+   auf eine einzige Frage hin gebaut - wer ist gezogen worden -, deshalb steht
+   der Name so gross wie er auf die Leinwand passt. */
+
+.tombola-shell {
+  position: fixed; inset: 0; overflow-y: auto;
+  display: grid; grid-template-rows: auto 1fr auto auto;
+  gap: 20px; padding: 22px clamp(18px, 4vw, 56px) 32px;
+  background: radial-gradient(circle at 50% 35%, #131b30 0%, #080b14 62%, #05070d 100%);
+  color: #eef1f7;
+}
+
+.tombola-header { display: flex; flex-wrap: wrap; gap: 14px; justify-content: space-between; align-items: center; }
+.tombola-header .brand-kicker { margin: 0; color: rgba(238, 241, 247, .6); }
+.tombola-header-actions { display: flex; align-items: center; gap: 14px; }
+.tombola-shell .text-button { color: #eef1f7; }
+
+.tombola-stage {
+  display: grid; gap: 14px; align-content: center; justify-items: center;
+  text-align: center; padding: clamp(18px, 4vh, 48px) 0;
+}
+.tombola-eyebrow { margin: 0; font: 800 12px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: #95d4bb; }
+.tombola-prize { margin: 0; font-size: clamp(2rem, 5vw, 4.2rem); line-height: 1; }
+.tombola-prize-note { margin: 0; max-width: 62ch; font-size: clamp(1rem, 1.5vw, 1.3rem); line-height: 1.4; color: rgba(238, 241, 247, .75); }
+.tombola-sponsor { display: flex; align-items: center; gap: 12px; margin: 0; font: 13px var(--mono); color: rgba(238, 241, 247, .7); }
+.tombola-sponsor img { max-height: 40px; width: auto; }
+
+/* Der Name traegt die Szene: so gross wie moeglich, ohne dass ein langer Name
+   umbricht und die Anordnung springen laesst. */
+.tombola-name {
+  margin: 8px 0 0; font-size: clamp(2.6rem, 9vw, 7rem); line-height: 1.02;
+  font-weight: 800; letter-spacing: -.02em;
+}
+/* Waehrend des Durchlaufs bewusst gedaempft: Was hier steht, ist noch kein
+   Ergebnis, und es soll auch nicht wie eines aussehen. */
+.tombola-name.is-rolling { color: rgba(238, 241, 247, .45); font-variant-numeric: tabular-nums; }
+.tombola-winner { display: grid; gap: 10px; justify-items: center; }
+.tombola-repair { margin: 0; font: 15px var(--mono); color: #ffc432; }
+.tombola-story { margin: 0; max-width: 58ch; font-size: clamp(1rem, 1.6vw, 1.45rem); line-height: 1.4; }
+.tombola-idle { margin: 24px 0; font: 14px var(--mono); color: rgba(238, 241, 247, .6); }
+.tombola-hint { margin: 0; font: 14px/1.5 var(--mono); color: rgba(238, 241, 247, .75); }
+
+.tombola-actions { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 10px; }
+.tombola-actions .button { margin: 0; min-width: 180px; min-height: 56px; font-size: 17px; }
+
+.tombola-prizes { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.tombola-prizes button {
+  display: grid; gap: 3px; padding: 10px 16px; border: 1px solid rgba(238, 241, 247, .3);
+  background: transparent; color: inherit; font: 600 14px var(--sans); cursor: pointer;
+}
+.tombola-prizes button.is-current { border-color: #95d4bb; background: rgba(149, 212, 187, .16); }
+.tombola-prizes button small { font: 10px var(--mono); letter-spacing: .06em; text-transform: uppercase; opacity: .7; }
+.tombola-prizes button[disabled] { opacity: .5; cursor: default; }
+
+.tombola-drawn { max-width: 720px; margin: 0 auto; width: 100%; }
+.tombola-drawn ul { margin: 8px 0 0; padding: 0; list-style: none; }
+.tombola-drawn li {
+  display: flex; justify-content: space-between; gap: 16px; align-items: baseline;
+  padding: 9px 0; border-bottom: 1px solid rgba(238, 241, 247, .16); font-size: 15px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Der Durchlauf ist Dramaturgie, keine Auslosung - wer keine Bewegung will,
+     verliert dadurch nichts. */
+  .tombola-name.is-rolling { visibility: hidden; }
+}

@@ -56,6 +56,7 @@ export default async function AdminPage() {
       lonMax: settings.region.bounds?.lonMax ?? null,
     },
     logoUrl: settings.logoUrl,
+    lotteryOrganizer: settings.lotteryOrganizer,
     persisted: settings.persisted,
     stored: {
       window: Boolean(row?.submission_start_at && row?.submission_end_at),
@@ -64,6 +65,7 @@ export default async function AdminPage() {
       rateLimit: row?.rate_limit_enabled != null,
       region: row?.region_label != null,
       logo: Boolean(row?.logo_path),
+      lotteryOrganizer: Boolean(row?.lottery_organizer_name),
     },
   };
 

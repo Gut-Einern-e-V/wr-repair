@@ -32,11 +32,16 @@ function json(body: unknown): RequestInit {
  * `pending` ist die Rueckholung einer bereits entschiedenen Einreichung und
  * nur Admins und Superadmins erlaubt - der Server prueft das nochmals
  * (Issue #58).
+ *
+ * `deleteImage` ist die Freigabe ohne Foto (Issue #49): Die Reparatur stimmt,
+ * das Bild soll aber nicht oeffentlich werden. Der Server loescht es vor der
+ * Freigabe, damit es nicht fuer die Dauer eines zweiten Aufrufs sichtbar ist -
+ * deshalb ein Aufruf und nicht Loeschung plus Freigabe.
  */
-export function decideRepair(repairId: string, status: RepairStatus, comment: string) {
+export function decideRepair(repairId: string, status: RepairStatus, comment: string, deleteImage = false) {
   return send<{ imageDeleted?: boolean }>(
     `/api/moderation/repairs/${repairId}`,
-    json({ status, moderatorComment: comment }),
+    json({ status, moderatorComment: comment, ...(deleteImage ? { deleteImage: true } : {}) }),
     "Moderationsentscheidung konnte nicht gespeichert werden.",
   );
 }

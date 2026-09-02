@@ -14,6 +14,11 @@ type Body = {
     perMinute?: unknown;
     allowlist?: unknown;
   };
+  lotteryOrganizer?: {
+    name?: unknown;
+    address?: unknown;
+    email?: unknown;
+  };
   region?: {
     enabled?: unknown;
     label?: unknown;
@@ -64,6 +69,7 @@ export async function GET(request: Request) {
       lonMax: settings.region.bounds?.lonMax ?? null,
     },
     logoUrl: settings.logoUrl,
+    lotteryOrganizer: settings.lotteryOrganizer,
     /* Die Adresse, mit der dieses Backend gerade aufgerufen wird (Issue #80).
        Sie steht hier, damit die Freigabeliste einen Knopf "meine Adresse
        eintragen" haben kann: Wer am Buehnenrechner sitzt, soll die Adresse
@@ -81,6 +87,7 @@ export async function GET(request: Request) {
       rateLimit: row?.rate_limit_enabled != null,
       region: row?.region_label != null,
       logo: Boolean(row?.logo_path),
+      lotteryOrganizer: Boolean(row?.lottery_organizer_name),
     },
   });
 }
@@ -167,6 +174,29 @@ export async function PUT(request: Request) {
     update.rate_limit_enabled = rateLimit.enabled;
     update.rate_limit_per_minute = perMinute;
     update.rate_limit_allowlist = allowlist;
+  }
+
+  /* Veranstalter des Gewinnspiels (Issue #45). Alle drei Felder zusammen,
+     weil sie zusammen in den Teilnahmebedingungen stehen: Ein Name ohne
+     Anschrift waere dort keine gueltige Angabe, sondern eine halbe. Leere
+     Felder sind erlaubt und heissen "steht noch nicht fest" - die
+     oeffentliche Seite schreibt dann genau das, statt etwas zu behaupten. */
+  if (body.lotteryOrganizer !== undefined) {
+    const organizer = body.lotteryOrganizer;
+    const name = typeof organizer.name === "string" ? organizer.name.trim() : "";
+    const address = typeof organizer.address === "string" ? organizer.address.trim() : "";
+    const email = typeof organizer.email === "string" ? organizer.email.trim() : "";
+
+    if (name.length > 200 || address.length > 300 || email.length > 200) {
+      return Response.json({ error: "Name, Anschrift und Kontaktadresse des Veranstalters sind zu lang." }, { status: 400 });
+    }
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
+      return Response.json({ error: "Die Kontaktadresse des Veranstalters ist keine gueltige E-Mail-Adresse." }, { status: 400 });
+    }
+
+    update.lottery_organizer_name = name || null;
+    update.lottery_organizer_address = address || null;
+    update.lottery_organizer_email = email || null;
   }
 
   if (body.region !== undefined) {

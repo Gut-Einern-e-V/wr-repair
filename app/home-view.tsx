@@ -9,6 +9,7 @@ import { ConsentSettingsLink } from "@/components/consent-settings-link";
 import { FundingStrip } from "@/components/funding-strip";
 import { HeroCountdown } from "@/components/hero-countdown";
 import { MobileNavigation } from "@/components/mobile-navigation";
+import { RepairMosaic } from "@/components/repair-mosaic";
 import { RepairSubmissionForm } from "@/components/repair-submission-form";
 import { StepIcon } from "@/components/step-icons";
 import { StoryMosaic } from "@/components/story-mosaic";
@@ -306,16 +307,29 @@ export function HomeView({ stories }: HomeViewProps) {
 
       <section className="participation-section" aria-labelledby="participation-title">
         <div className="participation-heading"><p className="section-index">Dein Weg zur Reparatur</p><h2 id="participation-title">Mach aus einer Reparatur einen sichtbaren Beitrag.</h2><p>Fachkenntnisse brauchst du dafür nicht. Wichtig ist nur: Die Reparatur ist echt, du beschreibst sie kurz und reichst sie während des Teilnahmezeitraums ein.</p></div>
+        {/* Quer statt hochkant: kleines Foto links, Text rechts (Issue #81).
+            Vorher waren das drei Kacheln mit grossem Bild oben - dieselbe
+            Form wie die Geschichten weiter unten, sodass die Startseite
+            zweimal dasselbe zu zeigen schien. Die Fotos bleiben, nur die
+            Gestalt der Karte unterscheidet sich jetzt. */}
         <div className="participation-options">
-          <article><div className="participation-photo"><NextImage src={brandPhotos.secondLife.src} alt={brandPhotos.secondLife.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Einreichen</span></div><h3>Selbst repariert?</h3><p>Mach ein Foto, wähle die Kategorie und erzähle in wenigen Sätzen, was wieder funktioniert.</p><button className="text-button" type="button" onClick={() => startSubmission()}>Reparatur einreichen <span aria-hidden="true">&#8594;</span></button></article>
-          <article><div className="participation-photo"><NextImage src={brandPhotos.bicycle.src} alt={brandPhotos.bicycle.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Mitmachen</span></div><h3>Du brauchst Hilfe?</h3><p>In Repair Cafés und offenen Werkstätten findest du Menschen, Werkzeuge und Zeit für die nächste Reparatur &ndash; in ganz NRW und kostenlos.</p><Link className="text-button" href="/repair-cafes">Repair Café finden <span aria-hidden="true">&#8594;</span></Link></article>
-          <article><div className="participation-photo"><NextImage src={brandPhotos.celebrate.src} alt={brandPhotos.celebrate.alt} width={620} height={344} sizes="(max-width: 720px) 100vw, 33vw" /><span>Unterstützen</span></div><h3>Ihr seid eine Einrichtung?</h3><p>Werkstätten, Schulen, Vereine und Initiativen tragen sich in den Verteiler ein und bekommen Plakate, Kommunikationsmaterial und alle Infos zum Rekordmonat.</p><a className="text-button" href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">In den Verteiler eintragen <span aria-hidden="true">&#8599;</span></a></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.secondLife.src} alt={brandPhotos.secondLife.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Einreichen</p><h3>Selbst repariert?</h3><p>Mach ein Foto, wähle die Kategorie und erzähle in wenigen Sätzen, was wieder funktioniert.</p><button className="text-button" type="button" onClick={() => startSubmission()}>Reparatur einreichen <span aria-hidden="true">&#8594;</span></button></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.bicycle.src} alt={brandPhotos.bicycle.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Mitmachen</p><h3>Du brauchst Hilfe?</h3><p>In Repair Cafés und offenen Werkstätten findest du Menschen, Werkzeuge und Zeit für die nächste Reparatur &ndash; in ganz NRW und kostenlos.</p><Link className="text-button" href="/repair-cafes">Repair Café finden <span aria-hidden="true">&#8594;</span></Link></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.celebrate.src} alt={brandPhotos.celebrate.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Unterstützen</p><h3>Ihr seid eine Einrichtung?</h3><p>Werkstätten, Schulen, Vereine und Initiativen tragen sich in den Verteiler ein und bekommen Plakate, Kommunikationsmaterial und alle Infos zum Rekordmonat.</p><a className="text-button" href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">In den Verteiler eintragen <span aria-hidden="true">&#8599;</span></a></article>
         </div>
       </section>
 
+      {/* Aus der Kurzauswertung wird die Bilderwand (Issue #81). Die drei
+          Kategoriezahlen sagten dasselbe wie /stats, nur weniger - und
+          zusammen mit den Geschichten weiter unten wirkte die Startseite, als
+          zeige sie zweimal dasselbe. Solange zu wenige Fotos freigegeben
+          sind, bleibt die Liste stehen; darueber entscheidet `RepairMosaic`
+          selbst, denn erst die Antwort der Route kennt die Zahl. */}
       <section className="home-stats-preview" aria-labelledby="home-stats-title">
-        <div><p className="section-index">Live-Auswertung</p><h2 id="home-stats-title">{isDone ? "Was repariert wurde." : "Was gerade repariert wird."}</h2><p>Gezählt wird, was die Moderation geprüft hat. Aus Datenschutzgründen werden keine Orte auf einer Karte dargestellt.</p><Link className="text-button" href="/stats">{isDone ? "Zum Rückblick" : "Alle Statistiken"} <span aria-hidden="true">&#8594;</span></Link></div>
-        <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? "Die Statistik wird mit dem Start des Weltrekordversuchs freigeschaltet." : "Die ersten Reparaturen erscheinen hier."}</li>}</ol>
+        <div><p className="section-index">Aus den Einreichungen</p><h2 id="home-stats-title">{isDone ? "Was repariert wurde." : "Was gerade repariert wird."}</h2><p>Jedes Bild ist eine freigegebene Einreichung. Gezählt wird, was die Moderation geprüft hat. Aus Datenschutzgründen werden keine Orte auf einer Karte dargestellt.</p><Link className="text-button" href="/stats">{isDone ? "Zum Rückblick" : "Alle Zahlen und die Karte"} <span aria-hidden="true">&#8594;</span></Link></div>
+        <RepairMosaic fallback={
+          <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? "Die Statistik wird mit dem Start des Weltrekordversuchs freigeschaltet." : "Die ersten Reparaturen erscheinen hier."}</li>}</ol>
+        } />
       </section>
 
       <section className="category-section" aria-labelledby="category-title">
