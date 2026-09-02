@@ -27,7 +27,7 @@ export default async function AboutPage() {
   return <main className="page-shell content-page">
     <SiteHeader />
 
-    <section className="content-hero project-hero" aria-labelledby="about-title">
+    <section id="inhalt" className="content-hero project-hero" aria-labelledby="about-title">
       <div>
         <p className="brand-kicker">Über das Projekt</p>
         <h1 className="sticker-head" id="about-title"><span className="sticker">Reparatur ist</span><span className="sticker">Infrastruktur</span></h1>
@@ -53,7 +53,7 @@ export default async function AboutPage() {
       <div>
         <p className="section-index">Wer dahinter steht</p>
         <h2 id="region-title">Drei Städte, eine gemeinsame Idee.</h2>
-        <p>Der Reparaturrekord kommt aus der FAB Region Bergisches Städtedreieck – einem Projekt von Wuppertal, Solingen und Remscheid. Die drei Städte liegen so dicht beieinander, dass man sie seit jeher als Dreieck denkt. Die FAB Region arbeitet daran, aus dieser Nachbarschaft eine Wirtschaftsweise zu machen: nachhaltig, lokal produzierend und global vernetzt. Getragen wird sie von Partnern aus Zivilgesellschaft, Wirtschaft und Wissenschaft, gefördert vom Land Nordrhein-Westfalen und der Europäischen Union.</p>
+        <p>Der Reparaturrekord kommt aus der FAB Region Bergisches Städtedreieck – einem Projekt von Wuppertal, Solingen und Remscheid. Die drei Städte liegen so dicht beieinander, dass man sie seit jeher als Dreieck denkt. Die FAB Region arbeitet daran, aus dieser Nachbarschaft eine Wirtschaftsweise zu machen: nachhaltig, lokal produzierend und global vernetzt. Getragen wird sie von Organisationen aus Zivilgesellschaft, Wirtschaft und Wissenschaft, gefördert vom Land Nordrhein-Westfalen und der Europäischen Union.</p>
         <p>Die Idee dahinter stammt aus dem weltweiten Fab-City-Netzwerk: Regionen sollen wieder mehr von dem herstellen, reparieren und im Kreislauf halten, was sie verbrauchen. Im Bergischen richtet sich das auf drei Bereiche – Textilien, Ernährung und Bauen – und auf reale Orte, an denen das ausprobiert wird: Gut Einern in Wuppertal, die Gläserne Werkstatt in Solingen, die Gründerschmiede in Remscheid.</p>
         <p>Reparatur ist dabei der Anfang von allem. Bevor etwas recycelt, gespendet oder ersetzt wird, ist die längere Nutzung immer die beste Option – ökologisch wie sozial. Der Reparaturrekord bringt diesen Gedanken aus den Werkstätten in die ganze Region.</p>
         <a className="text-button" href="https://www.fab-bergisch.org/ueber-uns" target="_blank" rel="noreferrer">Mehr über die FAB Region <span aria-hidden="true">&#8599;</span></a>

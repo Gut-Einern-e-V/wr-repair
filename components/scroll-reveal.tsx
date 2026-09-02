@@ -3,7 +3,12 @@
 import { useEffect } from "react";
 
 /* Sanftes Einblenden beim Scrollen. Die Startzustaende setzt erst diese Komponente
-   ueber `data-reveal-ready` am <html>-Element: Ohne JavaScript bleibt alles sichtbar. */
+   ueber `data-reveal-ready` am <html>-Element: Ohne JavaScript bleibt alles sichtbar.
+
+   Seiten, die gar keine Bewegung wollen, tragen `data-reveal="off"` an ihrem
+   Wurzelelement - die Seite in Leichter Sprache tut das (Issue #47). Das ist
+   mehr als `prefers-reduced-motion`: Diese Einstellung hat kaum jemand gesetzt,
+   und wer die Extraseite ansteuert, hat sich schon entschieden. */
 export function ScrollReveal() {
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -25,6 +30,7 @@ export function ScrollReveal() {
     function observeAll() {
       for (const element of document.querySelectorAll(selector)) {
         if (observed.has(element)) continue;
+        if (element.closest('[data-reveal="off"]')) continue;
         observed.add(element);
         element.classList.add("reveal-item");
         observer.observe(element);

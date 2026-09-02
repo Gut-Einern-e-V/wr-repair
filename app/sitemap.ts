@@ -38,6 +38,9 @@ const staticPages: StaticEntry[] = [
   { path: "/privacy", changeFrequency: "yearly", priority: 0.2 },
   { path: "/imprint", changeFrequency: "yearly", priority: 0.2 },
   { path: "/accessibility", changeFrequency: "yearly", priority: 0.2 },
+  /* Hoeher gewichtet als die Rechtstexte: Die Seite ist ein eigenes Angebot,
+     kein Kleingedrucktes (Issue #47). */
+  { path: "/leichte-sprache", changeFrequency: "monthly", priority: 0.6 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

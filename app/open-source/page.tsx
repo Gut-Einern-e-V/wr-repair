@@ -18,7 +18,7 @@ const REPO = "https://github.com/Gut-Einern-e-V/wr-repair";
 export default function OpenSourcePage() {
   return <main className="page-shell content-page">
     <SiteHeader />
-    <article className="legal-page">
+    <article id="inhalt" className="legal-page">
       <p className="eyebrow">Open Source</p>
       <h1>Zum Nachbauen gemacht.</h1>
       <section>

@@ -16,7 +16,7 @@ export default async function StoriesPage() {
 
   return <main className="page-shell content-page">
     <SiteHeader />
-    <section className="content-hero" aria-labelledby="stories-title">
+    <section id="inhalt" className="content-hero" aria-labelledby="stories-title">
       <p className="brand-kicker">Den ganzen Oktober lang reparieren &hellip;</p>
       <h1 className="sticker-head is-mint" id="stories-title"><span className="sticker">Was bleibt,</span><span className="sticker">wenn wir es</span><span className="sticker">reparieren</span></h1>
       <p>Manche Reparaturen erzählen wir ausführlich: was kaputt war, wer sich darangesetzt hat und was am Ende wieder funktioniert. Während des Weltrekordversuchs kommen laufend neue Geschichten dazu.</p>

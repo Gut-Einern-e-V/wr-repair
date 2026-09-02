@@ -32,6 +32,7 @@ const legalLinks = [
   ["/privacy", "Datenschutz"],
   ["/imprint", "Impressum"],
   ["/accessibility", "Barrierefreiheit"],
+  ["/leichte-sprache", "Leichte Sprache"],
 ] as const;
 
 export function MobileNavigation() {

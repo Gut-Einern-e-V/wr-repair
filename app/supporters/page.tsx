@@ -16,7 +16,7 @@ const fundingLogos = [
 export default function SupportersPage() {
   return <main className="page-shell content-page">
     <SiteHeader />
-    <section className="content-hero" aria-labelledby="supporters-title"><p className="brand-kicker">Unterstützung</p><h1 className="sticker-head is-mint" id="supporters-title"><span className="sticker">Reparatur braucht</span><span className="sticker">Rückenwind</span></h1><p>Der Weltrekordversuch verbindet Menschen, Orte und Wissen. Diese Partnerorganisationen stehen für die FAB Region und ihre Arbeit an einer regionalen Kreislaufwirtschaft.</p></section>
+    <section id="inhalt" className="content-hero" aria-labelledby="supporters-title"><p className="brand-kicker">Unterstützung</p><h1 className="sticker-head is-mint" id="supporters-title"><span className="sticker">Reparatur braucht</span><span className="sticker">Rückenwind</span></h1><p>Der Weltrekordversuch verbindet Menschen, Orte und Wissen. Diese Partnerorganisationen stehen für die FAB Region und ihre Arbeit an einer regionalen Kreislaufwirtschaft.</p></section>
     <section className="content-section" aria-label="Projektpartner"><PartnerLogoGrid /></section>
     <section className="funding-note" aria-labelledby="funding-title">
       <p className="section-index">Förderhinweis</p>
