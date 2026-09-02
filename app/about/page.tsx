@@ -42,10 +42,15 @@ export default async function AboutPage() {
         <h2 id="project-facts-title">Weil eine Reparatur allein unsichtbar bleibt.</h2>
       </div>
       <div>
-        <p>Etwas selbst zu reparieren war einmal selbstverständlich. Heute ist Neukaufen oft schneller und billiger – und so verschwindet mit jedem weggeworfenen Gerät auch das Wissen, wie man es wieder hinbekommt. Dabei passiert Reparatur längst überall: in Repair Cafés, in offenen Werkstätten, an Küchentischen und in Hinterhöfen. Nur zählt sie niemand.</p>
-        <p>Genau das ändert ein Rekordversuch. Er gibt vielen einzelnen Handgriffen eine gemeinsame Zahl und macht daraus ein Signal: Dinge verdienen ein zweites Leben, und Reparaturwissen gehört in die Mitte der Gesellschaft. Der Rekord ist dabei Mittel, nicht Zweck – uns geht es nicht um einen Eintrag ins Guinness-Buch, sondern um das, was auf dem Weg dorthin entsteht.</p>
-        <p>Als Maßstab dienen die dokumentierten Bestleistungen der britischen Kampagne The BIG FIX: 268 Reparaturen an einem Tag und Ort (2019, Exeter) sowie 3.177 Reparaturen in einem Monat landesweit (2024). Für Nordrhein-Westfalen haben wir uns {recordGoal.toLocaleString("de-DE")} Reparaturen vorgenommen.</p>
-        <a className="text-button" href="https://www.recycledevon.org/thebigfix" target="_blank" rel="noreferrer">Quelle: The BIG FIX, Recycle Devon <span aria-hidden="true">&#8599;</span></a>
+        <p>Etwas selbst zu reparieren war einmal selbstverständlich. Heute ist Neukaufen oft schneller und billiger – und so verschwindet mit jedem weggeworfenen Gerät auch das Wissen, wie man es wieder hinbekommt.</p>
+        <p>Dabei passiert Reparatur längst überall: in <Link href="/repair-cafes">Repair Cafés</Link>, in offenen Werkstätten, an Küchentischen und in Hinterhöfen. Nur zählt sie niemand.</p>
+        <p>Genau das ändert ein Rekordversuch. Er gibt vielen einzelnen Handgriffen eine gemeinsame Zahl und macht daraus ein Signal: Dinge verdienen ein zweites Leben, und Reparaturwissen gehört in die Mitte der Gesellschaft.</p>
+        <p>Der Rekord ist dabei Mittel, nicht Zweck. Uns geht es nicht um einen Eintrag ins Guinness-Buch, sondern um das, was auf dem Weg dorthin entsteht – nachzulesen in den <Link href="/stories">Geschichten</Link> der Menschen, die mitmachen.</p>
+        <p>Unser Maßstab sind die dokumentierten Bestleistungen aus Großbritannien. Für Nordrhein-Westfalen haben wir uns {recordGoal.toLocaleString("de-DE")} Reparaturen vorgenommen.</p>
+        <p className="link-row">
+          <Link className="text-button" href="/#zahlen-und-fakten">Alle Rekordzahlen und Quellen <span aria-hidden="true">&#8594;</span></Link>
+          <Link className="text-button" href="/stats">Aktueller Stand <span aria-hidden="true">&#8594;</span></Link>
+        </p>
       </div>
     </section>
 
@@ -53,10 +58,19 @@ export default async function AboutPage() {
       <div>
         <p className="section-index">Wer dahinter steht</p>
         <h2 id="region-title">Drei Städte, eine gemeinsame Idee.</h2>
-        <p>Der Reparaturrekord kommt aus der FAB Region Bergisches Städtedreieck – einem Projekt von Wuppertal, Solingen und Remscheid. Die drei Städte liegen so dicht beieinander, dass man sie seit jeher als Dreieck denkt. Die FAB Region arbeitet daran, aus dieser Nachbarschaft eine Wirtschaftsweise zu machen: nachhaltig, lokal produzierend und global vernetzt. Getragen wird sie von Organisationen aus Zivilgesellschaft, Wirtschaft und Wissenschaft, gefördert vom Land Nordrhein-Westfalen und der Europäischen Union.</p>
-        <p>Die Idee dahinter stammt aus dem weltweiten Fab-City-Netzwerk: Regionen sollen wieder mehr von dem herstellen, reparieren und im Kreislauf halten, was sie verbrauchen. Im Bergischen richtet sich das auf drei Bereiche – Textilien, Ernährung und Bauen – und auf reale Orte, an denen das ausprobiert wird: Gut Einern in Wuppertal, die Gläserne Werkstatt in Solingen, die Gründerschmiede in Remscheid.</p>
-        <p>Reparatur ist dabei der Anfang von allem. Bevor etwas recycelt, gespendet oder ersetzt wird, ist die längere Nutzung immer die beste Option – ökologisch wie sozial. Der Reparaturrekord bringt diesen Gedanken aus den Werkstätten in die ganze Region.</p>
-        <a className="text-button" href="https://www.fab-bergisch.org/ueber-uns" target="_blank" rel="noreferrer">Mehr über die FAB Region <span aria-hidden="true">&#8599;</span></a>
+        <p>Der Reparaturrekord kommt aus der FAB Region Bergisches Städtedreieck – einem gemeinsamen Projekt von Wuppertal, Solingen und Remscheid. Die drei Städte liegen so dicht beieinander, dass man sie seit jeher als Dreieck denkt.</p>
+        <p>Die Idee stammt aus dem weltweiten <a href="https://fab.city/" target="_blank" rel="noreferrer">Fab-City-Netzwerk</a>: Regionen sollen wieder mehr von dem herstellen, reparieren und im Kreislauf halten, was sie verbrauchen. Im Bergischen richtet sich das auf drei Bereiche – Textilien, Ernährung und Bauen.</p>
+        <p>Ausprobiert wird das an drei Orten:</p>
+        <ul className="region-places">
+          <li><a href="https://www.gut-einern.org/" target="_blank" rel="noreferrer">Gut Einern <span aria-hidden="true">&#8599;</span></a> <span>Wuppertal</span></li>
+          <li><a href="https://www.glaeserne-werkstatt-solingen.de/" target="_blank" rel="noreferrer">Gläserne Werkstatt <span aria-hidden="true">&#8599;</span></a> <span>Solingen</span></li>
+          <li><a href="https://gruenderschmiede.org/" target="_blank" rel="noreferrer">Gründerschmiede <span aria-hidden="true">&#8599;</span></a> <span>Remscheid</span></li>
+        </ul>
+        <p>Reparatur ist dabei der Anfang von allem. Bevor etwas recycelt, gespendet oder ersetzt wird, ist die längere Nutzung immer die beste Option – ökologisch wie sozial.</p>
+        <p className="link-row">
+          <a className="text-button" href="https://www.fab-bergisch.org/ueber-uns" target="_blank" rel="noreferrer">Mehr über die FAB Region <span aria-hidden="true">&#8599;</span></a>
+          <Link className="text-button" href="/supporters">Wer das Projekt trägt <span aria-hidden="true">&#8594;</span></Link>
+        </p>
       </div>
       <figure className="region-figure">
         <RegionTriangle />
@@ -71,7 +85,7 @@ export default async function AboutPage() {
       </div>
       <ol>
         <li><p>Eine Reparatur dokumentieren und während des Zeitraums <Link href="/mitmachen">eintragen</Link>.</p></li>
-        <li><p>Reparaturwissen in Werkstatt, Schule oder Nachbarschaft teilen.</p></li>
+        <li><p>Reparaturwissen in Werkstatt, Schule oder Nachbarschaft teilen – Einrichtungen bekommen Plakate und Material über den <a href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">Verteiler</a>.</p></li>
         <li><p>Diese Website weiterentwickeln oder für die eigene Region nachnutzen – der Quelltext ist <Link href="/open-source">offen</Link>.</p></li>
       </ol>
     </section>

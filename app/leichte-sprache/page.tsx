@@ -41,7 +41,7 @@ export default async function EasyLanguagePage() {
     <a className="skip-link" href="#inhalt">Zum Inhalt springen</a>
     <header className="easy-header">
       <Link className="brand" href="/" aria-label="Reparaturrekord NRW Startseite"><span className="brand-mark">R</span><span>Reparaturrekord<br />NRW</span></Link>
-      <Link className="easy-switch" href="/">Zur normalen Seite</Link>
+      <Link className="easy-switch" href="/">Zur <W>Start·seite</W></Link>
     </header>
 
     <article className="easy-page" id="inhalt">
@@ -157,10 +157,12 @@ export default async function EasyLanguagePage() {
       </section>
 
       <section aria-labelledby="easy-back">
-        <h2 id="easy-back">Zurück zur normalen Seite</h2>
+        <h2 id="easy-back">Die anderen Seiten</h2>
         <p>Diese Seite ist in Leichter Sprache.</p>
-        <p>Es gibt die Seite auch in normaler Sprache.</p>
-        <p><Link className="easy-link" href="/">Zur normalen <W>Start·seite</W></Link></p>
+        <p>Die anderen Seiten sind in <W>Alltags·sprache</W>.</p>
+        <p>Dort stehen mehr Sachen.</p>
+        <p>Die Sätze sind dort aber länger.</p>
+        <p><Link className="easy-link" href="/">Zur <W>Start·seite</W></Link></p>
       </section>
     </article>
 
