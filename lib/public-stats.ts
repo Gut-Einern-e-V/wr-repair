@@ -8,6 +8,8 @@
  */
 
 export type PublicStatsDay = { date: string; total: number };
+/** Bester Tag eines Ortes: Tag, Ort und die Zahl der Reparaturen darin. */
+export type PublicStatsKreisDay = { date: string; kreis: string; total: number };
 
 export type PublicStats = {
   /**
@@ -26,6 +28,21 @@ export type PublicStats = {
   bestDay: PublicStatsDay | null;
   /** Bisheriger Rekord aus frueheren Aktionen, sofern eingetragen. */
   dayRecord: number | null;
+  /**
+   * Heutiger Stand je Kreis bzw. kreisfreier Stadt (Issue #75).
+   *
+   * Der Tagesrekord ist eine Marke "an einem Tag *und Ort*" - verglichen wird
+   * deshalb der Ort mit dem hoechsten Tagesstand, nicht das ganze Land. Wer
+   * eine Anzeige baut, nimmt den groessten Wert daraus.
+   *
+   * Leer, solange Migration 202609020001 nicht ausgerollt ist.
+   */
+  todayKreise: Record<string, number>;
+  /**
+   * Bester Tag eines einzelnen Ortes vor heute - der eigene Ortsbestwert dieser
+   * Aktion. `null`, solange es keinen gibt.
+   */
+  bestKreisDay: PublicStatsKreisDay | null;
   /* Ab hier die Groessen fuer den Rueckblick nach dem Zeitraum (Issue #66).
      Sie stehen auch waehrend der Aktion in der Antwort - eine Schnittstelle,
      die je nach Datum andere Felder liefert, waere fuer angeschlossene Geraete
@@ -140,6 +157,17 @@ function toDay(value: unknown): PublicStatsDay | null {
   return { date: record.date, total };
 }
 
+/** Wie {@link toDay}, aber mit Ortsangabe - unvollstaendige Angaben fallen weg. */
+function toKreisDay(value: unknown): PublicStatsKreisDay | null {
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  const total = toNumber(record.total);
+  if (typeof record.date !== "string" || typeof record.kreis !== "string" || total <= 0) return null;
+
+  return { date: record.date, kreis: record.kreis, total };
+}
+
 function toTimeline(value: unknown): PublicStatsDay[] {
   if (!Array.isArray(value)) return [];
 
@@ -174,6 +202,8 @@ export function readPublicStats(aggregate: unknown, context: PublicStatsContext)
     today: toNumber(record.today),
     bestDay: toDay(record.bestDay),
     dayRecord: context.dayRecord,
+    todayKreise: toCounts(record.todayKreise),
+    bestKreisDay: toKreisDay(record.bestKreisDay),
     succeeded: toNumber(record.succeeded),
     withStory: toNumber(record.withStory),
     minutesSaved: toNumber(record.minutesSaved),

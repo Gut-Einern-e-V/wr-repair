@@ -145,6 +145,16 @@ export default function Recap({ campaign }: { campaign: CampaignDates }) {
             : "Für einen besten Tag reichen die Zahlen nicht."}
           {" "}An {derived.activeDays.toLocaleString("de-DE")} von {derived.timeline.length.toLocaleString("de-DE")} Tagen kam mindestens eine Reparatur dazu, im Schnitt {derived.perDay.toLocaleString("de-DE", { maximumFractionDigits: 1 })} pro Tag.
         </p>
+        {/* Der Tag an einem einzelnen Ort (Issue #75). Die Bestmarke, an der
+            sich die Aktion misst, ist "an einem Tag und Ort" - dafuer ist der
+            landesweite beste Tag darueber die falsche Zahl. */}
+        {stats.bestKreisDay && (
+          <p className="recap-days-note">
+            Stärkster Tag an einem einzelnen Ort: <strong>{stats.bestKreisDay.kreis}</strong> mit{" "}
+            {stats.bestKreisDay.total.toLocaleString("de-DE")} Reparaturen am{" "}
+            {longDayFormat.format(parseDay(stats.bestKreisDay.date))}.
+          </p>
+        )}
       </section>
 
       <section className="recap-numbers" aria-labelledby="recap-numbers-title">

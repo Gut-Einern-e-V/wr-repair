@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mergeRegion, parseWindow, publicLogoUrl, type SettingsRow } from "./app-settings";
+import { mergeRegion, mergeThrottle, parseWindow, publicLogoUrl, type SettingsRow } from "./app-settings";
+import { DEFAULT_THROTTLE_PER_MINUTE } from "./rate-limit";
 import { getRegionConfig } from "./region-config";
 
 function row(overrides: Partial<SettingsRow> = {}): SettingsRow {
@@ -17,6 +18,9 @@ function row(overrides: Partial<SettingsRow> = {}): SettingsRow {
     region_lat_max: null,
     region_lon_min: null,
     region_lon_max: null,
+    rate_limit_enabled: null,
+    rate_limit_per_minute: null,
+    rate_limit_allowlist: null,
     ...overrides,
   };
 }
@@ -82,5 +86,34 @@ describe("publicLogoUrl", () => {
     expect(publicLogoUrl(null)).toBeNull();
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
     expect(publicLogoUrl("logo-1.png")).toBeNull();
+  });
+});
+
+describe("mergeThrottle", () => {
+  it("bleibt ohne Einstellungszeile im Normalbetrieb", () => {
+    expect(mergeThrottle(null)).toEqual({ enabled: false, perMinute: DEFAULT_THROTTLE_PER_MINUTE, allowlist: [] });
+  });
+
+  it("bleibt aus, solange nur eine Zahl hinterlegt ist", () => {
+    // Eine vorbereitete Zahl ist keine Anweisung zu drosseln (Issue #80).
+    expect(mergeThrottle(row({ rate_limit_per_minute: 20 })))
+      .toEqual({ enabled: false, perMinute: 20, allowlist: [] });
+  });
+
+  it("nimmt Schalter und Zahl aus der Zeile", () => {
+    expect(mergeThrottle(row({ rate_limit_enabled: true, rate_limit_per_minute: 15 })))
+      .toEqual({ enabled: true, perMinute: 15, allowlist: [] });
+  });
+
+  it("faellt bei unbrauchbarer Zahl auf den Standardwert zurueck", () => {
+    expect(mergeThrottle(row({ rate_limit_enabled: true, rate_limit_per_minute: 0 })))
+      .toEqual({ enabled: true, perMinute: DEFAULT_THROTTLE_PER_MINUTE, allowlist: [] });
+  });
+
+  it("liest die Freigabeliste und wirft Tippfehler darin weg", () => {
+    // Eine Liste mit einem kaputten Eintrag darf die Drosselung nicht
+    // insgesamt ausfallen lassen (Issue #80).
+    const throttle = mergeThrottle(row({ rate_limit_allowlist: ["203.0.113.4", "kaputt", "2001:db8::/32"] }));
+    expect(throttle.allowlist).toEqual(["203.0.113.4", "2001:db8::/32"]);
   });
 });

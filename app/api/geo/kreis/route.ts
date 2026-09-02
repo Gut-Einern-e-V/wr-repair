@@ -1,6 +1,7 @@
 import { anonymizeRequestOrigin, isCoarsePoint } from "@/lib/geo-anonymize";
 import { kreisForPoint } from "@/lib/nrw-map";
-import { rateLimit } from "@/lib/rate-limit";
+import { getAppSettings } from "@/lib/app-settings";
+import { publicRateLimit } from "@/lib/rate-limit";
 
 /**
  * Loest einen bereits anonymisierten Punkt (Foto-EXIF oder Standortabfrage)
@@ -13,13 +14,23 @@ import { rateLimit } from "@/lib/rate-limit";
  * Die Kreis-Polygone bleiben dadurch serverseitig - das oeffentliche Formular
  * muss sie nicht laden (siehe lib/nrw-kreise-list.ts).
  */
+/**
+ * Anfragen je Minute und IP-Adresse im Normalbetrieb.
+ *
+ * Grosszuegig, weil sich das Limit auf die IP-Adresse bezieht und bei einer
+ * Veranstaltung alle Geraete hinter derselben stecken. Mit den alten 30 pro
+ * Minute fiel der Kreis-Vorschlag im Formular schon bei einem Dutzend Menschen
+ * im gleichen WLAN aus (Issue #64). Die Auskunft rechnet nur ein Polygon nach
+ * und liest nichts, was schuetzenswert waere.
+ */
+const GEO_LIMIT_PER_MINUTE = 300;
+
 export async function GET(request: Request) {
-  /* Grosszuegig, weil sich das Limit auf die IP-Adresse bezieht und bei einer
-     Veranstaltung alle Geraete hinter derselben stecken. Mit den alten 30 pro
-     Minute fiel der Kreis-Vorschlag im Formular schon bei einem Dutzend
-     Menschen im gleichen WLAN aus (Issue #64). Die Auskunft rechnet nur ein
-     Polygon nach und liest nichts, was schuetzenswert waere. */
-  const limit = rateLimit(request, "geo-kreis", { limit: 300, windowMs: 60 * 1_000 });
+  /* Im Schonmodus gilt die engere Grenze aus dem Backend (Issue #80). Diese
+     Route liegt im Einreichungsweg - wer sie drosselt, drosselt den
+     Kreis-Vorschlag im Formular, nicht die Einreichung selbst. */
+  const { publicThrottle } = await getAppSettings();
+  const limit = publicRateLimit(request, "geo-kreis", publicThrottle, GEO_LIMIT_PER_MINUTE);
   if (!limit.allowed) {
     return Response.json(
       { error: "Zu viele Standortabfragen. Bitte kurz warten." },

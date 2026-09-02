@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, dayRecordState, formatDayLabel, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, readCells, isFreshlyApproved, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
+import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, dayRecordState, formatDayLabel, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, rankKreisDay, readCells, isFreshlyApproved, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
 
 function highlight(id: string, category = "tools", kreis: string | null = null) {
   return {
@@ -30,6 +30,8 @@ const snapshot: DashboardSnapshot = {
   today: 4,
   bestDay: { date: "2026-09-28", total: 7 },
   dayRecord: null,
+  todayKreise: {},
+  bestKreisDay: null,
   cells: [],
   kreise: {},
   highlights: [highlight("a"), highlight("b")],
@@ -89,6 +91,28 @@ describe("mergeDashboardDelta", () => {
     const merged = mergeDashboardDelta({ ...snapshot, kreise: { Remscheid: 2 } }, repeated);
 
     expect(merged.kreise).toEqual({ Remscheid: 2 });
+  });
+
+  it("zaehlt nur Eintraege des laufenden Berliner Tages in den Ortsstand", () => {
+    const heute = highlight("c", "tools", "Remscheid");
+    const gestern = { ...highlight("d", "tools", "Remscheid"), submittedAt: "2026-09-30T09:00:00.000Z" };
+    const merged = mergeDashboardDelta(
+      { ...snapshot, todayKreise: { Remscheid: 2 } },
+      { ...delta, added: [heute, gestern] },
+    );
+
+    // Der Eintrag von gestern zaehlt nicht mit: Der Tagesrekord haengt am
+    // Einreichungstag, nicht daran, wann die Moderation ihn freigegeben hat.
+    expect(merged.todayKreise).toEqual({ Remscheid: 3 });
+  });
+
+  it("laesst den Ortsstand unveraendert, wenn der Zeitstempel des Deltas fehlt", () => {
+    const merged = mergeDashboardDelta(
+      { ...snapshot, todayKreise: { Remscheid: 2 } },
+      { ...delta, added: [highlight("c", "tools", "Remscheid")], generatedAt: "kein Datum" },
+    );
+
+    expect(merged.todayKreise).toEqual({ Remscheid: 2 });
   });
 
   it("begrenzt die Anzahl vorgehaltener Highlights", () => {
@@ -398,12 +422,20 @@ describe("dayRecordState", () => {
     expect(state.broken).toBe(false);
   });
 
-  it("nimmt den eigenen Bestwert, sobald er hoeher liegt, und nennt seinen Tag", () => {
-    const state = dayRecordState(80, { date: "2026-09-28", total: 140 }, 120);
+  it("nimmt den eigenen Bestwert, sobald er hoeher liegt, und nennt Tag und Ort", () => {
+    const state = dayRecordState(80, { date: "2026-09-28", kreis: "Wuppertal", total: 140 }, 120);
 
     expect(state.record).toBe(140);
     expect(state.source).toBe("own");
     expect(state.date).toBe("2026-09-28");
+    expect(state.place).toBe("Wuppertal");
+  });
+
+  it("nennt keinen Ort, solange der hinterlegte Wert gilt", () => {
+    const state = dayRecordState(80, { date: "2026-09-28", kreis: "Wuppertal", total: 90 }, 120);
+
+    expect(state.source).toBe("logged");
+    expect(state.place).toBeNull();
   });
 
   it("meldet den Rekord erst, wenn er ueberboten ist - nicht bei Gleichstand", () => {
@@ -427,6 +459,30 @@ describe("dayRecordState", () => {
   it("deckelt die Balkenbreite bei hundert Prozent", () => {
     expect(dayRecordState(240, null, 120).progress).toBe(100);
     expect(dayRecordState(60, null, 120).progress).toBe(50);
+  });
+});
+
+describe("rankKreisDay", () => {
+  it("sortiert absteigend und kuerzt auf die Grenze", () => {
+    const ranking = rankKreisDay({ Wuppertal: 12, Remscheid: 30, Solingen: 21 }, 2);
+
+    expect(ranking).toEqual([
+      { kreis: "Remscheid", total: 30 },
+      { kreis: "Solingen", total: 21 },
+    ]);
+  });
+
+  it("entscheidet Gleichstand ueber den Namen, damit die Reihenfolge steht", () => {
+    expect(rankKreisDay({ Solingen: 8, Remscheid: 8 }).map((entry) => entry.kreis))
+      .toEqual(["Remscheid", "Solingen"]);
+  });
+
+  it("laesst Orte ohne Reparatur und ohne Namen weg", () => {
+    expect(rankKreisDay({ Wuppertal: 0, "": 5, Remscheid: 3 })).toEqual([{ kreis: "Remscheid", total: 3 }]);
+  });
+
+  it("kommt mit einem leeren Stand aus", () => {
+    expect(rankKreisDay({})).toEqual([]);
   });
 });
 

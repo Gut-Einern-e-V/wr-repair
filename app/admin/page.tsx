@@ -1,6 +1,8 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/admin-auth";
 import { getAppSettings } from "@/lib/app-settings";
+import { clientIpFromHeaders } from "@/lib/rate-limit";
 import AdminConsole from "./admin-console";
 import type { AdminSettings } from "./campaign-panel";
 
@@ -31,6 +33,9 @@ export default async function AdminPage() {
 
   const settings = await getAppSettings();
   const row = settings.row;
+  /* Die Adresse dieses Aufrufs - fuer den Knopf "meine Adresse eintragen" in
+     der Freigabeliste (Issue #80). Wird nur angezeigt, nie gespeichert. */
+  const clientIp = clientIpFromHeaders(await headers());
 
   const initialSettings: AdminSettings = {
     startAt: settings.submissionWindow.startAt?.toISOString() ?? null,
@@ -38,6 +43,8 @@ export default async function AdminPage() {
     windowStatus: settings.submissionWindow.status,
     recordGoal: settings.recordGoal,
     dayRecord: settings.dayRecord,
+    rateLimit: settings.publicThrottle,
+    clientIp,
     region: {
       enabled: settings.region.enabled,
       label: settings.region.label,
@@ -54,6 +61,7 @@ export default async function AdminPage() {
       window: Boolean(row?.submission_start_at && row?.submission_end_at),
       recordGoal: row?.record_goal != null,
       dayRecord: row?.day_record != null,
+      rateLimit: row?.rate_limit_enabled != null,
       region: row?.region_label != null,
       logo: Boolean(row?.logo_path),
     },

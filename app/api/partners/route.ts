@@ -1,7 +1,21 @@
+import { getAppSettings } from "@/lib/app-settings";
 import { defaultPartners } from "@/lib/default-partners";
+import { publicRateLimit } from "@/lib/rate-limit";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
-export async function GET() {
+/** Anfragen je Minute und IP-Adresse im Normalbetrieb (Issue #80). */
+const PARTNERS_LIMIT_PER_MINUTE = 120;
+
+export async function GET(request: Request) {
+  const { publicThrottle } = await getAppSettings();
+  const limit = publicRateLimit(request, "partners", publicThrottle, PARTNERS_LIMIT_PER_MINUTE);
+  if (!limit.allowed) {
+    return Response.json(
+      { error: "Zu viele Abfragen. Bitte kurz warten." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+    );
+  }
+
   try {
     const supabase = createSupabaseAdminClient();
     const { data, error } = await supabase

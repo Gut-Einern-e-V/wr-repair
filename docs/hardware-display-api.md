@@ -8,7 +8,7 @@ GET https://DEINE-DOMAIN.example/api/stats
 
 Die Schnittstelle benötigt keinen API-Key und liefert ausschließlich freigegebene, aggregierte Daten. Sie enthält keine Bilder, E-Mail-Adressen, IP-Adressen und keine Einzeleinträge. Ortsangaben gibt es nur als Summe je Kreis, nie als Koordinate.
 
-Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visualisierung, ein Laufband, eine Karte —, nimmt stattdessen [die Live-Daten der Bühne](dashboard-api.md).
+Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visualisierung, ein Laufband, eine Karte —, nimmt stattdessen [die Live-Daten der Bühne](dashboard-api.md). Eine Übersicht über alle öffentlichen Routen, ihre Zustände und die Grenzen je IP-Adresse steht in [public-api.md](public-api.md).
 
 ## Antwortformat
 
@@ -19,7 +19,9 @@ Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visua
   "pending": 12,
   "today": 23,
   "bestDay": { "date": "2026-10-17", "total": 41 },
-  "dayRecord": 412,
+  "dayRecord": 268,
+  "todayKreise": { "Wuppertal": 14, "Remscheid": 6 },
+  "bestKreisDay": { "date": "2026-10-17", "kreis": "Wuppertal", "total": 31 },
   "attempted": 198,
   "succeeded": 184,
   "withStory": 46,
@@ -57,9 +59,11 @@ Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visua
 | `total` | Der Rekordstand: freigegebene Reparaturen, die **gelungen** sind. Ein Versuch, der nicht geglückt ist, zählt nicht mit. |
 | `goal` | Aktuelles Ziel des Weltrekordversuchs. |
 | `pending` | Einreichungen, die gerade auf die Moderation warten. Sie zählen noch nicht zu `total` — und ob sie es je tun, entscheidet sich erst mit der Prüfung. |
-| `today` | Stand des laufenden Tages. |
-| `bestDay` | Bester Tag dieser Aktion vor heute, oder `null`, solange es keinen gibt. |
-| `dayRecord` | Bisheriger Tagesrekord aus früheren Aktionen, oder `null`, wenn keiner hinterlegt ist. |
+| `today` | Stand des laufenden Tages, **landesweit**. |
+| `bestDay` | Bester Tag dieser Aktion vor heute, landesweit, oder `null`, solange es keinen gibt. |
+| `dayRecord` | Bisheriger Tagesrekord aus früheren Aktionen, **an einem Tag und Ort**, oder `null`, wenn keiner hinterlegt ist. |
+| `todayKreise` | Heutiger Stand je Kreis bzw. kreisfreier Stadt. Der größte Wert darin ist der Ort, der heute vorn liegt. |
+| `bestKreisDay` | Bester Tag eines einzelnen Ortes vor heute, mit `date`, `kreis` und `total`, oder `null`. |
 | `attempted` | Alle freigegebenen Einreichungen, gescheiterte Versuche eingeschlossen. Bezugsgröße der Erfolgsquote (`succeeded / attempted`), nie der Rekordstand. |
 | `succeeded` | Reparaturen, die geglückt sind — gleich `total`. |
 | `withStory` | Einreichungen, zu denen eine Geschichte erzählt wurde. |
@@ -76,13 +80,29 @@ Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visua
 
 Für den Rekordstand zählen nur **gelungene** Reparaturen. Wer einen Versuch einträgt, der nicht geklappt hat, bleibt in der Aktion und in der Verlosung, taucht aber nicht in `total` auf — ein Gegenstand, der weiterhin kaputt ist, wurde nicht im Alltag gehalten. Alle abgeleiteten Zahlen folgen derselben Auswahl: `today`, `bestDay`, `timeline`, `categories`, `kreise`, `minutesSaved` und `valueSavedEuros`. Wer die Erfolgsquote anzeigen möchte, rechnet `succeeded / attempted`.
 
-Ein Tagesrekord besteht aus drei Werten: `today` ist der laufende Tag, `bestDay` der beste Tag dieser Aktion, `dayRecord` die Bestmarke aus früheren Jahren. Ein Display, das „Rekord geknackt“ anzeigen will, vergleicht `today` mit dem größeren der beiden anderen Werte.
+### Der Tagesrekord zählt je Ort
+
+Die Marke, an der sich die Aktion misst, lautet „268 Reparaturen an einem Tag **und Ort**“ (Exeter 2019). Landesweit gezählt fällt sie an jedem gut besuchten Samstag, ohne dass irgendwo etwas Vergleichbares passiert wäre. Verglichen wird deshalb der Kreis bzw. die kreisfreie Stadt mit dem höchsten Tagesstand:
+
+```text
+heute    = max(todayKreise.values())
+marke    = max(dayRecord ?? 0, bestKreisDay?.total ?? 0)
+geknackt = marke > 0 && heute > marke
+```
+
+`today` und `bestDay` bleiben daneben stehen: Sie sagen, wie viel landesweit zusammenkam, und tragen die Zeitachse — sie sind aber nicht der Vergleich mit der Marke.
 
 ### Welchen Zeitraum die Zeitachse abdeckt
 
 `timeline` folgt dem Einreichungszeitraum: Sie beginnt an dessen erstem Tag und endet am heutigen Tag, längstens aber am letzten Tag des Zeitraums. Der Zeitraum ist im Backend einstellbar, die Zahl der Einträge also nicht fest: Ein Gerät sollte über die Liste laufen und sich nicht auf 30 Einträge verlassen. Bei einem Zeitraum von mehr als 366 Tagen werden nur dessen letzte 366 Tage geliefert.
 
 Gezählt wird der Tag der Einreichung, nicht der Tag der Freigabe: Ein Tag ist der Tag, an dem repariert wurde, sonst hinge die Zeitachse daran, wann die Moderation Zeit hatte. Alle Tagesgrenzen liegen in der Zeitzone Europa/Berlin. Alle anderen Zahlen (`total`, `categories`, `kreise`) sind Gesamtwerte der Aktion; da Einreichungen nur innerhalb des Zeitraums möglich sind, decken sie genau ihn ab.
+
+### Grenzen je IP-Adresse
+
+Im Normalbetrieb 120 Anfragen pro Minute und IP-Adresse; die Antwort liegt fünf Minuten im Cache, häufiger zu fragen liefert also dieselben Zahlen. Wird ein Free-Tier-Kontingent bei Vercel oder Supabase knapp, lässt sich im Backend eine engere Grenze einschalten (siehe [public-api.md](public-api.md#schonmodus)). Ein Gerät sollte `429` deshalb behandeln und die im Header `Retry-After` genannte Zeit abwarten, auch wenn es monatelang nicht vorkommt.
+
+Für ein Display, das dauerhaft im Foyer oder am Beamer läuft, lässt sich die Adresse im Backend von der Grenze ausnehmen — siehe [Freigegebene Adressen](public-api.md#freigegebene-adressen). Frag dafür beim Team nach; die Adresse des Anschlusses genügt.
 
 ### Wann die Route antwortet
 
@@ -115,17 +135,23 @@ void refreshRepairCount() {
     filter["today"] = true;
     filter["pending"] = true;
     filter["dayRecord"] = true;
-    filter["bestDay"]["total"] = true;
+    filter["todayKreise"] = true;
+    filter["bestKreisDay"]["total"] = true;
 
     JsonDocument document;
     deserializeJson(document, http.getStream(), DeserializationOption::Filter(filter));
     const long total = document["total"] | 0;
     const long goal = document["goal"] | 0;
-    const long today = document["today"] | 0;
+    // Tagesrekord je Ort: der staerkste Kreis von heute gegen die Marke.
+    long bestToday = 0;
+    for (JsonPair entry : document["todayKreise"].as<JsonObject>()) {
+      const long amount = entry.value().as<long>();
+      if (amount > bestToday) bestToday = amount;
+    }
     // Groessere der beiden Bestmarken - fruehere Aktionen oder diese hier.
-    const long record = max(document["dayRecord"] | 0L, document["bestDay"]["total"] | 0L);
+    const long record = max(document["dayRecord"] | 0L, document["bestKreisDay"]["total"] | 0L);
     // Hier die Werte auf OLED, LCD oder LED-Matrix ausgeben.
-    Serial.printf("Reparaturen: %ld von %ld, heute %ld (Rekord %ld)\n", total, goal, today, record);
+    Serial.printf("Reparaturen: %ld von %ld, bester Ort heute %ld (Rekord %ld)\n", total, goal, bestToday, record);
   } else if (status == 403) {
     Serial.println("Kampagne ist gerade nicht aktiv.");
   } else {
@@ -150,10 +176,12 @@ while True:
     response = requests.get(STATS_URL, timeout=10)
     if response.status_code == 200:
         stats = response.json()
-        best_day = (stats.get("bestDay") or {}).get("total", 0)
-        record = max(stats.get("dayRecord") or 0, best_day)
+        # Tagesrekord je Ort: staerkster Kreis von heute gegen die Marke.
+        today_kreise = stats.get("todayKreise") or {}
+        best_kreis, best_today = max(today_kreise.items(), key=lambda item: item[1], default=("-", 0))
+        record = max(stats.get("dayRecord") or 0, (stats.get("bestKreisDay") or {}).get("total", 0))
         print(f"Freigegebene Reparaturen: {stats['total']} von {stats['goal']}")
-        print(f"Heute: {stats['today']} (Tagesrekord {record}), in Moderation: {stats['pending']}")
+        print(f"Heute vorn: {best_kreis} mit {best_today} (Tagesrekord {record}), in Moderation: {stats['pending']}")
         for kreis, amount in sorted(stats["kreise"].items(), key=lambda item: -item[1]):
             print(f"  {kreis}: {amount}")
         # display.show(stats["total"])  # Hier die verwendete Display-Bibliothek anbinden.

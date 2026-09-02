@@ -1,8 +1,28 @@
+import { getAppSettings } from "@/lib/app-settings";
+import { publicRateLimit } from "@/lib/rate-limit";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const MAX_GALLERY_ITEMS = 6;
 
-export async function GET() {
+/**
+ * Anfragen je Minute und IP-Adresse im Normalbetrieb.
+ *
+ * Jede Antwort ohne Cache-Treffer laesst signierte Bild-URLs erzeugen und ist
+ * damit die teuerste der oeffentlichen Leseroute - deshalb ueberhaupt eine
+ * Grenze (Issue #80).
+ */
+const GALLERY_LIMIT_PER_MINUTE = 120;
+
+export async function GET(request: Request) {
+  const { publicThrottle } = await getAppSettings();
+  const limit = publicRateLimit(request, "gallery", publicThrottle, GALLERY_LIMIT_PER_MINUTE);
+  if (!limit.allowed) {
+    return Response.json(
+      { error: "Zu viele Abfragen. Bitte kurz warten." },
+      { status: 429, headers: { "Retry-After": String(limit.retryAfterSeconds) } },
+    );
+  }
+
   let supabase;
   try {
     supabase = createSupabaseAdminClient();

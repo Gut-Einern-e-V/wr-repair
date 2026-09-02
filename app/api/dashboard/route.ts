@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { rateLimit } from "@/lib/rate-limit";
+import { publicRateLimit } from "@/lib/rate-limit";
 import { getAppSettings } from "@/lib/app-settings";
-import { MAX_HIGHLIGHTS, readCells, type DashboardDelta, type DashboardHighlight, type DashboardSnapshot } from "@/lib/dashboard";
+import { MAX_HIGHLIGHTS, readCells, type DashboardDelta, type DashboardHighlight, type DashboardKreisDay, type DashboardSnapshot } from "@/lib/dashboard";
 
 /**
  * Datenquelle des Buehnen-Dashboards.
@@ -16,6 +16,13 @@ import { MAX_HIGHLIGHTS, readCells, type DashboardDelta, type DashboardHighlight
  * Zusaetzlich haelt das Modul einen kurzen In-Memory-Cache, der Anfragen
  * abfaengt, die am CDN vorbeilaufen (z. B. beim ersten Aufruf pro Region).
  */
+
+/**
+ * Anfragen je Minute und IP-Adresse im Normalbetrieb. Hoeher als bei
+ * `/api/stats`, weil eine laufende Buehne vier Deltas je Minute abfragt und bei
+ * einer Veranstaltung mehrere Zuschauer hinter derselben Adresse stecken.
+ */
+const DASHBOARD_LIMIT_PER_MINUTE = 240;
 
 const SNAPSHOT_TTL_MS = 20_000;
 const DELTA_TTL_MS = 5_000;
@@ -150,6 +157,22 @@ function toBestDay(value: unknown): DashboardSnapshot["bestDay"] {
   return { date: record.date, total };
 }
 
+/**
+ * Bester Ortstag aus dem Aggregat (Issue #75). `null`, solange keiner
+ * feststeht - und ebenso, solange Migration 202609020001 nicht ausgerollt ist:
+ * Dann fehlt das Feld, und die Buehne laeuft allein gegen den hinterlegten
+ * Wert, statt mit einer halben Angabe.
+ */
+function toBestKreisDay(value: unknown): DashboardKreisDay | null {
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  const total = toNumber(record.total);
+  if (typeof record.date !== "string" || typeof record.kreis !== "string" || total <= 0) return null;
+
+  return { date: record.date, kreis: record.kreis, total };
+}
+
 async function loadSnapshot(
   supabase: SupabaseAdmin,
   campaign: DashboardSnapshot["campaign"],
@@ -185,6 +208,8 @@ async function loadSnapshot(
     today: toNumber(aggregate.today),
     bestDay: toBestDay(aggregate.bestDay),
     dayRecord,
+    todayKreise: toCounts(aggregate.todayKreise),
+    bestKreisDay: toBestKreisDay(aggregate.bestKreisDay),
     cells,
     kreise,
     highlights: await toHighlights(supabase, (recent ?? []) as RepairRow[], withImages),
@@ -248,7 +273,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const limit = rateLimit(request, "dashboard", { limit: 240, windowMs: 60 * 1_000 });
+  /* Vorgabe der Route im Normalbetrieb; im Schonmodus gilt die engere Grenze
+     aus dem Backend (siehe lib/rate-limit.ts und docs/public-api.md). */
+  const limit = publicRateLimit(request, "dashboard", settings.publicThrottle, DASHBOARD_LIMIT_PER_MINUTE);
   if (!limit.allowed) {
     return Response.json(
       { error: "Zu viele Abfragen. Bitte kurz warten." },

@@ -1,6 +1,8 @@
 import { cache } from "react";
 import { createSupabaseAdminClient } from "./supabase/server";
 import { getRecordGoal } from "./dashboard";
+import { normalizeIpRules } from "./ip-allowlist";
+import { DEFAULT_THROTTLE_PER_MINUTE, type PublicThrottle } from "./rate-limit";
 import { getRegionConfig, type RegionConfig } from "./region-config";
 import { getSubmissionWindow, type SubmissionWindow } from "./submission-window";
 
@@ -19,6 +21,14 @@ export type AppSettings = {
    */
   dayRecord: number | null;
   region: RegionConfig;
+  /**
+   * Drosselung der oeffentlichen Leseroute je IP-Adresse (Issue #80).
+   *
+   * Ausgeschaltet, solange niemand sie einschaltet - und ebenso, solange
+   * Migration 202609020002 nicht ausgerollt ist. Dann gelten die Vorgaben der
+   * Routen, also genau das bisherige Verhalten.
+   */
+  publicThrottle: PublicThrottle;
   logoUrl: string | null;
   logoPath: string | null;
   /** False when the settings row could not be read, e.g. before the migration ran. */
@@ -41,10 +51,13 @@ export type SettingsRow = {
   region_lat_max: number | null;
   region_lon_min: number | null;
   region_lon_max: number | null;
+  rate_limit_enabled: boolean | null;
+  rate_limit_per_minute: number | null;
+  rate_limit_allowlist: string[] | null;
 };
 
 const settingsColumns =
-  "submission_start_at, submission_end_at, record_goal, day_record, logo_path, region_enabled, region_label, region_ip_country, region_ip_region, region_lat_min, region_lat_max, region_lon_min, region_lon_max";
+  "submission_start_at, submission_end_at, record_goal, day_record, logo_path, region_enabled, region_label, region_ip_country, region_ip_region, region_lat_min, region_lat_max, region_lon_min, region_lon_max, rate_limit_enabled, rate_limit_per_minute, rate_limit_allowlist";
 
 export function parseWindow(startAt: string | null, endAt: string | null): SubmissionWindow | null {
   const start = new Date(startAt ?? "");
@@ -82,6 +95,28 @@ export function mergeRegion(base: RegionConfig, row: SettingsRow | null): Region
     bounds: hasBox
       ? { latMin: row.region_lat_min as number, latMax: row.region_lat_max as number, lonMin: row.region_lon_min as number, lonMax: row.region_lon_max as number }
       : base.bounds,
+  };
+}
+
+/**
+ * Liest die Drosselung aus der Einstellungszeile (Issue #80).
+ *
+ * Bewusst `?? false` und nicht "an, sobald eine Zahl steht": Eine
+ * eingetragene Zahl ohne gesetzten Schalter ist ein vorbereiteter Wert, keine
+ * Anweisung. Und `== null` fuer die Spalte, weil die Zeile nicht nur aus einer
+ * Abfrage mit fester Spaltenliste kommt, sondern auch aus `submission_gate` -
+ * dort fehlt sie, solange die Migration nicht durch ist (siehe
+ * {@link mergeRegion} fuer denselben Fall).
+ */
+export function mergeThrottle(row: SettingsRow | null): PublicThrottle {
+  const perMinute = row?.rate_limit_per_minute;
+
+  return {
+    enabled: row?.rate_limit_enabled ?? false,
+    perMinute: perMinute != null && perMinute > 0 ? perMinute : DEFAULT_THROTTLE_PER_MINUTE,
+    /* Die Freigabeliste gilt unabhaengig vom Schalter: Sie nimmt eine Anzeige
+       auch von der Vorgabe der Route aus, nicht nur vom Schonmodus. */
+    allowlist: normalizeIpRules(row?.rate_limit_allowlist),
   };
 }
 
@@ -124,6 +159,7 @@ export function buildAppSettings(row: SettingsRow | null): AppSettings {
     recordGoal: row?.record_goal && row.record_goal > 0 ? row.record_goal : getRecordGoal(),
     dayRecord: row?.day_record && row.day_record > 0 ? row.day_record : null,
     region: mergeRegion(getRegionConfig(), row),
+    publicThrottle: mergeThrottle(row),
     logoPath: row?.logo_path ?? null,
     logoUrl: publicLogoUrl(row?.logo_path ?? null),
     persisted: row !== null,
