@@ -19,7 +19,8 @@ function highlight(id: string, category = "tools", kreis: string | null = null) 
 const snapshot: DashboardSnapshot = {
   total: 10,
   goal: 100,
-  succeeded: 8,
+  attempted: 12,
+  succeeded: 10,
   withStory: 2,
   minutesSaved: 120,
   valueSavedEuros: 500,

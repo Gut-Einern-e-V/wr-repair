@@ -10,7 +10,11 @@
 export type PublicStatsDay = { date: string; total: number };
 
 export type PublicStats = {
-  /** Alle freigegebenen Reparaturen. */
+  /**
+   * Der Rekordstand: freigegebene Reparaturen, die gelungen sind (Issue #77).
+   * Ein gescheiterter Versuch bleibt freigegeben und bleibt in der Verlosung,
+   * zaehlt aber nicht fuer den Rekord.
+   */
   total: number;
   /** Ziel des Weltrekordversuchs. */
   goal: number;
@@ -26,7 +30,16 @@ export type PublicStats = {
      Sie stehen auch waehrend der Aktion in der Antwort - eine Schnittstelle,
      die je nach Datum andere Felder liefert, waere fuer angeschlossene Geraete
      eine Zumutung. */
-  /** Reparaturen, die geglueckt sind. */
+  /**
+   * Alle freigegebenen Einreichungen, gescheiterte Versuche eingeschlossen -
+   * die Bezugsgroesse der Erfolgsquote, nie der Rekordstand.
+   *
+   * 0, solange Migration 202609010004 nicht ausgerollt ist; `total` hat dort
+   * noch die alte Bedeutung "alle freigegebenen", weshalb ein Rueckfall auf
+   * `total` in beiden Welten die richtige Quote ergibt.
+   */
+  attempted: number;
+  /** Reparaturen, die geglueckt sind - gleich `total`, siehe dort. */
   succeeded: number;
   /** Einreichungen mit erzaehlter Geschichte. */
   withStory: number;
@@ -45,6 +58,24 @@ export type PublicStats = {
   timeline: PublicStatsDay[];
   campaign: { startAt: string | null; endAt: string | null };
 };
+
+/**
+ * Anteil der geglueckten Reparaturen an allen freigegebenen Versuchen, in
+ * Prozent (Issue #77).
+ *
+ * Seit nur gelungene Reparaturen fuer den Rekord zaehlen, ist `total` nicht
+ * mehr die Bezugsgroesse dieser Quote - sie waere sonst immer 100 Prozent.
+ * Bezugsgroesse ist `attempted`.
+ *
+ * Der Rueckfall auf `total` ist kein Notnagel, sondern rechnet in beiden
+ * Welten richtig: Fehlt `attempted`, laeuft die Bereitstellung noch gegen die
+ * alte Datenbankfunktion - dort ist `total` genau das, was `attempted` jetzt
+ * ist, naemlich alle freigegebenen Einreichungen.
+ */
+export function successShare(succeeded: number, attempted: number, total: number): number {
+  const base = attempted > 0 ? attempted : total;
+  return base > 0 ? (succeeded / base) * 100 : 0;
+}
 
 /**
  * Obergrenze der Zeitachse. Der Einreichungszeitraum ist frei einstellbar; ein
@@ -138,6 +169,7 @@ export function readPublicStats(aggregate: unknown, context: PublicStatsContext)
   return {
     total: toNumber(record.total),
     goal: context.goal,
+    attempted: toNumber(record.attempted),
     pending: toNumber(record.pending),
     today: toNumber(record.today),
     bestDay: toDay(record.bestDay),

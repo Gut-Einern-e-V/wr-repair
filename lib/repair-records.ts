@@ -63,6 +63,10 @@ export const faqEntries: FaqEntry[] = [
     answer: "Fotos werden nur veröffentlicht, wenn du zustimmst. Orte zeigen wir nie punktgenau auf einer Karte. Details stehen in der Datenschutzerklärung.",
   },
   {
+    question: "Dürfen Personen auf dem Foto zu sehen sein?",
+    answer: "Ja – stolze Reparateur*innen mit ihrem Werk sind genau das, was wir zeigen wollen. Gesichter verpixeln wir dafür nicht. Deshalb gilt: Wer erkennbar ist, muss einverstanden sein, bei Kindern entscheiden die Erziehungsberechtigten. Soll ein Foto später wieder verschwinden, schreib uns – wir löschen es, und die Reparatur zählt trotzdem weiter.",
+  },
+  {
     question: "Geht es um einen Guinness-Weltrekord?",
     answer: "Nein. Uns geht es nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als echte Alternative zum Neukauf zu stärken.",
   },

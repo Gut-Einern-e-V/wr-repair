@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_TIMELINE_DAYS, berlinDay, readPublicStats, shiftDay, timelineRange } from "./public-stats";
+import { MAX_TIMELINE_DAYS, berlinDay, readPublicStats, shiftDay, successShare, timelineRange } from "./public-stats";
 
 const context = {
   goal: 3_177,
@@ -71,10 +71,11 @@ describe("readPublicStats", () => {
     const stats = readPublicStats(
       {
         total: 184,
+        attempted: 198,
         pending: 12,
         today: 7,
         bestDay: { date: "2026-10-17", total: 41 },
-        succeeded: 170,
+        succeeded: 184,
         withStory: 46,
         minutesSaved: 5_512,
         valueSavedEuros: 19_400,
@@ -90,11 +91,12 @@ describe("readPublicStats", () => {
     expect(stats).toEqual({
       total: 184,
       goal: 3_177,
+      attempted: 198,
       pending: 12,
       today: 7,
       bestDay: { date: "2026-10-17", total: 41 },
       dayRecord: 412,
-      succeeded: 170,
+      succeeded: 184,
       withStory: 46,
       minutesSaved: 5_512,
       valueSavedEuros: 19_400,
@@ -144,5 +146,21 @@ describe("readPublicStats", () => {
 
   it("drops a best day without repairs instead of announcing a zero record", () => {
     expect(readPublicStats({ bestDay: { date: "2026-10-17", total: 0 } }, context).bestDay).toBeNull();
+  });
+});
+
+describe("Erfolgsquote", () => {
+  it("misst die geglueckten an allen Versuchen", () => {
+    expect(successShare(75, 100, 75)).toBe(75);
+  });
+
+  it("faellt ohne Versuchszahl auf die Gesamtzahl zurueck", () => {
+    // Alte Datenbankfunktion ohne `attempted`: Dort ist `total` genau das,
+    // was `attempted` heute ist - die Quote bleibt damit richtig.
+    expect(successShare(8, 0, 10)).toBe(80);
+  });
+
+  it("bleibt bei null Versuchen bei null statt zu teilen", () => {
+    expect(successShare(0, 0, 0)).toBe(0);
   });
 });

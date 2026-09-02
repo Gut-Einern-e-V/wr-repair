@@ -204,6 +204,20 @@ export function RepairSubmissionForm({
   const [isSlow, setIsSlow] = useState(false);
   const [captchaError, setCaptchaError] = useState("");
   /**
+   * Ob der Spam-Schutz schon geladen werden darf (Issue #73).
+   *
+   * Friendly Captcha loest seine Aufgabe, sobald das Widget im Dokument steht.
+   * Stand es von Anfang an da, entstand fuer jedes geoeffnete Formular eine
+   * Anfrage - auch fuer die vielen, die nie abgeschickt werden. Es wird
+   * deshalb erst eingehaengt, wenn alle Pflichtangaben stehen.
+   *
+   * Bewusst eine Sperrklinke: einmal wahr, bleibt wahr. Sonst wuerde jede
+   * kurzzeitig unvollstaendige Eingabe - eine geleerte Auswahl, eine Zahl
+   * ausserhalb ihres Bereichs - das Widget aus- und wieder einhaengen und
+   * damit genau die Anfragen erzeugen, die hier eingespart werden sollen.
+   */
+  const [isCaptchaArmed, setIsCaptchaArmed] = useState(false);
+  /**
    * Bleibt ueber alle Wiederholungsversuche derselben Einreichung gleich, damit
    * der Server einen doppelt angekommenen Versuch erkennt statt eine zweite
    * Reparatur anzulegen. Nach einer erfolgreichen Einreichung wieder null: Die
@@ -212,6 +226,12 @@ export function RepairSubmissionForm({
   const submissionKeyRef = useRef<string | null>(null);
   const resetCaptchaRef = useRef<(() => void) | null>(null);
   const [enterLottery, setEnterLottery] = useState(false);
+  /**
+   * Eine belegte, nicht geratene Herkunft (Issue #76). Der Vorschlag aus der
+   * IP-Verbindung zaehlt ausdruecklich nicht dazu: Er ist eine Vermutung, und
+   * genau dann lohnt die Standortabfrage noch.
+   */
+  const hasLocation = locationSource === "photo" || locationSource === "gps";
   const friendlyCaptchaSiteKey = process.env.NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY;
   const captchaEnabled = process.env.NEXT_PUBLIC_CAPTCHA_ENABLED !== "false";
 
@@ -296,6 +316,10 @@ export function RepairSubmissionForm({
         setAnonymizedOrigin(origin);
         setLocationSource("photo");
         setSelectedKreis("");
+        /* Der Hinweis gehoert in die Standortzeile und nicht zur
+           Bildmeldung: Dort steht der Knopf, der jetzt nicht mehr gebraucht
+           wird, und dort liegt auch die Korrekturmoeglichkeit (Issue #76). */
+        setLocationStatus("Standort aus den Bilddaten übernommen. Für die Karte wird nur ein zufällig verschobener Punkt übertragen, nicht der genaue Ort.");
         void resolveKreisLabel(origin).then((kreis) => {
           if (kreis) setSelectedKreis(kreis);
         });
@@ -305,16 +329,11 @@ export function RepairSubmissionForm({
       }
       setUploadFile(compressedFile);
       setPreviewUrl(URL.createObjectURL(compressedFile));
-      setCompressionMessage(
-        (compressedFile.size < file.size
-          ? `Bild wurde von ${Math.ceil(file.size / 1024)} KB auf ${Math.ceil(compressedFile.size / 1024)} KB komprimiert. Metadaten wurden entfernt.`
-          : "Bilddaten wurden vor dem Upload bereinigt. EXIF- und Standortdaten wurden entfernt.")
-        + (origin
-          // Nur anzeigen, wenn wirklich eine Herkunft ermittelt wurde - sonst
-          // waere es ein Versprechen ueber Daten, die es gar nicht gibt.
-          ? " Fuer die Karte wird nur ein zufaellig verschobener Punkt uebertragen, nicht der genaue Ort."
-          : ""),
-      );
+      /* Nur noch das Bild selbst - was mit einer gefundenen Herkunft
+         passiert, steht seit Issue #76 in der Standortzeile darunter. */
+      setCompressionMessage(compressedFile.size < file.size
+        ? `Bild wurde von ${Math.ceil(file.size / 1024)} KB auf ${Math.ceil(compressedFile.size / 1024)} KB komprimiert. Metadaten wurden entfernt.`
+        : "Bilddaten wurden vor dem Upload bereinigt. EXIF- und Standortdaten wurden entfernt.");
     } catch (error) {
       setFileError(error instanceof Error ? error.message : "Das Bild konnte nicht verarbeitet werden.");
       event.target.value = "";
@@ -401,6 +420,21 @@ export function RepairSubmissionForm({
     setAnonymizedOrigin(anonymized);
     setLocationSource("manual");
     setLocationStatus(`"${name}" ausgewählt. Für die Karte wird nur ein ungefährer Punkt im Kreis übertragen.`);
+  }
+
+  /**
+   * Nach jeder Eingabe pruefen, ob das Formular vollstaendig ist (Issue #73).
+   *
+   * `checkValidity()` statt einer eigenen Liste der Pflichtfelder: Es kennt
+   * jedes `required` im Formular, auch die Verlosungsfelder, die erst mit dem
+   * Haeckchen dazukommen - und es bleibt richtig, wenn spaeter ein Feld
+   * hinzukommt. Es zeigt dabei keine Browser-Meldungen an, das taete erst
+   * `reportValidity()`.
+   */
+  function armCaptchaWhenComplete(form: HTMLFormElement) {
+    if (isCaptchaArmed || !form.checkValidity()) return false;
+    setIsCaptchaArmed(true);
+    return true;
   }
 
   /** Aktuelles Captcha-Token aus dem versteckten Feld, das das Widget setzt. */
@@ -544,6 +578,16 @@ export function RepairSubmissionForm({
       return;
     }
 
+    /* Falls das Formular vollstaendig ist, ohne dass eine Eingabe das gemeldet
+       hat - wiederhergestellte Felder nach einem Zurueck im Browser etwa -,
+       startet der Spam-Schutz hier. Ohne diesen Notausgang bliebe das Widget
+       ungeladen und die Einreichung dauerhaft haengen (Issue #73). */
+    if (captchaEnabled && !isCaptchaArmed) {
+      armCaptchaWhenComplete(form);
+      setCaptchaError("Der Spam-Schutz startet jetzt. Bitte sende gleich noch einmal.");
+      return;
+    }
+
     if (captchaEnabled && !currentCaptchaToken(form)) {
       setCaptchaError("Der Spam-Schutz wird noch vorbereitet. Bitte versuche es gleich erneut.");
       return;
@@ -633,7 +677,7 @@ export function RepairSubmissionForm({
   }
 
   return (
-    <form className="repair-form" onSubmit={submitRepair}>
+    <form className="repair-form" onSubmit={submitRepair} onChange={(event) => armCaptchaWhenComplete(event.currentTarget)}>
       <h2 id={headingId}>{heading}</h2>
 
       <RepairCategorySelect category={category} onChange={setCategory} label="Kategorie" />
@@ -659,7 +703,7 @@ export function RepairSubmissionForm({
 
       <label className="upload-field">Foto hinzufügen <small>(optional)</small>
         <input name="image" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleImageChange} />
-        <small>Lade gerne ein Bild von deinem Erfolgserlebnis und gerne auch von dir hoch. JPG, PNG oder WebP · maximal 200 KB · Bild- und Standortdaten werden vor dem Upload entfernt.</small>
+        <small>Lade gerne ein Bild von deinem Erfolgserlebnis und gerne auch von dir hoch. Wir zeigen die Fotos so, wie sie ankommen – wir verpixeln keine Gesichter. Sind andere Personen darauf zu erkennen, frag sie bitte vorher. JPG, PNG oder WebP · maximal 200 KB · Bild- und Standortdaten werden vor dem Upload entfernt.</small>
       </label>
       {isCompressing && <p className="form-notice" aria-live="polite">Bild wird komprimiert ...</p>}
       {previewUrl && (
@@ -673,8 +717,13 @@ export function RepairSubmissionForm({
       <div className="location-picker">
         <p className="location-picker-label">Standort <small>(optional, hilft der Karte bei der Zuordnung)</small></p>
         <div className="location-picker-actions">
-          <button className="button button-secondary" type="button" onClick={requestBrowserLocation} disabled={isLocating}>
-            {isLocating ? "Standort wird ermittelt …" : "Standort verwenden"}
+          {/* Liegt der Standort schon fest - aus den Bilddaten oder aus der
+              Standortfreigabe -, ist der Knopf erledigt und sagt das auch
+              (Issue #76). Ein zweiter Druck brauchte eine Berechtigung, die
+              nichts mehr beitraegt. Stimmt die Angabe nicht, bleibt die
+              Kreisauswahl daneben der Weg zur Korrektur. */}
+          <button className="button button-secondary" type="button" onClick={requestBrowserLocation} disabled={isLocating || hasLocation}>
+            {isLocating ? "Standort wird ermittelt …" : locationSource === "photo" ? "Standort aus dem Foto erkannt" : locationSource === "gps" ? "Standort erkannt" : "Standort verwenden"}
           </button>
           <select
             value={selectedKreis}
@@ -693,13 +742,20 @@ export function RepairSubmissionForm({
         )}
       </div>
 
-      <label className="choice repair-outcome"><input name="repair_succeeded" type="checkbox" value="false" /> <span><strong>Die Reparatur ist leider nicht gelungen.</strong> Super, dass du es versucht hast! Du kannst trotzdem am Gewinnspiel teilnehmen!</span></label>
+      <label className="choice repair-outcome"><input name="repair_succeeded" type="checkbox" value="false" /> <span><strong>Die Reparatur ist leider nicht gelungen.</strong> Super, dass du es versucht hast! Für den Rekord zählen nur gelungene Reparaturen – am Gewinnspiel kannst du trotzdem teilnehmen, und dein Versuch fließt in die Erfolgsquote ein.</span></label>
 
       <label>Meine Reparaturgeschichte <small>(optional)</small>
         <textarea name="story" rows={4} maxLength={2000} placeholder="Deine Reparatur war besonders anstrengend, lustig, herzerwärmend, frustrierend etc.? Erzähl uns gerne davon!" />
       </label>
 
-      <label className="choice consent"><input name="consent" type="checkbox" value="true" required /> <span>Ich bin einverstanden, dass meine Angaben nach der Prüfung anonym veröffentlicht werden.</span></label>
+      {/* Mit Foto ist die Einwilligung eine andere als ohne: Ein Bild, auf dem
+          jemand zu erkennen ist, wird nicht anonym veroeffentlicht - und
+          niemand soll etwas abnicken, was auf ihn nicht zutrifft. Der Zusatz
+          steht deshalb nur da, wenn wirklich ein Foto dabei ist (Issue #49). */}
+      <label className="choice consent"><input name="consent" type="checkbox" value="true" required /> <span>
+        Ich bin einverstanden, dass meine Angaben nach der Prüfung anonym veröffentlicht werden.
+        {uploadFile && <> Mein Foto darf dabei auf dieser Website gezeigt und dafür verkleinert gespeichert werden. Sind Personen darauf zu erkennen, sind sie damit einverstanden. Das Foto kann ich später jederzeit <Link href="/privacy" target="_blank">löschen lassen</Link>.</>}
+      </span></label>
 
       <label className="choice lottery-opt-in"><input type="checkbox" checked={enterLottery} onChange={(event) => setEnterLottery(event.target.checked)} /> <span>Ich möchte am <Link href="/gewinnspiel" target="_blank">Gewinnspiel</Link> teilnehmen <small>(Daten nur für die Verlosung / wird nicht veröffentlicht)</small></span></label>
       {enterLottery && (
@@ -716,7 +772,7 @@ export function RepairSubmissionForm({
       )}
 
       <p className="geo-notice">Teilnahme ist nur aus {process.env.NEXT_PUBLIC_REGION_LABEL ?? "Nordrhein-Westfalen"} möglich. Der Standort wird beim Absenden über die Vercel-Regionserkennung geprüft; die IP-Adresse wird nicht gespeichert.</p>
-      {captchaEnabled ? friendlyCaptchaSiteKey ? <div className="captcha-field"><FriendlyCaptcha sitekey={friendlyCaptchaSiteKey} onError={setCaptchaError} resetRef={resetCaptchaRef} /><small>Der Spam-Schutz von Friendly Captcha wird vor dem Absenden automatisch vorbereitet.</small></div> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p> : <p className="form-notice" role="status">Der Spam-Schutz ist vorübergehend deaktiviert.</p>}
+      {captchaEnabled ? friendlyCaptchaSiteKey ? isCaptchaArmed ? <div className="captcha-field"><FriendlyCaptcha sitekey={friendlyCaptchaSiteKey} onError={setCaptchaError} resetRef={resetCaptchaRef} /><small>Der Spam-Schutz von Friendly Captcha wird vor dem Absenden automatisch vorbereitet.</small></div> : <p className="form-notice" role="status">Der Spam-Schutz startet, sobald alle Pflichtangaben ausgefüllt sind.</p> : <p className="form-error" role="alert">Der Spam-Schutz ist noch nicht konfiguriert. Einreichungen bleiben gesperrt.</p> : <p className="form-notice" role="status">Der Spam-Schutz ist vorübergehend deaktiviert.</p>}
       {captchaError && <p className="form-error" role="alert">{captchaError}</p>}
       {/* Eine Anzeige fuer den ganzen Vorgang statt nur fuer den Upload: erst der
           Balken des Bildes, danach der Hinweis, dass der Server noch arbeitet.

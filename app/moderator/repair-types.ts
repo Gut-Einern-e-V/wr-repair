@@ -106,11 +106,17 @@ export function originWarning(repair: ModerationRepair): string | null {
  * Ohne Bild ist eine Einreichung nicht unvollstaendig - das Foto war schon
  * immer freiwillig, und seit Issue #58 verliert jede abgelehnte Einreichung
  * ihres. Beide Faelle sehen gleich aus und meinen etwas anderes.
+ *
+ * Seit Issue #49 kommt ein dritter dazu: Das Bild kann jederzeit einzeln
+ * geloescht werden, etwa weil jemand darauf nicht mehr zu sehen sein moechte.
+ * Woran es lag, steht nicht in der Datenbank - der Grund einer Loeschanfrage
+ * ist selbst eine Angabe ueber die Person, die sich gemeldet hat. Der Status
+ * reicht fuer die Unterscheidung, die die Moderation wirklich braucht: Bei
+ * einer Ablehnung war es die Ablehnung, sonst war es ein eigener Handgriff.
  */
 export function missingImageNote(repair: ModerationRepair) {
-  return repair.imageDeletedAt
-    ? "Bild mit der Ablehnung gelöscht"
-    : "Kein Bild eingereicht";
+  if (!repair.imageDeletedAt) return "Kein Bild eingereicht";
+  return repair.status === "rejected" ? "Bild mit der Ablehnung gelöscht" : "Bild nachträglich gelöscht";
 }
 
 export function draftFromRepair(repair: ModerationRepair): MetadataDraft {

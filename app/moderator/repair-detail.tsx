@@ -28,6 +28,7 @@ export default function RepairDetail({
   isAdmin,
   onDecide,
   onSaveMetadata,
+  onDeleteImage,
   onDelete,
 }: {
   repair: ModerationRepair;
@@ -35,6 +36,8 @@ export default function RepairDetail({
   isAdmin: boolean;
   onDecide: (repairId: string, status: RepairStatus, comment: string) => Promise<void>;
   onSaveMetadata: (repairId: string, draft: MetadataDraft) => Promise<void>;
+  /** Nur das Foto entfernen, die Reparatur behalten (Issue #49). */
+  onDeleteImage: (repairId: string) => Promise<void>;
   onDelete: (repairId: string) => Promise<void>;
 }) {
   const [comment, setComment] = useState(repair.moderator_comment ?? "");
@@ -43,13 +46,35 @@ export default function RepairDetail({
 
   return (
     <article className="repair-review">
-      {repair.imageUrl
-        // eslint-disable-next-line @next/next/no-img-element -- Signierte Storage-URL ohne feste Groesse.
-        ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" />
-        : <div className="missing-image">
-            <CategoryMotif category={repair.category} size={96} />
-            <span>{missingImageNote(repair)}</span>
-          </div>}
+      <div className="repair-image-column">
+        {repair.imageUrl
+          // eslint-disable-next-line @next/next/no-img-element -- Signierte Storage-URL ohne feste Groesse.
+          ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" />
+          : <div className="missing-image">
+              <CategoryMotif category={repair.category} size={96} />
+              <span>{missingImageNote(repair)}</span>
+            </div>}
+        {/* Fotos werden bewusst nicht verpixelt - wir wollen die stolzen
+            Reparateur*innen zeigen. Wer darauf nicht (mehr) zu sehen sein
+            moechte, bekommt deshalb keine Weichzeichnung, sondern die
+            Loeschung des Bildes. Die Reparatur zaehlt weiter (Issue #49). */}
+        {repair.imageUrl && (
+          <>
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => {
+                if (window.confirm("Nur das Foto löschen? Die Reparatur bleibt erhalten und zählt weiter. Das Bild ist danach endgültig weg.")) {
+                  void onDeleteImage(repair.id);
+                }
+              }}
+            >
+              Foto löschen
+            </button>
+            <small className="image-action-hint">Für Löschwünsche zu erkennbaren Personen – und um eine Reparatur ohne ihr Foto freizugeben.</small>
+          </>
+        )}
+      </div>
       <div>
         <p className="section-index">{repairCategoryLabel(repair.category)} <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span></p>
         <h3>{repair.brand_model || "Marke/Modell unbekannt"}</h3>

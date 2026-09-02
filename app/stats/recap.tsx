@@ -6,7 +6,7 @@ import "./recap.css";
 import { CategoryMotif } from "@/components/category-motif";
 import type { CampaignDates } from "@/lib/campaign-phase";
 import { formatMinutes } from "@/lib/dashboard";
-import type { PublicStats } from "@/lib/public-stats";
+import { successShare, type PublicStats } from "@/lib/public-stats";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 
 /**
@@ -73,7 +73,7 @@ export default function Recap({ campaign }: { campaign: CampaignDates }) {
       reached: stats.goal > 0 && stats.total >= stats.goal,
       percent: stats.goal > 0 ? (stats.total / stats.goal) * 100 : 0,
       perDay: timeline.length > 0 ? stats.total / timeline.length : 0,
-      successRate: stats.total > 0 ? (stats.succeeded / stats.total) * 100 : 0,
+      successRate: successShare(stats.succeeded, stats.attempted, stats.total),
     };
   }, [stats]);
 
@@ -152,7 +152,7 @@ export default function Recap({ campaign }: { campaign: CampaignDates }) {
         <ol className="recap-tiles">
           <li><strong>{formatMinutes(stats.minutesSaved)}</strong><span>Reparaturzeit, so weit angegeben</span></li>
           <li><strong>{Math.round(stats.valueSavedEuros).toLocaleString("de-DE")} &euro;</strong><span>Wert der Gegenstände, die geblieben sind</span></li>
-          <li><strong>{derived.successRate.toLocaleString("de-DE", { maximumFractionDigits: 0 })} %</strong><span>der Reparaturen sind geglückt</span></li>
+          <li><strong>{derived.successRate.toLocaleString("de-DE", { maximumFractionDigits: 0 })} %</strong><span>der Versuche sind geglückt</span></li>
           <li><strong>{derived.kreise.length.toLocaleString("de-DE")}</strong><span>Kreise und kreisfreie Städte haben mitgemacht</span></li>
           <li><strong>{stats.withStory.toLocaleString("de-DE")}</strong><span>Einreichungen mit erzählter Geschichte</span></li>
           <li><strong>{derived.categories.length.toLocaleString("de-DE")}</strong><span>Kategorien kamen zusammen</span></li>

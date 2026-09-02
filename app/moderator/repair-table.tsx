@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CategoryPictogram } from "@/components/category-pictogram";
 import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
 import { useJsonResource } from "@/lib/use-json-resource";
-import { decideRepair, deleteRepair, saveRepairMetadata } from "./moderation-api";
+import { decideRepair, deleteRepair, deleteRepairImage, saveRepairMetadata } from "./moderation-api";
 import RepairDetail from "./repair-detail";
 import {
   buildQuery,
@@ -106,6 +106,24 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
     }
 
     setNotice("Metadaten wurden aktualisiert.");
+    reload();
+  }
+
+  /**
+   * Nur das Foto entfernen (Issue #49). Die Liste wird danach neu geladen -
+   * die Einreichung bleibt in ihr, sie hat ab jetzt nur kein Bild mehr.
+   */
+  async function removeImage(repairId: string) {
+    setNotice("");
+    setActionError("");
+    const result = await deleteRepairImage(repairId);
+
+    if (!result.ok) {
+      setActionError(result.error);
+      return;
+    }
+
+    setNotice("Das Foto wurde gelöscht. Die Reparatur bleibt erhalten und zählt weiter.");
     reload();
   }
 
@@ -227,6 +245,7 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
               isAdmin={isAdmin}
               onDecide={(repairId, status, comment) => decide(repairId, status, comment)}
               onSaveMetadata={saveMetadata}
+              onDeleteImage={removeImage}
               onDelete={removeRepair}
             />
           )}

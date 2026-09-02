@@ -69,9 +69,11 @@ Die Spalten `location_lat` und `location_lon` sind per Spalten-GRANT fuer die an
 Folgende technischen Tatsachen gelten bereits:
 
 - Bei einer Ablehnung wird das zugehoerige Bild sofort aus dem Storage geloescht. Die Reparaturzeile bleibt derzeit fuer die Moderationsnachvollziehbarkeit erhalten.
+- Unabhaengig davon kann die Moderation das Bild einer Einreichung jederzeit einzeln loeschen (`DELETE /api/moderation/repairs/<id>/image`, Issue #49). Das ist der Weg fuer eine Loeschanfrage zu einer erkennbaren Person und zugleich die Moeglichkeit, eine Reparatur ohne ihr Foto freizugeben. Die Datei verschwindet aus dem Bucket, `image_path` wird geleert und `image_deleted_at` gesetzt; die Reparatur zaehlt weiter fuer den Rekord. Der Anlass der Loeschung wird bewusst nicht gespeichert - er waere selbst eine Angabe ueber die Person, die sich gemeldet hat.
 - Die Reparaturzeile entsteht vor dem Bild-Upload; der Upload laeuft hinter der Antwort. `image_path` wird erst nach dem erfolgreichen Upload nachgetragen, damit kein Verweis auf eine nicht vorhandene Datei entsteht. Laesst sich die Datei umgekehrt nicht mit der Zeile verknuepfen, wird sie sofort wieder aus dem Storage entfernt - eine Datei ohne Verweis kaeme weder zur Moderation noch zur Loeschung.
 - Zeilen in `submission_throttle` raeumt die Zaehlfunktion selbst weg. Fuer `submission_failures` gibt es noch keine Frist; die Tabelle enthaelt keine personenbezogenen Daten, sollte aber in die untenstehende Fristenentscheidung aufgenommen werden.
 - Freigegebene Bilder bleiben derzeit bis zu einer manuellen Loeschung im privaten Bucket und sind ueber die Galerie sichtbar.
+- Personen auf den Bildern werden nicht unkenntlich gemacht; der Rekordversuch soll die Menschen hinter den Reparaturen zeigen. Getragen wird das allein von der Einwilligung: Das Formular fragt die Veroeffentlichung des Fotos ausdruecklich ab, sobald eines ausgewaehlt ist, und laesst bestaetigen, dass erkennbare Personen einverstanden sind. Die Statusseite einer freigegebenen Reparatur nennt den Kontaktweg fuer eine spaetere Loeschung des Fotos.
 - Es gibt noch keinen automatischen Loeschjob und kein Self-Service-Formular fuer Loeschanfragen.
 
 Vor dem oeffentlichen Start muss die verantwortliche Organisation verbindlich entscheiden und technisch umsetzen:

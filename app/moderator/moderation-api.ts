@@ -50,6 +50,19 @@ export function saveRepairMetadata(repairId: string, draft: MetadataDraft) {
   );
 }
 
+/**
+ * Nur das Bild loeschen, die Einreichung bleibt (Issue #49). Fuer Fotos, auf
+ * denen jemand nicht mehr zu sehen sein moechte, und fuer Einreichungen, die
+ * ohne ihr Foto freigegeben werden sollen.
+ */
+export function deleteRepairImage(repairId: string) {
+  return send<{ ok: true }>(
+    `/api/moderation/repairs/${repairId}/image`,
+    { method: "DELETE" },
+    "Das Bild konnte nicht gelöscht werden.",
+  );
+}
+
 export function deleteRepair(repairId: string) {
   return send<{ ok: true }>(`/api/moderation/repairs/${repairId}`, { method: "DELETE" }, "Einreichung konnte nicht gelöscht werden.");
 }

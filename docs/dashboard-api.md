@@ -30,7 +30,8 @@ Der Ablauf: einmal den Snapshot holen, dessen `cursor` merken, danach im Takt mi
 {
   "total": 184,
   "goal": 3177,
-  "succeeded": 171,
+  "attempted": 198,
+  "succeeded": 184,
   "withStory": 63,
   "minutesSaved": 9240,
   "valueSavedEuros": 21450,
@@ -64,8 +65,9 @@ Der Ablauf: einmal den Snapshot holen, dessen `cursor` merken, danach im Takt mi
 
 | Feld | Bedeutung |
 | --- | --- |
-| `total`, `goal` | Freigegebene Reparaturen und Ziel des Weltrekordversuchs. |
-| `succeeded` | Davon erfolgreich repariert. |
+| `total`, `goal` | Der Rekordstand — freigegebene Reparaturen, die **gelungen** sind — und das Ziel des Weltrekordversuchs. |
+| `attempted` | Alle freigegebenen Einreichungen, gescheiterte Versuche eingeschlossen. Bezugsgröße der Erfolgsquote (`succeeded / attempted`), nie der Rekordstand. |
+| `succeeded` | Reparaturen, die geglückt sind — gleich `total`. |
 | `withStory` | Davon mit erzählter Geschichte. |
 | `minutesSaved` | Summe der angegebenen Reparaturzeiten in Minuten. |
 | `valueSavedEuros` | Summe der geschätzten Warenwerte. |
@@ -100,6 +102,8 @@ Kategorieschlüssel: `bicycle`, `computers_and_phones`, `furniture`, `household_
 
 `imageUrl` ist kein dauerhafter Link. Wer Bilder anzeigt, hängt `images=1` an, lädt sie zeitnah und holt sich mit dem nächsten Snapshot eine frische URL. Eine abgelaufene URL liefert kein Bild mehr.
 
+Alle Zahlen und alle Einzeleinträge beziehen sich auf dieselbe Auswahl: freigegeben **und** gelungen. Ein Versuch, der nicht geklappt hat, bleibt in der Aktion und in der Verlosung, taucht hier aber weder in `total` noch in `highlights` auf.
+
 `lat` und `lon` sind nicht der Ort der Reparatur, sondern ein im Browser zufällig um bis zu 1 km verschobener Punkt, gerundet auf rund 110 m. Zwei Reparaturen vom selben Ort bekommen dadurch verschiedene Werte; gelegentlich fallen zwei auf denselben gerundeten Punkt, dann steht er in `cells` mit `count: 2`.
 
 ## Delta
@@ -115,7 +119,7 @@ Kategorieschlüssel: `bicycle`, `computers_and_phones`, `furniture`, `household_
 }
 ```
 
-`added` enthält höchstens 50 Einträge, neueste zuerst, und nur Freigaben **nach** dem gesendeten Zeitstempel. `categories` zählt nur diese Einträge, nicht die ganze Aktion — die Gesamtzahlen kommen aus `total` und dem nächsten Snapshot. `today` kann `null` sein, wenn der Tagesstand gerade nicht zu ermitteln war; dann den bisherigen Wert stehen lassen.
+`added` enthält höchstens 50 Einträge, neueste zuerst, und nur Freigaben **nach** dem gesendeten Zeitstempel. Wie `highlights` im Snapshot enthält es ausschließlich Reparaturen, die für den Rekord zählen — sonst zöge am großen Zähler ein Eintrag vorbei, den er selbst nicht mitzählt. `categories` zählt nur diese Einträge, nicht die ganze Aktion — die Gesamtzahlen kommen aus `total` und dem nächsten Snapshot. `today` kann `null` sein, wenn der Tagesstand gerade nicht zu ermitteln war; dann den bisherigen Wert stehen lassen.
 
 Kommen mehr als 50 Freigaben zwischen zwei Abfragen zusammen, liefert die Antwort die ältesten 50 und einen entsprechend älteren Cursor. Die nächste Abfrage holt den Rest — es geht nichts verloren, es dauert nur ein paar Runden.
 

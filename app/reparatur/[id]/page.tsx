@@ -56,6 +56,16 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
         </> : <CategoryMotif category={repair.category} size={140} priority />}
         {repair.productName && <p className="repair-status-meta">{repair.productName}</p>}
         {repair.story && <p className="repair-status-story">{repair.story}</p>}
+        {/* Wer sein Foto wieder loswerden will, muss wissen wohin - sonst
+            bleibt das Recht auf Loeschung eine Zeile in der
+            Datenschutzerklaerung (Issue #49). */}
+        {repair.imageUrl && (
+          <p className="form-notice">
+            Soll das Foto nicht mehr zu sehen sein – etwa weil jemand darauf erkennbar ist?{" "}
+            <a href={`mailto:mail@gut-einern.org?subject=Foto%20loeschen%20(${repair.id})`}>Schreib uns</a>, wir löschen es.
+            Deine Reparatur zählt danach weiter.
+          </p>
+        )}
         <div className="repair-status-actions">
           <ShareButton
             title="Reparaturrekord NRW"

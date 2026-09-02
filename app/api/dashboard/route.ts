@@ -122,6 +122,17 @@ async function toHighlights(
   }));
 }
 
+/**
+ * Die Reparaturen, die fuer den Rekord zaehlen (Issue #77).
+ *
+ * Dieselbe Auswahl wie in `dashboard_stats()`: freigegeben *und* gelungen. Sie
+ * steht hier auch fuer das Laufband und den Delta-Pfad, nicht nur fuer die
+ * Summen - sonst zoege am grossen Zaehler ein Eintrag vorbei, den er selbst
+ * nicht mitzaehlt, und die Kategoriezahlen des Deltas liefen gegen das
+ * Aggregat.
+ */
+const countedRepairs = { status: "approved", repair_succeeded: true };
+
 // `created_at` ist der Einreichungszeitpunkt und damit die Angabe, die das
 // Laufband zeigt. `moderated_at` bleibt trotzdem dabei: Daran haengen die
 // Reihenfolge der Deltas und der Cursor.
@@ -156,13 +167,14 @@ async function loadSnapshot(
   const { data: recent } = await supabase
     .from("repairs")
     .select(highlightColumns)
-    .eq("status", "approved")
+    .match(countedRepairs)
     .order("moderated_at", { ascending: false })
     .limit(MAX_HIGHLIGHTS);
 
   return {
     total: toNumber(aggregate.total),
     goal,
+    attempted: toNumber(aggregate.attempted),
     succeeded: toNumber(aggregate.succeeded),
     withStory: toNumber(aggregate.withStory),
     minutesSaved: toNumber(aggregate.minutesSaved),
@@ -186,7 +198,7 @@ async function loadDelta(supabase: SupabaseAdmin, since: string, withImages: boo
   const { count, error: countError } = await supabase
     .from("repairs")
     .select("id", { count: "exact", head: true })
-    .eq("status", "approved");
+    .match(countedRepairs);
 
   if (countError) return null;
 
@@ -199,7 +211,7 @@ async function loadDelta(supabase: SupabaseAdmin, since: string, withImages: boo
   const { data, error } = await supabase
     .from("repairs")
     .select(highlightColumns)
-    .eq("status", "approved")
+    .match(countedRepairs)
     .gt("moderated_at", since)
     .order("moderated_at", { ascending: true })
     .limit(DELTA_LIMIT);
