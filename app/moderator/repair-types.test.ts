@@ -84,9 +84,16 @@ describe("Bearbeitbare Angaben", () => {
 });
 
 describe("Fehlendes Bild", () => {
-  it("unterscheidet nie eingereicht von nachtraeglich geloescht", () => {
+  it("unterscheidet nie eingereicht von geloescht", () => {
     expect(missingImageNote(repair())).toBe("Kein Bild eingereicht");
     expect(missingImageNote(repair({ status: "rejected", imageDeletedAt: "2026-08-27T09:00:00.000Z" })))
       .toBe("Bild mit der Ablehnung gelöscht");
+  });
+
+  it("nennt die Loeschung ausserhalb einer Ablehnung nachtraeglich", () => {
+    expect(missingImageNote(repair({ status: "approved", imageDeletedAt: "2026-08-27T09:00:00.000Z" })))
+      .toBe("Bild nachträglich gelöscht");
+    expect(missingImageNote(repair({ status: "pending", imageDeletedAt: "2026-08-27T09:00:00.000Z" })))
+      .toBe("Bild nachträglich gelöscht");
   });
 });

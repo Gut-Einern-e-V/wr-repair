@@ -28,7 +28,11 @@ export default function MetadataFields({ draft, onChange }: { draft: MetadataDra
         </select>
       </label>
       <label>Reparaturgeschichte<textarea value={draft.story} maxLength={2000} onChange={(event) => onChange({ ...draft, story: event.target.value })} /></label>
+      {/* Das Haeckchen entscheidet ueber den Rekord, nicht ueber die Freigabe:
+          Nur gelungene Reparaturen zaehlen mit (Issue #77). Ohne diesen Satz
+          sieht es aus wie eine reine Angabe zur Statistik. */}
       <label>Reparatur erfolgreich<input type="checkbox" checked={draft.repairSucceeded} onChange={(event) => onChange({ ...draft, repairSucceeded: event.target.checked })} /></label>
+      <p className="metadata-hint">Nur gelungene Reparaturen zählen für den Rekord. Ein Versuch ohne Häkchen bleibt freigegeben, erscheint aber nicht im Rekordstand.</p>
     </div>
   );
 }

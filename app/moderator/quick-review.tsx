@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CategoryMotif } from "@/components/category-motif";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
-import { claimNextRepair, decideRepair, releaseRepairClaim, saveRepairMetadata } from "./moderation-api";
+import { claimNextRepair, decideRepair, deleteRepairImage, releaseRepairClaim, saveRepairMetadata } from "./moderation-api";
 import { draftFromRepair, missingImageNote, performedByLabel, type MetadataDraft, type ModerationRepair,
   originWarning,
 } from "./repair-types";
@@ -29,12 +29,15 @@ function QuickCard({
   onDecide,
   onLater,
   onSaveMetadata,
+  onDeletePhoto,
 }: {
   repair: ModerationRepair;
   isBusy: boolean;
   onDecide: (status: Decision, comment: string) => void;
   onLater: () => void;
   onSaveMetadata: (draft: MetadataDraft) => Promise<boolean>;
+  /** Foto entfernen und die Reparatur trotzdem freigeben koennen (Issue #49). */
+  onDeletePhoto: () => Promise<void>;
 }) {
   const [comment, setComment] = useState("");
   const [draft, setDraft] = useState<MetadataDraft>(() => draftFromRepair(repair));
@@ -123,6 +126,24 @@ function QuickCard({
         <button className="button button-secondary" type="button" disabled={isSaving} onClick={() => void save()}>
           {isSaving ? "Wird gespeichert" : "Angaben speichern"}
         </button>
+        {/* Bewusst hier drin und nicht neben Freigeben/Ablehnen: Die Karte
+            entscheidet man im Sekundentakt, das Foto loescht man ueberlegt.
+            Es ist der Ausweg fuer eine gute Reparatur mit einem Foto, das so
+            nicht veroeffentlicht werden soll (Issue #49). */}
+        {repair.imageUrl && (
+          <button
+            className="text-button"
+            type="button"
+            disabled={isBusy}
+            onClick={() => {
+              if (window.confirm("Nur das Foto löschen? Die Reparatur bleibt in der Prüfung und kann danach ohne Bild freigegeben werden.")) {
+                void onDeletePhoto();
+              }
+            }}
+          >
+            Foto löschen, Reparatur behalten
+          </button>
+        )}
       </details>
 
       <details className="quick-panel">
@@ -255,6 +276,31 @@ export default function QuickReview({ showProgress, onOpenTable }: { showProgres
     await loadNext();
   }, [loadNext]);
 
+  /**
+   * Foto der aktuellen Karte loeschen, ohne sie aus der Hand zu geben. Die
+   * Karte wird an Ort und Stelle aktualisiert statt neu geholt: Der Anspruch
+   * bleibt bestehen, und Kommentar und Entwurf gehen nicht verloren, weil
+   * `key` derselbe bleibt (Issue #49).
+   */
+  const deletePhoto = useCallback(async () => {
+    const current = held.current;
+    if (!current) return;
+
+    setError("");
+    setNotice("");
+    const result = await deleteRepairImage(current);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    setNotice("Foto gelöscht. Die Reparatur liegt weiter zur Entscheidung.");
+    setQueue((state) => (state.state === "ready" && state.repair.id === current
+      ? { state: "ready", repair: { ...state.repair, imageUrl: null, imageDeletedAt: new Date().toISOString() } }
+      : state));
+  }, []);
+
   const saveMetadata = useCallback(async (draft: MetadataDraft) => {
     const current = held.current;
     if (!current) return false;
@@ -304,6 +350,7 @@ export default function QuickReview({ showProgress, onOpenTable }: { showProgres
           onDecide={(status, comment) => void decide(status, comment)}
           onLater={() => void later()}
           onSaveMetadata={saveMetadata}
+          onDeletePhoto={deletePhoto}
         />
       )}
 

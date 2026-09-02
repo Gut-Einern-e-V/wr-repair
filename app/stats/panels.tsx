@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
 import { campaignElapsed, countdownTo, dayRecordState, formatDayLabel, formatMinutes, formatRemaining, goalPercent, paceVerdict, requiredPerHour, type DashboardSnapshot, type PaceVerdict } from "@/lib/dashboard";
 import { type KreisRank } from "@/lib/nrw-map";
+import { successShare } from "@/lib/public-stats";
 import { treemap } from "@/lib/treemap";
 
 /** Feste Farbzuordnung, damit eine Kategorie ihre Farbe nie wechselt. */
@@ -261,13 +262,13 @@ export function KreisTop({ ranking }: { ranking: KreisRank[] }) {
  * nicht gezeigt.
  */
 export function MetricTiles({ snapshot }: { snapshot: DashboardSnapshot }) {
-  const successRate = snapshot.total > 0 ? (snapshot.succeeded / snapshot.total) * 100 : 0;
+  const successRate = successShare(snapshot.succeeded, snapshot.attempted, snapshot.total);
 
   return (
     <ul className="metric-tiles">
       <li>
         <strong>{successRate.toLocaleString("de-DE", { maximumFractionDigits: 0 })} %</strong>
-        <span>erfolgreich repariert</span>
+        <span>der Versuche geglückt</span>
       </li>
       <li>
         <strong>{formatMinutes(snapshot.minutesSaved)}</strong>

@@ -95,8 +95,24 @@ export function readCells(value: unknown): DashboardCell[] {
 }
 
 export type DashboardSnapshot = {
+  /**
+   * Der Rekordstand: freigegebene Reparaturen, die gelungen sind (Issue #77).
+   * Ein gescheiterter Versuch zaehlt nicht mit - er hat nichts im Alltag
+   * gehalten.
+   */
   total: number;
   goal: number;
+  /**
+   * Alle freigegebenen Einreichungen, gescheiterte Versuche eingeschlossen.
+   * Nur fuer die Erfolgsquote gedacht, nie fuer den Rekordstand.
+   *
+   * 0, solange Migration 202609010004 nicht ausgerollt ist - dann liefert das
+   * Aggregat das Feld noch nicht, und `total` hat dort ohnehin die alte
+   * Bedeutung "alle freigegebenen". Wer die Quote bildet, faellt deshalb auf
+   * `total` zurueck und rechnet in beiden Welten richtig.
+   */
+  attempted: number;
+  /** Die geglueckten Reparaturen - gleich `total`, siehe dort. */
   succeeded: number;
   withStory: number;
   minutesSaved: number;

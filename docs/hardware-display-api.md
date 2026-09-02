@@ -20,7 +20,8 @@ Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visua
   "today": 23,
   "bestDay": { "date": "2026-10-17", "total": 41 },
   "dayRecord": 412,
-  "succeeded": 171,
+  "attempted": 198,
+  "succeeded": 184,
   "withStory": 46,
   "minutesSaved": 8832,
   "valueSavedEuros": 18768,
@@ -53,13 +54,14 @@ Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visua
 
 | Feld | Bedeutung |
 | --- | --- |
-| `total` | Alle freigegebenen Reparaturen. |
+| `total` | Der Rekordstand: freigegebene Reparaturen, die **gelungen** sind. Ein Versuch, der nicht geglückt ist, zählt nicht mit. |
 | `goal` | Aktuelles Ziel des Weltrekordversuchs. |
-| `pending` | Einreichungen, die gerade auf die Moderation warten. Sie zählen noch nicht zu `total`. |
+| `pending` | Einreichungen, die gerade auf die Moderation warten. Sie zählen noch nicht zu `total` — und ob sie es je tun, entscheidet sich erst mit der Prüfung. |
 | `today` | Stand des laufenden Tages. |
 | `bestDay` | Bester Tag dieser Aktion vor heute, oder `null`, solange es keinen gibt. |
 | `dayRecord` | Bisheriger Tagesrekord aus früheren Aktionen, oder `null`, wenn keiner hinterlegt ist. |
-| `succeeded` | Reparaturen, die geglückt sind. |
+| `attempted` | Alle freigegebenen Einreichungen, gescheiterte Versuche eingeschlossen. Bezugsgröße der Erfolgsquote (`succeeded / attempted`), nie der Rekordstand. |
+| `succeeded` | Reparaturen, die geglückt sind — gleich `total`. |
 | `withStory` | Einreichungen, zu denen eine Geschichte erzählt wurde. |
 | `minutesSaved` | Summe der angegebenen Reparaturzeit in Minuten. Nicht jede Einreichung macht eine Angabe. |
 | `valueSavedEuros` | Summe des angegebenen Gegenstandswerts in Euro. Ebenfalls freiwillig. |
@@ -69,6 +71,10 @@ Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visua
 | `kreise` | Alle Kreise und kreisfreien Städte mit mindestens einer Reparatur, nicht nur die vordersten. |
 | `timeline` | Ein Eintrag je Tag, Tage ohne Reparatur als `0`. |
 | `campaign` | Anfang und Ende des Einreichungszeitraums als ISO-Zeitstempel. |
+
+### Was für den Rekord zählt
+
+Für den Rekordstand zählen nur **gelungene** Reparaturen. Wer einen Versuch einträgt, der nicht geklappt hat, bleibt in der Aktion und in der Verlosung, taucht aber nicht in `total` auf — ein Gegenstand, der weiterhin kaputt ist, wurde nicht im Alltag gehalten. Alle abgeleiteten Zahlen folgen derselben Auswahl: `today`, `bestDay`, `timeline`, `categories`, `kreise`, `minutesSaved` und `valueSavedEuros`. Wer die Erfolgsquote anzeigen möchte, rechnet `succeeded / attempted`.
 
 Ein Tagesrekord besteht aus drei Werten: `today` ist der laufende Tag, `bestDay` der beste Tag dieser Aktion, `dayRecord` die Bestmarke aus früheren Jahren. Ein Display, das „Rekord geknackt“ anzeigen will, vergleicht `today` mit dem größeren der beiden anderen Werte.
 

@@ -18,8 +18,9 @@ const baseModerationColumns =
   "id, category, brand_model, duration_minutes, item_value_euros, performed_by, story, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region";
 
 /**
- * Vermerk, dass das Bild nach einer Ablehnung geloescht wurde. Kommt aus
- * Migration 202609010001 (Issue #58).
+ * Vermerk, dass das Bild geloescht wurde - durch eine Ablehnung (Issue #58)
+ * oder nachtraeglich auf Wunsch (Issue #49). Kommt aus Migration
+ * 202609010001.
  */
 const IMAGE_DELETED_COLUMN = "image_deleted_at";
 
@@ -205,4 +206,50 @@ export function toModerationRepair<Row extends ModerationRow>(
     claimedUntil: claimedUntil && Date.parse(claimedUntil) > Date.now() ? claimedUntil : null,
     claimedByMe: claimed_by === viewerId,
   };
+}
+
+/**
+ * Bild einer Einreichung aus dem Speicher nehmen und den Verweis loeschen.
+ *
+ * Zwei Wege fuehren hierher: die Ablehnung, die nichts aufbewahrt, was
+ * niemand mehr sehen darf, und die nachtraegliche Loeschung auf Wunsch
+ * (Issue #49). Beide meinen dasselbe - die Datei ist weg, die Reparaturzeile
+ * bleibt und zaehlt weiter.
+ *
+ * Gibt zurueck, ob die Datei tatsaechlich aus dem Storage verschwunden ist.
+ * Schlaegt das fehl, bleibt der Verweis absichtlich stehen: Ohne ihn wuesste
+ * niemand mehr, welche Datei noch von Hand zu loeschen ist.
+ */
+export async function removeRepairImage(supabase: SupabaseClient, repairId: string, imagePath: string) {
+  const { error } = await supabase.storage.from("repair-images").remove([imagePath]);
+  if (error) {
+    return false;
+  }
+
+  await forgetImage(supabase, repairId);
+  return true;
+}
+
+/**
+ * Den Verweis auf das geloeschte Bild aus der Zeile nehmen (Issue #58).
+ *
+ * Ohne das bliebe `image_path` auf einer Datei stehen, die es nicht mehr gibt:
+ * Die Moderation bekaeme eine signierte Adresse ins Leere und damit ein
+ * kaputtes Bild. `image_deleted_at` haelt fest, dass es einmal ein Bild gab -
+ * sonst waere eine geloeschte nicht von einer bildlosen Einreichung zu
+ * unterscheiden.
+ *
+ * Fehlt die Spalte, weil Migration 202609010001 noch nicht gelaufen ist, wird
+ * wenigstens der tote Verweis geloescht. Die Loeschung selbst steht zu diesem
+ * Zeitpunkt schon und darf daran nicht mehr scheitern.
+ */
+async function forgetImage(supabase: SupabaseClient, repairId: string) {
+  const { error } = await supabase
+    .from("repairs")
+    .update({ image_path: null, image_deleted_at: new Date().toISOString() })
+    .eq("id", repairId);
+
+  if (error) {
+    await supabase.from("repairs").update({ image_path: null }).eq("id", repairId);
+  }
 }

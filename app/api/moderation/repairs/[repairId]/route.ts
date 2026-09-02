@@ -1,4 +1,4 @@
-import { requireModerationAccess } from "@/lib/moderation";
+import { removeRepairImage, requireModerationAccess } from "@/lib/moderation";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { repairCategoryValues } from "@/lib/repair-catalog";
 
@@ -195,40 +195,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     return Response.json({ error: decidedElsewhere(current?.status ?? "") }, { status: 409 });
   }
 
-  if (body.status === "rejected" && repair.image_path) {
-    const { error: storageError } = await supabase.storage.from("repair-images").remove([repair.image_path]);
-    if (storageError) {
-      return Response.json({ ok: true, imageDeleted: false });
-    }
-
-    await forgetImage(supabase, repairId);
+  if (body.status === "rejected" && repair.image_path && !await removeRepairImage(supabase, repairId, repair.image_path)) {
+    return Response.json({ ok: true, imageDeleted: false });
   }
 
   return Response.json({ ok: true, imageDeleted: true });
-}
-
-/**
- * Den Verweis auf das geloeschte Bild aus der Zeile nehmen (Issue #58).
- *
- * Ohne das bliebe `image_path` auf einer Datei stehen, die es nicht mehr gibt:
- * Die Moderation bekaeme eine signierte Adresse ins Leere und damit ein
- * kaputtes Bild. `image_deleted_at` haelt fest, dass es einmal ein Bild gab -
- * sonst waere eine geloeschte nicht von einer bildlosen Einreichung zu
- * unterscheiden.
- *
- * Fehlt die Spalte, weil Migration 202609010001 noch nicht gelaufen ist, wird
- * wenigstens der tote Verweis geloescht. Die Ablehnung selbst steht zu diesem
- * Zeitpunkt schon und darf daran nicht mehr scheitern.
- */
-async function forgetImage(supabase: ReturnType<typeof createSupabaseAdminClient>, repairId: string) {
-  const { error } = await supabase
-    .from("repairs")
-    .update({ image_path: null, image_deleted_at: new Date().toISOString() })
-    .eq("id", repairId);
-
-  if (error) {
-    await supabase.from("repairs").update({ image_path: null }).eq("id", repairId);
-  }
 }
 
 function decidedElsewhere(status: string) {
