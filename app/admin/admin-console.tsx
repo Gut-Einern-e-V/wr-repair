@@ -49,7 +49,7 @@ export default function AdminConsole({ email, roles, initialSettings }: { email:
       <section className="moderator-intro">
         <p className="brand-kicker">Administration</p>
         <h1 className="sticker-head"><span className="sticker">Rekord</span><span className="sticker">steuern</span></h1>
-        <p className="moderator-lead">Zeitrahmen, Gebiet, Ziel, Team und Systemzustand an einer Stelle. Zum Pruefen der Einreichungen geht es in die <Link href="/moderator">Moderation</Link>.</p>
+        <p className="moderator-lead">Zeitrahmen, Gebiet, Ziel, Schnittstellen, Team und Systemzustand an einer Stelle. Zum Pruefen der Einreichungen geht es in die <Link href="/moderator">Moderation</Link>.</p>
       </section>
 
       {!settings.persisted && (

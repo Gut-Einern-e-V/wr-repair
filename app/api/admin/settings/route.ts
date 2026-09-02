@@ -1,4 +1,6 @@
 import { requireAdmin } from "@/lib/admin-auth";
+import { isValidIpRule, MAX_ALLOWLIST_ENTRIES } from "@/lib/ip-allowlist";
+import { getClientIp } from "@/lib/rate-limit";
 import { getAppSettings, publicLogoUrl, readSettingsRow } from "@/lib/app-settings";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -7,6 +9,11 @@ type Body = {
   endAt?: unknown;
   recordGoal?: unknown;
   dayRecord?: unknown;
+  rateLimit?: {
+    enabled?: unknown;
+    perMinute?: unknown;
+    allowlist?: unknown;
+  };
   region?: {
     enabled?: unknown;
     label?: unknown;
@@ -30,7 +37,7 @@ function coordinate(value: unknown, limit: number): number | null | undefined {
   return value;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
@@ -45,6 +52,7 @@ export async function GET() {
     windowStatus: settings.submissionWindow.status,
     recordGoal: settings.recordGoal,
     dayRecord: settings.dayRecord,
+    rateLimit: settings.publicThrottle,
     region: {
       enabled: settings.region.enabled,
       label: settings.region.label,
@@ -56,6 +64,13 @@ export async function GET() {
       lonMax: settings.region.bounds?.lonMax ?? null,
     },
     logoUrl: settings.logoUrl,
+    /* Die Adresse, mit der dieses Backend gerade aufgerufen wird (Issue #80).
+       Sie steht hier, damit die Freigabeliste einen Knopf "meine Adresse
+       eintragen" haben kann: Wer am Buehnenrechner sitzt, soll die Adresse
+       nicht woanders nachschlagen muessen. Sie wird nicht gespeichert - nur
+       angezeigt. Bewusst aus derselben Funktion wie das Limit selbst, sonst
+       gaebe der Knopf womoeglich eine andere Adresse frei als die gedrosselte. */
+    clientIp: getClientIp(request),
     // False means the settings row is unreachable and the environment still rules.
     persisted: settings.persisted,
     // Which values are stored rather than inherited from the environment.
@@ -63,6 +78,7 @@ export async function GET() {
       window: Boolean(row?.submission_start_at && row?.submission_end_at),
       recordGoal: row?.record_goal != null,
       dayRecord: row?.day_record != null,
+      rateLimit: row?.rate_limit_enabled != null,
       region: row?.region_label != null,
       logo: Boolean(row?.logo_path),
     },
@@ -94,8 +110,9 @@ export async function PUT(request: Request) {
     update.record_goal = goal;
   }
 
-  // Der bisherige Tagesrekord aus der Tabellenkalkulation. Null loescht ihn -
-  // dann zaehlt auf der Buehne allein der beste Tag dieser Aktion.
+  /* Der bisherige Tagesrekord aus der Tabellenkalkulation - die Marke "an einem
+     Tag und Ort" (Issue #75). Null loescht ihn; dann zaehlt auf der Buehne
+     allein der beste Ortstag dieser Aktion. */
   if (body.dayRecord !== undefined) {
     if (body.dayRecord === null) {
       update.day_record = null;
@@ -106,6 +123,50 @@ export async function PUT(request: Request) {
       }
       update.day_record = record;
     }
+  }
+
+  /* Drosselung der oeffentlichen Leseroute (Issue #80). Schalter und Zahl
+     werden zusammen gespeichert: Eine Zahl ohne Schalter waere kein Zustand,
+     den die Oberflaeche anzeigen kann. */
+  if (body.rateLimit !== undefined) {
+    const rateLimit = body.rateLimit;
+
+    if (typeof rateLimit.enabled !== "boolean") {
+      return Response.json({ error: "Bitte gib an, ob die Drosselung aktiv ist." }, { status: 400 });
+    }
+
+    const perMinute = Number(rateLimit.perMinute);
+    if (!Number.isInteger(perMinute) || perMinute < 1 || perMinute > 100_000) {
+      return Response.json({ error: "Die Anfragen pro Minute muessen eine ganze Zahl zwischen 1 und 100.000 sein." }, { status: 400 });
+    }
+
+    /* Die Freigabeliste kommt zusammen mit dem Schalter, weil die Karte im
+       Backend beides in einem Formular speichert. Unbrauchbare Schreibweisen
+       werden abgewiesen statt stillschweigend weggeworfen: Wer eine Adresse
+       eintraegt, die nicht greift, wuerde sich sonst auf eine Freigabe
+       verlassen, die es nicht gibt. */
+    if (!Array.isArray(rateLimit.allowlist)) {
+      return Response.json({ error: "Die Freigabeliste muss eine Liste von Adressen sein." }, { status: 400 });
+    }
+    if (rateLimit.allowlist.length > MAX_ALLOWLIST_ENTRIES) {
+      return Response.json({ error: `Die Freigabeliste fasst hoechstens ${MAX_ALLOWLIST_ENTRIES} Eintraege.` }, { status: 400 });
+    }
+
+    const allowlist: string[] = [];
+    for (const entry of rateLimit.allowlist) {
+      const rule = typeof entry === "string" ? entry.trim() : "";
+      if (!isValidIpRule(rule)) {
+        return Response.json(
+          { error: `"${rule}" ist keine IP-Adresse und kein Praefix. Beispiele: 203.0.113.4, 203.0.113.0/24, 2001:db8::/32.` },
+          { status: 400 },
+        );
+      }
+      if (!allowlist.includes(rule)) allowlist.push(rule);
+    }
+
+    update.rate_limit_enabled = rateLimit.enabled;
+    update.rate_limit_per_minute = perMinute;
+    update.rate_limit_allowlist = allowlist;
   }
 
   if (body.region !== undefined) {

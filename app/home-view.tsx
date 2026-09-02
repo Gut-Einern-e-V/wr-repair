@@ -15,7 +15,7 @@ import { StoryMosaic } from "@/components/story-mosaic";
 import { brandPhotos } from "@/lib/brand-photos";
 import { campaignPhaseAt, type CampaignDates, type CampaignPhase } from "@/lib/campaign-phase";
 import { repairCategories, repairCategoryLabel, type RepairCategory } from "@/lib/repair-catalog";
-import { faqEntries, repairRecords } from "@/lib/repair-records";
+import { faqEntries, goalRecord, repairRecords } from "@/lib/repair-records";
 import type { StoryTeaser } from "@/lib/stories";
 
 type RepairStats = {
@@ -101,6 +101,10 @@ export function HomeView({ stories }: HomeViewProps) {
   const [statsUpdatedAt, setStatsUpdatedAt] = useState<Date | null>(null);
   /* Nur die beiden Zeitpunkte; wo wir darin stehen, rechnet der Browser aus. */
   const [campaign, setCampaign] = useState<CampaignDates>({ startAt: null, endAt: null });
+  /* Die Zielzahl kommt aus derselben Antwort wie der Zeitraum (Issue #74) und
+     nicht aus der Statistik: Die ist vor dem Start geschlossen, das Ziel steht
+     aber schon vorher. */
+  const [campaignGoal, setCampaignGoal] = useState<number | null>(null);
   /* Die Phase aus der Uhr des Browsers statt aus der Antwort vom Laden der
      Seite: Sonst behauptet eine offen gebliebene Seite nach Ablauf der Frist
      weiter, es laufe noch (Issue #66). Sekundentakt, damit der Text im selben
@@ -137,8 +141,9 @@ export function HomeView({ stories }: HomeViewProps) {
       try {
         const response = await fetch("/api/campaign", { cache: "no-store" });
         if (!response.ok) throw new Error("Kampagnenstatus nicht verfuegbar");
-        const data = await response.json() as CampaignDates;
+        const data = await response.json() as CampaignDates & { goal?: number };
         setCampaign({ startAt: data.startAt, endAt: data.endAt });
+        if (typeof data.goal === "number" && data.goal > 0) setCampaignGoal(data.goal);
       } catch {
         setCampaign({ startAt: null, endAt: null });
       }
@@ -172,8 +177,13 @@ export function HomeView({ stories }: HomeViewProps) {
     .slice(0, 3);
 
   const copy = heroCopy[phase];
-  const goal = repairStats?.goal ?? 10_000;
+  /* Die Statistik ist die genauere Quelle - sie liefert Stand und Ziel aus
+     derselben Antwort. Vor dem Start des Zeitraums ist sie geschlossen, dann
+     gilt das Ziel aus `/api/campaign`. Keine feste Zahl als letzter Rueckfall:
+     Eine geratene Zielzahl ist schlechter als gar keine (Issue #74). */
+  const goal = repairStats?.goal ?? campaignGoal;
   const isDone = phase === "after";
+  const records = [...repairRecords, goalRecord(goal)].filter((record) => record !== null);
 
   return (
     <main className="page-shell">
@@ -223,14 +233,19 @@ export function HomeView({ stories }: HomeViewProps) {
               <div>
                 <p className="counter-label">{copy.counterLabel}</p>
                 <p className={`counter-number ${animatedRepairCount === null ? "is-loading" : ""}`} aria-live="polite" aria-label={animatedRepairCount === null ? "Reparaturen werden geladen" : `${animatedRepairCount} Reparaturen`}>{animatedRepairCount === null ? "..." : animatedRepairCount.toLocaleString("de-DE")}</p>
-                <div className="counter-meta">
-                  <span>{isDone ? "Ziel war" : "Unser Ziel"}: {goal.toLocaleString("de-DE")}</span>
-                  <span>{((repairCount ?? 0) / goal * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
-                </div>
-                <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / goal * 100, 100)}%` }} /></div>
+                {/* Ohne bekanntes Ziel steht hier gar keine Zeile: Ein
+                    Fortschritt gegen eine geratene Zahl waere eine falsche
+                    Auskunft, kein Platzhalter (Issue #74). */}
+                {goal !== null && <>
+                  <div className="counter-meta">
+                    <span>{isDone ? "Ziel war" : "Unser Ziel"}: {goal.toLocaleString("de-DE")}</span>
+                    <span>{((repairCount ?? 0) / goal * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
+                  </div>
+                  <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / goal * 100, 100)}%` }} /></div>
+                </>}
                 <p className="counter-note">{counterNote(phase, statsState, statsUpdatedAt)}</p>
               </div>
-              <HeroCountdown campaign={campaign} total={repairCount} goal={repairStats?.goal ?? null} />
+              <HeroCountdown campaign={campaign} total={repairCount} goal={goal} />
             </aside>
           </div>
         </div>
@@ -268,17 +283,19 @@ export function HomeView({ stories }: HomeViewProps) {
         <div className="record-facts-heading">
           <p className="section-index">Zahlen und Fakten</p>
           <h2 id="record-facts-title">Das sind die Bestleistungen, die wir übertreffen wollen.</h2>
-          <p>Reparaturrekorde werden bisher vor allem in Großbritannien gezählt. Diese Marken sind unser Maßstab für NRW.</p>
+          <p>Reparaturrekorde werden bisher vor allem in Großbritannien gezählt. Diese Marken sind unser Maßstab für NRW &ndash; die letzte Kachel zeigt, was wir uns selbst vorgenommen haben.</p>
         </div>
         <ol className="record-list">
-          {repairRecords.map((record) => (
+          {records.map((record) => (
             <li key={record.label}>
               <strong>{record.value}</strong>
               <span>{record.label}</span>
               <p>{record.detail}</p>
-              <a href={record.source.href} target="_blank" rel="noreferrer">
-                Quelle: {record.source.label} <span aria-hidden="true">&#8599;</span>
-              </a>
+              {record.source && (
+                <a href={record.source.href} target="_blank" rel="noreferrer">
+                  Quelle: {record.source.label} <span aria-hidden="true">&#8599;</span>
+                </a>
+              )}
             </li>
           ))}
         </ol>

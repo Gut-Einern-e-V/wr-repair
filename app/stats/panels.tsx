@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
-import { campaignElapsed, countdownTo, dayRecordState, formatDayLabel, formatMinutes, formatRemaining, goalPercent, paceVerdict, requiredPerHour, type DashboardSnapshot, type PaceVerdict } from "@/lib/dashboard";
+import { campaignElapsed, countdownTo, dayRecordState, formatDayLabel, formatMinutes, formatRemaining, goalPercent, paceVerdict, rankKreisDay, requiredPerHour, type DashboardSnapshot, type PaceVerdict } from "@/lib/dashboard";
 import { type KreisRank } from "@/lib/nrw-map";
 import { successShare } from "@/lib/public-stats";
 import { treemap } from "@/lib/treemap";
@@ -167,46 +167,80 @@ export function DeadlineCountdown({ campaign, total, goal, nowMs }: { campaign: 
   );
 }
 
+/** So viele Orte stehen in der Tagesrangliste unter dem Rekordbalken. */
+const DAY_RANKING_SIZE = 3;
+
 /**
- * Der heutige Tag gegen den bisherigen Tagesrekord.
+ * Der heutige Tag gegen den bisherigen Tagesrekord - je Ort (Issue #75).
  *
  * Steht direkt unter dem Countdown, weil beide dieselbe Frage stellen: Der
  * Countdown die fuer die ganze Aktion, dieser Block die fuer den einzelnen Tag.
  * Ein Tag ist dabei der Einreichungstag - der Tag, an dem geschraubt wurde, und
  * nicht der, an dem die Moderation die Eintraege abgearbeitet hat.
  *
+ * Verglichen wird der *Ort* mit dem hoechsten Tagesstand, nicht ganz NRW: Die
+ * Marke lautet "268 Reparaturen an einem Tag und Ort". Landesweit gezaehlt
+ * faellt sie an jedem halbwegs vollen Samstag, ohne dass irgendwo etwas
+ * Vergleichbares passiert waere - "Rekord geknackt" waere dann eine falsche
+ * Auskunft. Der landesweite Tagesstand steht weiter in der Zeitachse und im
+ * Rueckblick, nur nicht hier.
+ *
+ * Darunter die naechsten Plaetze des Tages: Sie sagen, wer noch im Rennen ist,
+ * und machen aus einer Zahl ein Rennen.
+ *
  * Ohne Rekord und ohne heutige Reparatur gibt es nichts zu zeigen: Dann bleibt
  * der Block ganz weg, statt eine Null gegen eine Null laufen zu lassen.
  */
 export function DayRecord({ snapshot }: { snapshot: DashboardSnapshot }) {
-  const state = dayRecordState(snapshot.today, snapshot.bestDay, snapshot.dayRecord);
-  if (state.record === 0 && snapshot.today === 0) return null;
+  const ranking = rankKreisDay(snapshot.todayKreise, DAY_RANKING_SIZE);
+  const leader = ranking[0] ?? null;
+  const state = dayRecordState(leader?.total ?? 0, snapshot.bestKreisDay, snapshot.dayRecord);
+  if (state.record === 0 && !leader) return null;
 
   const dayLabel = formatDayLabel(state.date);
+  /* Herkunft des eigenen Bestwerts, z. B. "vom 12.09. in Wuppertal". Fehlt der
+     Ort, bleibt es beim Datum - beides erfunden wird hier nichts. */
+  const origin = [dayLabel && `vom ${dayLabel}`, state.place && `in ${state.place}`].filter(Boolean).join(" ");
 
   return (
-    <div className={`stage-dayrecord ${state.broken ? "is-record" : ""}`}>
-      <p className="stage-dayrecord-head">
-        <strong>{snapshot.today.toLocaleString("de-DE")}</strong>
-        <span>heute</span>
-      </p>
+    <>
+      <p className="panel-label">Bester Ort heute</p>
+      <div className={`stage-dayrecord ${state.broken ? "is-record" : ""}`}>
+        <p className="stage-dayrecord-head">
+          <strong>{(leader?.total ?? 0).toLocaleString("de-DE")}</strong>
+          <span>{leader ? <>heute in {leader.kreis}</> : "heute noch kein Ort mit Reparaturen"}</span>
+        </p>
 
-      {state.record > 0 && (
-        <span className="stage-dayrecord-bar">
-          <i style={{ width: `${state.progress}%` }} />
-        </span>
-      )}
+        {state.record > 0 && (
+          <span className="stage-dayrecord-bar">
+            <i style={{ width: `${state.progress}%` }} />
+          </span>
+        )}
 
-      <p className="stage-dayrecord-line">
-        {state.record === 0
-          ? <>Der erste gezaehlte Tag - was heute zusammenkommt, ist die Marke.</>
-          : state.broken
-            ? <>Neuer Tagesrekord, <b>{state.lead.toLocaleString("de-DE")}</b> ueber den bisherigen <b>{state.record.toLocaleString("de-DE")}</b></>
-            : state.missing === 0
-              ? <>Gleichauf mit dem Tagesrekord von <b>{state.record.toLocaleString("de-DE")}</b>{dayLabel && <> vom {dayLabel}</>}</>
-              : <>Noch <b>{state.missing.toLocaleString("de-DE")}</b> bis zum Tagesrekord von <b>{state.record.toLocaleString("de-DE")}</b>{dayLabel && <> vom {dayLabel}</>}</>}
-      </p>
-    </div>
+        <p className="stage-dayrecord-line">
+          {state.record === 0
+            ? <>Der erste gezaehlte Tag - was heute an einem Ort zusammenkommt, ist die Marke.</>
+            : state.broken
+              ? <>Neuer Tagesrekord an einem Ort, <b>{state.lead.toLocaleString("de-DE")}</b> ueber den bisherigen <b>{state.record.toLocaleString("de-DE")}</b></>
+              : state.missing === 0
+                ? <>Gleichauf mit dem Tagesrekord von <b>{state.record.toLocaleString("de-DE")}</b> an einem Ort{origin && <> {origin}</>}</>
+                : <>Noch <b>{state.missing.toLocaleString("de-DE")}</b> bis zum Tagesrekord von <b>{state.record.toLocaleString("de-DE")}</b> an einem Ort{origin && <> {origin}</>}</>}
+        </p>
+
+        {/* Erst ab zwei Orten: Eine Rangliste mit einem Eintrag wiederholt nur
+            die Zeile darueber. */}
+        {ranking.length > 1 && (
+          <ol className="stage-dayrecord-ranking">
+            {ranking.map((entry) => (
+              <li key={entry.kreis}>
+                <span>{entry.kreis}</span>
+                <b>{entry.total.toLocaleString("de-DE")}</b>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </>
   );
 }
 

@@ -1,4 +1,4 @@
-import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
+import { getAppSettings } from "@/lib/app-settings";
 import { getStoryTeasers } from "@/lib/stories";
 import { getSiteUrl } from "@/lib/share";
 
@@ -33,13 +33,14 @@ function campaignLine(status: string, startAt: Date | null, endAt: Date | null) 
 
 export async function GET() {
   const siteUrl = getSiteUrl() || "http://localhost:3000";
-  const [campaign, stories] = await Promise.all([getConfiguredSubmissionWindow(), getStoryTeasers()]);
+  const [settings, stories] = await Promise.all([getAppSettings(), getStoryTeasers()]);
+  const campaign = settings.submissionWindow;
 
   const body = `# Reparaturrekord NRW
 
 > Ein Weltrekordversuch der FAB Region Bergisches Land: Einen Monat lang zaehlt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag haelt. Wer etwas repariert hat, traegt es mit Foto und ein paar Angaben ein; nach der Pruefung durch die Moderation zaehlt der Beitrag.
 
-${campaignLine(campaign.status, campaign.startAt, campaign.endAt)}
+${campaignLine(campaign.status, campaign.startAt, campaign.endAt)} Das Ziel liegt bei ${settings.recordGoal.toLocaleString("de-DE")} gezaehlten Reparaturen.
 
 Teilnehmen kann jede Person in Nordrhein-Westfalen, kostenlos und ohne Konto. Es zaehlt alles, was vorher kaputt oder nur eingeschraenkt nutzbar war - geschraubt, genaeht und geklebt wird in Repair Cafes, Werkstaetten, Schulen, Vereinen und am Kuechentisch. Es geht nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als Alternative zum Neukauf zu staerken.
 
@@ -52,6 +53,7 @@ Teilnehmen kann jede Person in Nordrhein-Westfalen, kostenlos und ohne Konto. Es
 - [Gewinnspiel](${siteUrl}/gewinnspiel): Verlosung unter allen Einreichungen, mit Teilnahmebedingungen.
 - [Ueber das Projekt](${siteUrl}/about): Hintergrund, Ziel und die Regeln der Zaehlung.
 - [Unterstuetzung](${siteUrl}/supporters): Die Organisationen, die den Rekordversuch tragen und foerdern.
+- [Schnittstellen](${siteUrl}/api-doku): Wie sich die Zahlen ohne API-Key abrufen lassen - fuer eigene Anzeigen auf ESP32, Arduino oder Raspberry Pi.
 
 ## Reparaturgeschichten
 

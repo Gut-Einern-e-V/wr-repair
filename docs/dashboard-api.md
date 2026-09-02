@@ -7,6 +7,8 @@ GET https://DEINE-DOMAIN.example/api/stats        # nur Zahlen, Fünf-Minuten-Ta
 GET https://DEINE-DOMAIN.example/api/dashboard    # Zahlen und Einzeleinträge, Live-Takt
 ```
 
+Eine Übersicht über alle öffentlichen Routen, ihre Zustände und die Grenzen je IP-Adresse steht in [public-api.md](public-api.md).
+
 Auch diese Route braucht keinen API-Key. Sie ist für die Bühnenseite gebaut, die im Browser läuft — was diese Seite lesen kann, kann jede lesen, und deshalb steht hier, worauf man sich verlassen darf.
 
 Nimm `/api/stats`, wenn eine Zahl auf ein Display soll. Nimm `/api/dashboard` nur, wenn du wirklich die einzelnen Einträge brauchst: Die Antwort ist ein Vielfaches groß und der Takt ist deutlich schneller.
@@ -37,7 +39,9 @@ Der Ablauf: einmal den Snapshot holen, dessen `cursor` merken, danach im Takt mi
   "valueSavedEuros": 21450,
   "today": 23,
   "bestDay": { "date": "2026-10-17", "total": 41 },
-  "dayRecord": 412,
+  "dayRecord": 268,
+  "todayKreise": { "Wuppertal": 14, "Remscheid": 6 },
+  "bestKreisDay": { "date": "2026-10-17", "kreis": "Wuppertal", "total": 31 },
   "categories": { "textiles": 12, "toys": 9 },
   "performedBy": { "alone": 88, "with_support": 71, "by_someone": 25 },
   "kreise": { "Wuppertal": 31, "Kreis Steinfurt": 12 },
@@ -71,9 +75,11 @@ Der Ablauf: einmal den Snapshot holen, dessen `cursor` merken, danach im Takt mi
 | `withStory` | Davon mit erzählter Geschichte. |
 | `minutesSaved` | Summe der angegebenen Reparaturzeiten in Minuten. |
 | `valueSavedEuros` | Summe der geschätzten Warenwerte. |
-| `today` | Stand des laufenden Tages (Berliner Kalendertag, gezählt nach Einreichung). |
-| `bestDay` | Bester Tag vor heute, oder `null`, solange es keinen gibt. |
-| `dayRecord` | Tagesrekord aus früheren Aktionen, oder `null`. |
+| `today` | Stand des laufenden Tages **landesweit** (Berliner Kalendertag, gezählt nach Einreichung). |
+| `bestDay` | Bester Tag vor heute, landesweit, oder `null`, solange es keinen gibt. |
+| `dayRecord` | Tagesrekord aus früheren Aktionen, **an einem Tag und Ort**, oder `null`. |
+| `todayKreise` | Heutiger Stand je Kreis bzw. kreisfreier Stadt. Der größte Wert darin ist der Ort, der heute vorn liegt — die Größe, die gegen `dayRecord` läuft. Leer, solange nichts mit Ortsangabe eingereicht wurde. |
+| `bestKreisDay` | Bester Tag eines einzelnen Ortes vor heute, mit `date`, `kreis` und `total`, oder `null`. |
 | `categories` | Kategorieschlüssel und Anzahl, siehe Tabelle unten. |
 | `performedBy` | `alone`, `with_support` oder `by_someone` und Anzahl. |
 | `kreise` | Alle Kreise und kreisfreien Städte mit mindestens einer Reparatur. |
@@ -126,7 +132,7 @@ Kommen mehr als 50 Freigaben zwischen zwei Abfragen zusammen, liefert die Antwor
 ## Grenzen und Fehler
 
 - **Cache:** Snapshot 20 Sekunden, Delta 5 Sekunden (`stale-while-revalidate` zusätzlich 120 bzw. 30 Sekunden). Häufiger abfragen liefert dieselbe Antwort. Mit und ohne `images=1` werden getrennt zwischengespeichert.
-- **Rate Limit:** 240 Anfragen pro Minute pro IP-Adresse. Bei `429` die im Header `Retry-After` genannte Zeit warten.
+- **Rate Limit:** 240 Anfragen pro Minute pro IP-Adresse. Bei `429` die im Header `Retry-After` genannte Zeit warten. Wird ein Free-Tier-Kontingent knapp, lässt sich im Backend eine engere Grenze einschalten (siehe [public-api.md](public-api.md#schonmodus)) — `429` also behandeln, auch wenn es monatelang nicht vorkommt. Eine feste Anzeige, die dauerhaft laufen soll, kann von der Grenze ausgenommen werden: [Freigegebene Adressen](public-api.md#freigegebene-adressen).
 - **Außerhalb des Einreichungszeitraums:** `403` mit `code: "outside-campaign-window"`. Dann etwas wie „Statistik startet bald“ anzeigen statt eines Fehlerwerts.
 - **Störung:** `502`, wenn die Datenbank nicht antwortet, `503`, wenn der Dienst nicht konfiguriert ist. In beiden Fällen den letzten bekannten Stand stehen lassen und es später erneut versuchen.
 

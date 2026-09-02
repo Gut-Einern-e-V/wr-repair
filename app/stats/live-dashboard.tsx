@@ -372,6 +372,9 @@ export default function LiveDashboard() {
           <CategoryTreemap categories={snapshot.categories} />
           <p className="panel-label">Noch Zeit bis zum Ende</p>
           <DeadlineCountdown campaign={snapshot.campaign} goal={snapshot.goal} nowMs={nowMs} total={snapshot.total} />
+          {/* Bringt seine eigene Beschriftung mit: Der Block entfaellt, solange
+              es nichts zu zeigen gibt, und eine Ueberschrift ohne Inhalt
+              darunter waere schlimmer als beides weg. */}
           <DayRecord snapshot={snapshot} />
           <SubmitQr />
         </section>

@@ -8,6 +8,7 @@
  */
 
 import { isInsideNrw } from "./nrw-map";
+import { berlinDay } from "./public-stats";
 
 export type DashboardHighlight = {
   id: string;
@@ -94,6 +95,9 @@ export function readCells(value: unknown): DashboardCell[] {
   });
 }
 
+/** Bester Tag eines Ortes: Tag, Ort und die Zahl der Reparaturen darin. */
+export type DashboardKreisDay = { date: string; kreis: string; total: number };
+
 export type DashboardSnapshot = {
   /**
    * Der Rekordstand: freigegebene Reparaturen, die gelungen sind (Issue #77).
@@ -134,6 +138,23 @@ export type DashboardSnapshot = {
    * Bestwert.
    */
   dayRecord: number | null;
+  /**
+   * Heutiger Stand je Kreis bzw. kreisfreier Stadt (Issue #75).
+   *
+   * Der Tagesrekord, gegen den die Buehne laeuft, ist eine Marke "an einem Tag
+   * *und Ort*". Der landesweite `today` ist dafuer die falsche Groesse - er
+   * reisst die Marke, sobald genug Orte gleichzeitig arbeiten. Verglichen wird
+   * deshalb der Ort mit dem hoechsten Tagesstand, und der steht hier.
+   *
+   * Einreichungen ohne Kreis fehlen: Ohne Ort gibt es keinen "an einem Ort".
+   * Sie bleiben in `today` enthalten.
+   */
+  todayKreise: Record<string, number>;
+  /**
+   * Bester Tag eines einzelnen Ortes *vor* heute - der eigene Ortsbestwert
+   * dieser Aktion. `null`, solange es keinen gibt.
+   */
+  bestKreisDay: DashboardKreisDay | null;
   cells: DashboardCell[];
   /**
    * Reparaturen je Kreis, direkt aus dem Aggregat - siehe `kreis`-Spalte in
@@ -210,6 +231,18 @@ export function getRecordGoal(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 10_000;
 }
 
+/**
+ * Berliner Kalendertag eines ISO-Zeitstempels, oder `null`, wenn er nicht zu
+ * lesen ist. Ohne die Absicherung wirft die Formatierung eines ungueltigen
+ * Datums, und ein kaputter Zeitstempel wuerde die Zusammenfuehrung sprengen.
+ */
+function safeBerlinDay(iso: string | null): string | null {
+  if (!iso) return null;
+
+  const parsed = new Date(iso);
+  return Number.isNaN(parsed.valueOf()) ? null : berlinDay(parsed);
+}
+
 function mergeCounts(base: Record<string, number>, extra: Record<string, number>) {
   const merged = { ...base };
   for (const [key, value] of Object.entries(extra)) {
@@ -231,9 +264,20 @@ export function mergeDashboardDelta(snapshot: DashboardSnapshot, delta: Dashboar
   // (alle 5 Minuten) aktualisiert - mit den Kreisen aus dem Delta selbst
   // stehen sie stattdessen im Delta-Takt (alle 15 Sekunden) aktuell.
   const kreise = { ...snapshot.kreise };
+  // Der Tagesstand je Ort laeuft im Delta-Takt mit, damit die Rangliste des
+  // Tages nicht bis zum naechsten vollen Snapshot stehenbleibt. Die Tagesgrenze
+  // kommt aus `generatedAt`, also aus der Uhr des Servers - die des
+  // Anzeigerechners kann daneben liegen, und um Mitternacht entscheidet sie
+  // sonst darueber, welcher Tag gemeint ist.
+  const todayKreise = { ...snapshot.todayKreise };
+  const today = safeBerlinDay(delta.generatedAt);
   if (added.length === delta.added.length) {
     for (const item of added) {
-      if (item.kreis) kreise[item.kreis] = (kreise[item.kreis] ?? 0) + 1;
+      if (!item.kreis) continue;
+      kreise[item.kreis] = (kreise[item.kreis] ?? 0) + 1;
+      if (today && safeBerlinDay(item.submittedAt) === today) {
+        todayKreise[item.kreis] = (todayKreise[item.kreis] ?? 0) + 1;
+      }
     }
   }
 
@@ -247,6 +291,7 @@ export function mergeDashboardDelta(snapshot: DashboardSnapshot, delta: Dashboar
       ? mergeCounts(snapshot.categories, delta.categories)
       : snapshot.categories,
     kreise,
+    todayKreise,
     highlights: [...added, ...snapshot.highlights].slice(0, MAX_HIGHLIGHTS),
     cursor: delta.cursor ?? snapshot.cursor,
     generatedAt: delta.generatedAt,
@@ -448,6 +493,11 @@ export function requiredPerHour(total: number, goal: number, remainingMs: number
  *
  * Ist keiner von beiden bekannt, steht `record` auf 0 und die Anzeige nennt nur
  * den heutigen Stand, statt gegen eine erfundene Marke zu laufen.
+ *
+ * Seit Issue #75 wird das je *Ort* gerechnet: `today` ist der Stand des heute
+ * fuehrenden Kreises, `bestDay` der beste Tag eines einzelnen Ortes, und der
+ * hinterlegte Wert ist die Marke "an einem Tag und Ort" (268 in Exeter). Die
+ * Funktion selbst rechnet unveraendert - sie bekommt nur andere Zahlen.
  */
 export type DayRecordState = {
   /** Der zu schlagende Stand; 0 heisst: Es gibt noch keinen. */
@@ -456,6 +506,8 @@ export type DayRecordState = {
   source: "logged" | "own" | "none";
   /** Tag des Rekords, sofern er aus dieser Aktion stammt. */
   date: string | null;
+  /** Ort des Rekords, sofern er aus dieser Aktion stammt (Issue #75). */
+  place: string | null;
   /** Was bis zum Rekord fehlt; 0, sobald er eingeholt ist. */
   missing: number;
   /** Vorsprung, sobald der Rekord ueberboten ist. */
@@ -468,7 +520,7 @@ export type DayRecordState = {
 
 export function dayRecordState(
   today: number,
-  bestDay: { date: string; total: number } | null,
+  bestDay: { date: string; total: number; kreis?: string | null } | null,
   logged: number | null,
 ): DayRecordState {
   const own = bestDay && bestDay.total > 0 ? bestDay : null;
@@ -483,11 +535,30 @@ export function dayRecordState(
     record,
     source,
     date: source === "own" ? own?.date ?? null : null,
+    place: source === "own" ? own?.kreis ?? null : null,
     missing: Math.max(0, record - today),
     lead: Math.max(0, today - record),
     broken: record > 0 && today > record,
     progress: record > 0 ? Math.min(100, (today / record) * 100) : today > 0 ? 100 : 0,
   };
+}
+
+/** Ein Ort mit seinem heutigen Stand - eine Zeile der Tagesrangliste. */
+export type KreisDayEntry = { kreis: string; total: number };
+
+/**
+ * Die Orte mit dem hoechsten heutigen Stand, absteigend (Issue #75).
+ *
+ * Bei Gleichstand entscheidet der Name, damit zwei gleich starke Orte nicht bei
+ * jedem Delta die Plaetze tauschen - auf einer Buehne liest sich das wie ein
+ * Fehler. Orte ohne Reparatur fallen weg.
+ */
+export function rankKreisDay(counts: Record<string, number>, limit = 3): KreisDayEntry[] {
+  return Object.entries(counts)
+    .filter(([kreis, total]) => Boolean(kreis) && total > 0)
+    .map(([kreis, total]) => ({ kreis, total }))
+    .sort((left, right) => right.total - left.total || left.kreis.localeCompare(right.kreis, "de-DE"))
+    .slice(0, Math.max(0, limit));
 }
 
 /** Tagesdatum kurz, z. B. "12.09." - fuer die Herkunft des Bestwerts. */

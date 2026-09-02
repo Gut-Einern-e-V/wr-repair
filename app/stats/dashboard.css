@@ -443,6 +443,17 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
 .stage-dayrecord-line { margin: 0; color: rgba(238, 241, 247, .38); font: 500 clamp(10px, .72vw, 14px)/1.45 var(--mono); }
 .stage-dayrecord-line b { color: rgba(238, 241, 247, .72); font-weight: 700; font-variant-numeric: tabular-nums; }
 
+/* Die naechsten Plaetze des Tages (Issue #75). Bewusst schmal und ruhig: Der
+   Wettlauf steht im Balken darueber, das hier ist die Fussnote dazu. */
+.stage-dayrecord-ranking { display: grid; gap: 2px; margin: 2px 0 0; padding: 0; list-style: none; counter-reset: dayrank; }
+.stage-dayrecord-ranking li { display: flex; align-items: baseline; gap: 8px; counter-increment: dayrank; }
+.stage-dayrecord-ranking li::before { content: counter(dayrank); color: rgba(238, 241, 247, .28); font: 700 clamp(8px, .58vw, 11px) var(--mono); }
+.stage-dayrecord-ranking span { flex: 1; overflow: hidden; color: rgba(238, 241, 247, .55); font: 500 clamp(9px, .66vw, 13px)/1.3 var(--mono); text-overflow: ellipsis; white-space: nowrap; }
+.stage-dayrecord-ranking b { color: rgba(238, 241, 247, .78); font: 700 clamp(9px, .66vw, 13px) var(--mono); font-variant-numeric: tabular-nums; }
+.stage-dayrecord-ranking li:first-child span, .stage-dayrecord-ranking li:first-child b { color: #eef1f7; }
+.stage-dayrecord.is-record .stage-dayrecord-ranking li:first-child span,
+.stage-dayrecord.is-record .stage-dayrecord-ranking li:first-child b { color: var(--stage-yellow); }
+
 /* Steht der Rekord, traegt der Block die Signalfarbe des Hauses - dieselbe,
    in der auch die Restzeit steht. */
 .stage-dayrecord.is-record .stage-dayrecord-head strong { color: var(--stage-yellow); }
@@ -635,6 +646,8 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   .stage-dayrecord-head span { font-size: 7px; }
   .stage-dayrecord-bar { height: 5px; }
   .stage-dayrecord-line { font-size: 8px; }
+  .stage-dayrecord-ranking span, .stage-dayrecord-ranking b { font-size: 8px; }
+  .stage-dayrecord-ranking li::before { font-size: 7px; }
   .dashboard-stage { padding: 9px; }
   .spotlight { right: 9px; bottom: 9px; max-width: 32%; border-width: 1px; }
   .spotlight img { max-height: 26vmin; }

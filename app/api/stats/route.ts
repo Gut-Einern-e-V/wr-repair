@@ -1,5 +1,5 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
-import { rateLimit } from "@/lib/rate-limit";
+import { publicRateLimit } from "@/lib/rate-limit";
 import { getAppSettings } from "@/lib/app-settings";
 import { readPublicStats, timelineRange } from "@/lib/public-stats";
 
@@ -12,6 +12,13 @@ import { readPublicStats, timelineRange } from "@/lib/public-stats";
  * Einreichungszeitraums. Die Zusammenfassung macht `public_stats()` in einer
  * einzigen Abfrage; die Route legt nur die Einstellungen daneben.
  */
+
+/**
+ * Anfragen je Minute und IP-Adresse im Normalbetrieb. Grosszuegig, weil bei
+ * einer Veranstaltung alle Geraete hinter derselben Adresse stecken - ein
+ * Infodisplay braucht davon eine alle fuenf Minuten.
+ */
+const STATS_LIMIT_PER_MINUTE = 120;
 
 export async function GET(request: Request) {
   const settings = await getAppSettings();
@@ -27,7 +34,9 @@ export async function GET(request: Request) {
     );
   }
 
-  const limit = rateLimit(request, "repair-stats", { limit: 120, windowMs: 60 * 1_000 });
+  /* Vorgabe der Route im Normalbetrieb; im Schonmodus gilt die engere Grenze
+     aus dem Backend (siehe lib/rate-limit.ts und docs/public-api.md). */
+  const limit = publicRateLimit(request, "repair-stats", settings.publicThrottle, STATS_LIMIT_PER_MINUTE);
   if (!limit.allowed) {
     return Response.json(
       { error: "Zu viele Statistikabfragen. Bitte versuche es gleich erneut." },

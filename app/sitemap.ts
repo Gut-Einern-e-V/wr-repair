@@ -25,6 +25,11 @@ const staticPages: StaticEntry[] = [
   { path: "/repair-cafes", changeFrequency: "weekly", priority: 0.7 },
   { path: "/gewinnspiel", changeFrequency: "weekly", priority: 0.7 },
   { path: "/about", changeFrequency: "monthly", priority: 0.6 },
+  /* Die Schnittstellen-Doku gehoert in den Index: Sie ist fuer Menschen
+     geschrieben, die eine eigene Anzeige bauen wollen, und die suchen danach
+     (Issue #80). Nicht zu verwechseln mit `/api/` selbst - das bleibt in
+     robots.txt gesperrt. */
+  { path: "/api-doku", changeFrequency: "monthly", priority: 0.4 },
   { path: "/supporters", changeFrequency: "monthly", priority: 0.5 },
   { path: "/privacy", changeFrequency: "yearly", priority: 0.2 },
   { path: "/imprint", changeFrequency: "yearly", priority: 0.2 },

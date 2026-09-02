@@ -892,6 +892,16 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .logo-preview { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; padding: 14px 16px; border: var(--line); background: var(--bg); }
 .logo-preview img { max-width: 220px; max-height: 80px; object-fit: contain; }
 
+/* Zweiter Abschnitt innerhalb einer Karte - fuer die Freigabeliste unter der
+   Drosselung (Issue #80). Die Linie darueber trennt die beiden Themen, ohne
+   dass es eine eigene Karte braucht: Ohne die Grenze hat die Liste keinen Sinn. */
+.admin-subhead { margin: 26px 0 10px; padding-top: 20px; border-top: var(--line); font-size: 17px; text-transform: none; }
+.allowlist { display: grid; gap: 6px; margin: 0 0 16px; padding: 0; list-style: none; }
+.allowlist li { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 9px 14px; border: var(--line); background: var(--bg); }
+.allowlist code { flex: 1; min-width: 12ch; font: 500 14px var(--mono); word-break: break-all; }
+.allowlist-mark { padding: 2px 7px; background: var(--mint); font: 700 10px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.allowlist .text-button { flex: none; margin: 0; font-size: 11px; }
+
 /* Systemstatus und Belegung. */
 .service-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 12px; }
 .service-card { padding: 16px 18px; border: var(--line); background: var(--paper); }
@@ -1453,4 +1463,41 @@ h1, h2, h3 { overflow-wrap: break-word; }
 .contribution-grid ol { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 720px) {
   .two-column-copy, .contribution-grid, .contribution-grid ol { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Schnittstellen-Doku (/api-doku, Issue #80) ------------------------------
+   Baut auf `.legal-page` auf und ergaenzt nur, was eine technische Seite
+   zusaetzlich braucht: Aufzaehlungen, Tabellen und Codebloecke. Die Seite ist
+   breiter als die Rechtstexte - eine vierspaltige Tabelle in 680 Pixeln ist
+   nicht zu lesen. */
+.api-doc { max-width: 980px; }
+.api-doc section { max-width: none; }
+.api-doc p, .api-doc li { line-height: 1.55; }
+.api-doc ul { max-width: 72ch; margin: 0 0 16px; padding-left: 22px; }
+.api-doc li { margin: 8px 0; }
+/* Echte Festbreitenschrift statt `--mono`: Die Variable heisst so, ist aber die
+   Hausschrift in Kapitaelchen (siehe :root) - Quelltext braucht ausgerichtete
+   Einrueckung und unterscheidbare Null. */
+.api-doc { --code: ui-monospace, "SF Mono", "Cascadia Mono", "Roboto Mono", Menlo, Consolas, monospace; }
+.api-doc code { padding: 1px 5px; background: rgba(16, 22, 38, .07); font: 500 13px var(--code); word-break: break-word; }
+
+/* Breite Inhalte scrollen in ihrem eigenen Kasten - die Seite selbst darf
+   nicht seitlich wandern. */
+.api-table-scroll { overflow-x: auto; margin: 0 0 18px; }
+.api-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.api-table th, .api-table td { padding: 10px 12px; border-bottom: var(--line); text-align: left; vertical-align: top; line-height: 1.45; }
+.api-table th { border-bottom: 2px solid var(--ink); font: 700 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; }
+.api-table td:first-child { white-space: nowrap; }
+.api-table td:last-child { min-width: 12ch; }
+.api-table code { background: none; padding: 0; }
+
+.api-code { overflow-x: auto; margin: 0 0 18px; background: var(--ink); }
+.api-code pre { margin: 0; padding: 18px 20px; }
+.api-code code { padding: 0; background: none; color: var(--bg); font: 500 13px/1.6 var(--code); white-space: pre; word-break: normal; }
+
+@media (max-width: 720px) {
+  .api-doc code { font-size: 12px; }
+  .api-table { font-size: 14px; }
+  .api-table td:first-child { white-space: normal; }
+  .api-code code { font-size: 12px; }
 }

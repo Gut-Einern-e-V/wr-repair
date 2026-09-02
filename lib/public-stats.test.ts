@@ -75,6 +75,8 @@ describe("readPublicStats", () => {
         pending: 12,
         today: 7,
         bestDay: { date: "2026-10-17", total: 41 },
+        todayKreise: { Wuppertal: 5, Remscheid: 2 },
+        bestKreisDay: { date: "2026-10-17", kreis: "Wuppertal", total: 28 },
         succeeded: 184,
         withStory: 46,
         minutesSaved: 5_512,
@@ -96,6 +98,8 @@ describe("readPublicStats", () => {
       today: 7,
       bestDay: { date: "2026-10-17", total: 41 },
       dayRecord: 412,
+      todayKreise: { Wuppertal: 5, Remscheid: 2 },
+      bestKreisDay: { date: "2026-10-17", kreis: "Wuppertal", total: 28 },
       succeeded: 184,
       withStory: 46,
       minutesSaved: 5_512,
@@ -122,6 +126,10 @@ describe("readPublicStats", () => {
       valueSavedEuros: 0,
       performedBy: {},
       categoryMinutes: {},
+      // Ebenso fuer 202609020001: Ohne die Ortsgroessen laeuft der Tagesrekord
+      // allein gegen den hinterlegten Wert (Issue #75).
+      todayKreise: {},
+      bestKreisDay: null,
     });
   });
 
