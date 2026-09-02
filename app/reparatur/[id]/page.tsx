@@ -40,7 +40,7 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
 
   return <main className="page-shell content-page">
     <SiteHeader />
-    <article className="repair-status" aria-labelledby="repair-status-title">
+    <article id="inhalt" className="repair-status" aria-labelledby="repair-status-title">
       <p className="brand-kicker">Deine Reparatur</p>
       <h1 className="sticker-head is-mint" id="repair-status-title">
         <span className="sticker">{isApproved ? "Freigegeben" : repair.status === "rejected" ? "Nicht gezählt" : "In Prüfung"}</span>

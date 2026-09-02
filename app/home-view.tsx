@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
+import { AccessBar } from "@/components/access-bar";
 import { CampaignWindowNotice } from "@/components/campaign-window-notice";
 import { CategoryMotif } from "@/components/category-motif";
 import { ConsentSettingsLink } from "@/components/consent-settings-link";
@@ -188,6 +189,7 @@ export function HomeView({ stories }: HomeViewProps) {
 
   return (
     <main className="page-shell">
+      <AccessBar />
       <header className="site-header">
         <Link className="brand" href="/" aria-label="Reparaturrekord NRW Startseite">
           <span className="brand-mark">R</span>
@@ -202,7 +204,7 @@ export function HomeView({ stories }: HomeViewProps) {
         <MobileNavigation />
       </header>
 
-      <section id="top" className="hero-poster" aria-labelledby="hero-title">
+      <section id="inhalt" className="hero-poster" aria-labelledby="hero-title">
         <div className="hero-poster-photo" aria-hidden="true">
           <NextImage src={brandPhotos.workshop.src} alt="" fill priority sizes="(max-width: 1240px) 100vw, 1240px" />
         </div>

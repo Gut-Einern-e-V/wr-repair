@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AccessBar } from "@/components/access-bar";
 import { QuickSubmission } from "./quick-submission";
 
 export const metadata = {
@@ -10,11 +11,12 @@ export const metadata = {
 
 export default function QuickSubmissionPage() {
   return <main className="quick-submit-page">
+    <AccessBar />
     <header className="quick-submit-header">
       <Link className="brand" href="/" aria-label="Reparaturrekord NRW Startseite"><span className="brand-mark">R</span><span>Reparaturrekord<br />NRW</span></Link>
       <Link className="header-link" href="/stats">Live-Stand</Link>
     </header>
-    <section className="quick-submit-intro">
+    <section id="inhalt" className="quick-submit-intro">
       <p className="brand-kicker">Schnell eintragen</p>
       <h1 className="sticker-head is-mint"><span className="sticker">Deine Reparatur</span><span className="sticker">zählt</span></h1>
       <p>Foto, Kategorie, ein paar Angaben – fertig. Die Einreichung dauert nur wenige Minuten und zählt nach der Prüfung zum Rekord.</p>

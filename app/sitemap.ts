@@ -31,9 +31,16 @@ const staticPages: StaticEntry[] = [
      robots.txt gesperrt. */
   { path: "/api-doku", changeFrequency: "monthly", priority: 0.4 },
   { path: "/supporters", changeFrequency: "monthly", priority: 0.5 },
+  /* Nachnutzung ist der Zweck des offenen Quelltextes - dafuer muss die Seite
+     auffindbar sein, auch wenn sie im Erzaehlbogen der Projektseite bewusst
+     weit hinten steht (Issue #84). */
+  { path: "/open-source", changeFrequency: "monthly", priority: 0.4 },
   { path: "/privacy", changeFrequency: "yearly", priority: 0.2 },
   { path: "/imprint", changeFrequency: "yearly", priority: 0.2 },
   { path: "/accessibility", changeFrequency: "yearly", priority: 0.2 },
+  /* Hoeher gewichtet als die Rechtstexte: Die Seite ist ein eigenes Angebot,
+     kein Kleingedrucktes (Issue #47). */
+  { path: "/leichte-sprache", changeFrequency: "monthly", priority: 0.6 },
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

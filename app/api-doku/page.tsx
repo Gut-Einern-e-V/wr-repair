@@ -70,8 +70,8 @@ export default async function ApiDocsPage() {
 
   return <main className="page-shell content-page">
     <SiteHeader />
-    <article className="legal-page api-doc">
-      <p className="eyebrow">Für Entwickler*innen</p>
+    <article id="inhalt" className="legal-page api-doc">
+      <p className="eyebrow">Für alle, die selbst etwas bauen</p>
       <h1>Baue deine eigene Anzeige.</h1>
 
       <section>

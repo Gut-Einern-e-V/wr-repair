@@ -105,7 +105,7 @@ export default async function LotteryPage() {
   return <main className="page-shell content-page">
     <SiteHeader />
 
-    <section className="content-hero" aria-labelledby="lottery-title">
+    <section id="inhalt" className="content-hero" aria-labelledby="lottery-title">
       <p className="brand-kicker">Gewinnspiel</p>
       <h1 className="sticker-head is-mint" id="lottery-title">
         <span className="sticker">Reparieren</span>
@@ -197,7 +197,7 @@ export default async function LotteryPage() {
                   : " Eine Kontaktadresse für das Gewinnspiel wird noch bekannt gegeben."}
                 {" "}Die vollständigen Angaben stehen im <Link href="/imprint">Impressum</Link>.
               </p>
-            : <p>Der Veranstalter des Gewinnspiels steht noch nicht abschließend fest und wird hier genannt, sobald er feststeht. Für Rückfragen bis dahin: die Angaben im <Link href="/imprint">Impressum</Link>.</p>}
+            : <p>Wer das Gewinnspiel veranstaltet, steht noch nicht abschließend fest und wird hier genannt, sobald es feststeht. Für Rückfragen bis dahin: die Angaben im <Link href="/imprint">Impressum</Link>.</p>}
         </section>
         <section>
           <h3>Wer darf teilnehmen?</h3>

@@ -287,7 +287,7 @@ export default function LotteryPanel({
         )}
 
         <div className="admin-links">
-          <a className="button button-secondary" href="/api/admin/lottery/export">Gewinner*innen als CSV exportieren</a>
+          <a className="button button-secondary" href="/api/admin/lottery/export">Gewinnliste als CSV exportieren</a>
           {mainPrizes.length > 0 && <Link className="button button-secondary" href="/tombola">Bühnenziehung öffnen</Link>}
           {openSmall.length > 0 && (
             <button className="button button-primary" type="button" disabled={busy !== ""} onClick={() => void drawAllSmall()}>

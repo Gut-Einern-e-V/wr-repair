@@ -41,7 +41,7 @@ export default async function StoryPage({ params }: StoryPageProps) {
   return <main className="page-shell content-page">
     <StoryStructuredData story={story} />
     <SiteHeader />
-    <article className="article-shell">
+    <article id="inhalt" className="article-shell">
       <Link className="back-link" href="/stories">&#8592; Alle Geschichten</Link><p className="eyebrow">{story.category} / {story.readingTime}</p><h1>{story.title}</h1><p className="article-lead">{story.summary}</p>
       <time className="article-date" dateTime={story.date}>{new Intl.DateTimeFormat("de-DE", { dateStyle: "long" }).format(new Date(`${story.date}T12:00:00`))}</time>
       {story.image && <StoryFigure image={story.image} lead priority />}
