@@ -31,6 +31,17 @@ export type RateLimitSettings = {
   allowlist: string[];
 };
 
+/**
+ * Wer das Gewinnspiel veranstaltet (Issue #45). Alle drei Felder koennen leer
+ * sein - das heisst "steht noch nicht fest" und wird auf der oeffentlichen
+ * Seite auch so geschrieben.
+ */
+export type LotteryOrganizerSettings = {
+  name: string | null;
+  address: string | null;
+  email: string | null;
+};
+
 export type AdminSettings = {
   startAt: string | null;
   endAt: string | null;
@@ -46,8 +57,9 @@ export type AdminSettings = {
   clientIp: string;
   region: RegionSettings;
   logoUrl: string | null;
+  lotteryOrganizer: LotteryOrganizerSettings;
   persisted: boolean;
-  stored: { window: boolean; recordGoal: boolean; dayRecord: boolean; rateLimit: boolean; region: boolean; logo: boolean };
+  stored: { window: boolean; recordGoal: boolean; dayRecord: boolean; rateLimit: boolean; region: boolean; logo: boolean; lotteryOrganizer: boolean };
 };
 
 const windowStatusLabels = { before: "Noch nicht gestartet", open: "Laeuft", after: "Beendet", invalid: "Nicht konfiguriert" } as const;

@@ -80,7 +80,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
   }
 
   const { repairId } = await context.params;
-  const body = await request.json() as { status?: string; moderatorComment?: string; metadata?: Metadata };
+  const body = await request.json() as { status?: string; moderatorComment?: string; metadata?: Metadata; deleteImage?: boolean };
   const moderatorComment = typeof body.moderatorComment === "string" ? body.moderatorComment.trim() : "";
 
   const allowedStatuses = access.isAdmin ? adminStatuses : statuses;
@@ -90,6 +90,13 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
 
   if (!body.status && !body.metadata) {
     return Response.json({ error: "Keine Aenderung angegeben." }, { status: 400 });
+  }
+
+  /* Freigeben und dabei das Foto loeschen - ein Handgriff statt zwei
+     (Issue #49). Nur mit einer Freigabe zusammen sinnvoll: Ohne Entscheidung
+     ist es die reine Loeschung, und die hat eine eigene Route. */
+  if (body.deleteImage !== undefined && (typeof body.deleteImage !== "boolean" || (body.deleteImage && body.status !== "approved"))) {
+    return Response.json({ error: "Das Foto laesst sich nur zusammen mit einer Freigabe loeschen." }, { status: 400 });
   }
 
   const metadata = body.metadata;
@@ -134,6 +141,17 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
 
   if (body.status === "approved" && !repair.consent_publication) {
     return Response.json({ error: "Ohne Veroeffentlichungszustimmung kann die Einreichung nicht freigegeben werden." }, { status: 400 });
+  }
+
+  /* Das Bild geht vor der Freigabe, nicht danach: Wuerde erst freigegeben und
+     dann geloescht, waere es fuer die Dauer der zweiten Anfrage oeffentlich -
+     also genau das, was dieser Weg verhindern soll. Scheitert die Freigabe
+     danach an einem Rennen, ist das Foto trotzdem weg; das ist die richtige
+     Richtung, denn wer zuerst entschieden hat, hat es entweder freigegeben
+     (dann sollte es weg sein) oder abgelehnt (dann waere es ohnehin
+     geloescht worden). */
+  if (body.deleteImage && repair.image_path && !await removeRepairImage(supabase, repairId, repair.image_path)) {
+    return Response.json({ error: "Das Bild konnte nicht aus dem Speicher geloescht werden. Die Einreichung bleibt offen." }, { status: 502 });
   }
 
   if (metadata) {
@@ -195,7 +213,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     return Response.json({ error: decidedElsewhere(current?.status ?? "") }, { status: 409 });
   }
 
-  if (body.status === "rejected" && repair.image_path && !await removeRepairImage(supabase, repairId, repair.image_path)) {
+  if (body.status === "rejected" && !body.deleteImage && repair.image_path && !await removeRepairImage(supabase, repairId, repair.image_path)) {
     return Response.json({ ok: true, imageDeleted: false });
   }
 

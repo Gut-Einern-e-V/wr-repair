@@ -54,13 +54,13 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
   const counts = data?.counts ?? null;
   const error = actionError || loadError;
 
-  async function decide(repairId: string, status: RepairStatus, comment: string) {
+  async function decide(repairId: string, status: RepairStatus, comment: string, deleteImage = false) {
     setBusyId(repairId);
     setNotice("");
     setActionError("");
 
     try {
-      const result = await decideRepair(repairId, status, comment);
+      const result = await decideRepair(repairId, status, comment, deleteImage);
 
       if (!result.ok && !result.conflict) {
         setActionError(result.error);
@@ -68,7 +68,7 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
       }
 
       setNotice(result.ok
-        ? decisionNotices[status]
+        ? (deleteImage ? "Einreichung wurde ohne Foto freigegeben. Das Bild ist gelöscht." : decisionNotices[status])
         : result.error);
       if (result.ok && result.data.imageDeleted === false) {
         setActionError("Die Einreichung wurde abgelehnt, aber das Bild muss noch manuell gelöscht werden.");
@@ -243,7 +243,7 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
             <RepairDetail
               repair={selected}
               isAdmin={isAdmin}
-              onDecide={(repairId, status, comment) => decide(repairId, status, comment)}
+              onDecide={(repairId, status, comment, deleteImage) => decide(repairId, status, comment, deleteImage)}
               onSaveMetadata={saveMetadata}
               onDeleteImage={removeImage}
               onDelete={removeRepair}

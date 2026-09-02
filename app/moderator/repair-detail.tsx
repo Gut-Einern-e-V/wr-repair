@@ -34,7 +34,7 @@ export default function RepairDetail({
   repair: ModerationRepair;
   /** Admins und Superadmins duerfen eine Entscheidung wieder aufmachen (Issue #58). */
   isAdmin: boolean;
-  onDecide: (repairId: string, status: RepairStatus, comment: string) => Promise<void>;
+  onDecide: (repairId: string, status: RepairStatus, comment: string, deleteImage?: boolean) => Promise<void>;
   onSaveMetadata: (repairId: string, draft: MetadataDraft) => Promise<void>;
   /** Nur das Foto entfernen, die Reparatur behalten (Issue #49). */
   onDeleteImage: (repairId: string) => Promise<void>;
@@ -133,6 +133,23 @@ export default function RepairDetail({
             <label className="comment-label">Moderationskommentar<textarea value={comment} maxLength={1000} onChange={(event) => setComment(event.target.value)} /></label>
             <div className="review-actions">
               <button className="button button-primary" type="button" onClick={() => void onDecide(repair.id, "approved", comment)} disabled={!repair.consent_publication}>Freigeben</button>
+              {/* Die Reparatur stimmt, das Foto soll nicht oeffentlich werden:
+                  eine eigene Entscheidung statt Loeschen und danach Freigeben
+                  (Issue #49). Der Server loescht das Bild vor der Freigabe -
+                  zwei Aufrufe haetten es dazwischen sichtbar gemacht. */}
+              {repair.imageUrl && repair.consent_publication && (
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Ohne Foto freigeben? Die Reparatur zählt für den Rekord, das Bild wird endgültig gelöscht.")) {
+                      void onDecide(repair.id, "approved", comment, true);
+                    }
+                  }}
+                >
+                  Ohne Foto freigeben
+                </button>
+              )}
               <button className="button button-secondary" type="button" onClick={() => void onDecide(repair.id, "rejected", comment)}>Ablehnen</button>
             </div>
             {!repair.consent_publication && <p className="moderator-comment">Ohne Veröffentlichungszustimmung ist nur eine Ablehnung möglich.</p>}

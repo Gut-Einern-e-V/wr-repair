@@ -24,7 +24,11 @@ export async function proxy(request: NextRequest) {
   });
 
   const { data: { user } } = await supabase.auth.getUser();
-  const isBackend = request.nextUrl.pathname.startsWith("/moderator") || request.nextUrl.pathname.startsWith("/admin");
+  /* Die Buehnenziehung gehoert dazu (Issue #45): Sie liegt zwar nicht unter
+     /admin, aendert aber echte Gewinne. Die Seite selbst prueft die Rolle
+     nochmals - hier faellt nur die Anmeldung frueh genug auf, damit auf der
+     Buehne kein leerer Bildschirm steht. */
+  const isBackend = ["/moderator", "/admin", "/tombola"].some((path) => request.nextUrl.pathname.startsWith(path));
   if (!user && isBackend) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
@@ -35,5 +39,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/moderator/:path*", "/admin/:path*"],
+  matcher: ["/moderator/:path*", "/admin/:path*", "/tombola/:path*"],
 };

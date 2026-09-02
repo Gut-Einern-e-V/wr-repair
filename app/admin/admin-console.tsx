@@ -83,7 +83,7 @@ export default function AdminConsole({ email, roles, initialSettings }: { email:
         {tab === "campaign" && <CampaignPanel settings={settings} onStatus={onStatus} onError={onError} onSaved={(next) => setSettings((current) => ({ ...current, ...next }))} />}
         {tab === "team" && <TeamSettings onStatus={onStatus} onError={onError} />}
         {tab === "partners" && <PartnerPanel onStatus={onStatus} onError={onError} />}
-        {tab === "lottery" && isSuperadmin && <LotteryPanel onStatus={onStatus} onError={onError} />}
+        {tab === "lottery" && isSuperadmin && <LotteryPanel settings={settings} onSaved={(next) => setSettings((current) => ({ ...current, ...next }))} onStatus={onStatus} onError={onError} />}
       </div>
     </main>
   );

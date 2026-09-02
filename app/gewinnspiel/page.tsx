@@ -3,6 +3,9 @@ import NextImage from "next/image";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { brandPhotos } from "@/lib/brand-photos";
 import { getAppSettings } from "@/lib/app-settings";
+import { readPrizes, type PrizeRow } from "@/lib/lottery-store";
+import { publicPrizeLogoUrl } from "@/lib/prize-logo";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 /**
  * Oeffentliche Seite zum Gewinnspiel (Issue #70).
@@ -12,9 +15,11 @@ import { getAppSettings } from "@/lib/app-settings";
  * Bedingungen noch die Preise. Diese Seite ist der Ort, auf den der Prozess
  * auf der Startseite und das Formular verweisen.
  *
- * Die Preise stehen bewusst noch nicht hier: Sie werden gesponsert und sollen
- * laut Issue #45 aus dem Backend gepflegt werden. Bis dahin sagt die Seite
- * ehrlich, dass die Liste noch waechst, statt eine Zahl zu erfinden.
+ * Die Preise kommen aus dem Backend (Issue #45): Sie werden gestiftet und
+ * stehen oft erst kurz vor dem Start fest. Solange keiner eingetragen ist,
+ * sagt die Seite ehrlich, dass die Liste noch waechst, statt eine Zahl zu
+ * erfinden - und dasselbe gilt fuer den Veranstalter, der ebenfalls aus den
+ * Einstellungen kommt und noch nicht abschliessend geklaert ist.
  *
  * Die Teilnahmebedingungen sind wie Impressum und Datenschutz formuliert: So
  * genau wie moeglich, mit einem sichtbaren Hinweis, dass sie vor dem
@@ -27,9 +32,10 @@ export const metadata = {
   description: "Jede eingereichte Reparatur kann am Gewinnspiel teilnehmen – kostenlos, unabhängig davon, ob die Reparatur geglückt ist. Teilnahmebedingungen und Ablauf der Verlosung.",
 };
 
-// Der Zeitraum kommt aus dem Admin-Backend und kann sich aendern; stuendlich
-// neu ist fuer eine Seite mit zwei Datumsangaben reichlich.
-export const revalidate = 3600;
+/* Zeitraum, Preise und Veranstalter kommen aus dem Backend. Fuenf Minuten,
+   nicht eine Stunde: Ein Preis wird oft kurz vor einer Veranstaltung
+   nachgetragen, und dann soll er auch dort stehen. */
+export const revalidate = 300;
 
 const dateFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Berlin" });
 
@@ -39,10 +45,61 @@ function periodLine(startAt: Date | null, endAt: Date | null) {
   return `Teilnehmen kannst du mit jeder Reparatur, die du zwischen dem ${dateFormat.format(startAt)} Uhr und dem ${dateFormat.format(endAt)} Uhr einreichst.`;
 }
 
+/**
+ * Ein Preis auf der oeffentlichen Seite.
+ *
+ * Das Logo steht nur bei einer Organisation - eine Privatperson hat keines,
+ * und ein Link auf sie waere eine Veroeffentlichung, die niemand zugesagt hat.
+ * Die Anzahl steht dabei, sobald es mehr als eines gibt: Sie ist der
+ * Unterschied zwischen einem und zehn Gewinnen.
+ */
+function PrizeCard({ prize }: { prize: PrizeRow }) {
+  const logoUrl = prize.sponsor_kind === "organisation" ? publicPrizeLogoUrl(prize.logo_path) : null;
+
+  return <li className={prize.is_main ? "prize-card is-main" : "prize-card"}>
+    {prize.is_main && <span className="prize-badge">Hauptpreis</span>}
+    <strong>{prize.title}{prize.quantity > 1 ? ` (${prize.quantity}×)` : ""}</strong>
+    {prize.description && <p>{prize.description}</p>}
+    {prize.sponsor_name && (
+      <p className="prize-sponsor">
+        {logoUrl && (
+          // eslint-disable-next-line @next/next/no-img-element -- Logo aus dem oeffentlichen Speicher, Groesse steht im CSS.
+          <img src={logoUrl} alt="" />
+        )}
+        <span>
+          Gestiftet von{" "}
+          {prize.sponsor_website && prize.sponsor_kind === "organisation"
+            ? <a href={prize.sponsor_website} target="_blank" rel="noreferrer">{prize.sponsor_name}</a>
+            : prize.sponsor_name}
+        </span>
+      </p>
+    )}
+  </li>;
+}
+
+/**
+ * Die Preise aus dem Backend. Faellt die Datenbank aus oder fehlt die
+ * Migration, bleibt die Liste leer - die Seite zeigt dann den Platzhalter und
+ * nicht einen Fehler: Wer wissen will, wie das Gewinnspiel laeuft, findet die
+ * Bedingungen darunter trotzdem.
+ */
+async function loadPrizes() {
+  try {
+    const { rows } = await readPrizes(createSupabaseAdminClient());
+    return rows ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export default async function LotteryPage() {
-  /* Zeitraum und Gebiet kommen beide aus den Einstellungen, damit hier dasselbe
-     steht wie im Formular - auch wenn das Backend sie waehrend der Aktion aendert. */
-  const { submissionWindow, region } = await getAppSettings();
+  /* Zeitraum, Gebiet und Veranstalter kommen aus den Einstellungen, damit hier
+     dasselbe steht wie im Formular - auch wenn das Backend sie waehrend der
+     Aktion aendert. */
+  const [{ submissionWindow, region, lotteryOrganizer: organizer }, prizes] = await Promise.all([
+    getAppSettings(),
+    loadPrizes(),
+  ]);
   const regionLabel = region.label || "Nordrhein-Westfalen";
 
   return <main className="page-shell content-page">
@@ -99,21 +156,24 @@ export default async function LotteryPage() {
           <p className="section-lead">Die Preise werden von Unternehmen und Initiativen aus der Region gestiftet. Die Liste wächst bis zum Start – schau also gerne noch einmal vorbei.</p>
         </div>
       </div>
-      <ul className="prize-placeholder">
-        <li>
-          <strong>Werkzeug und Material</strong>
-          <p>Ausstattung für die nächste Reparatur, gestiftet von Betrieben aus der Region.</p>
-        </li>
-        <li>
-          <strong>Gutscheine</strong>
-          <p>Für Reparaturbetriebe, Werkstätten und Secondhand-Läden in Nordrhein-Westfalen.</p>
-        </li>
-        <li>
-          <strong>Überraschungen aus der Reparaturszene</strong>
-          <p>Wird bis zum Start ergänzt. Wer etwas beisteuern möchte, meldet sich gerne bei uns.</p>
-        </li>
-      </ul>
-      <p className="form-notice">Die genauen Preise samt stiftender Organisation stehen hier, sobald sie feststehen.</p>
+      {prizes.length > 0
+        ? <><ul className="prize-list">{prizes.map((prize) => <PrizeCard key={prize.id} prize={prize} />)}</ul>
+            <p className="form-notice">Die Liste wächst bis zum Start. Wer etwas beisteuern möchte, meldet sich gerne bei uns.</p></>
+        : <><ul className="prize-placeholder">
+            <li>
+              <strong>Werkzeug und Material</strong>
+              <p>Ausstattung für die nächste Reparatur, gestiftet von Betrieben aus der Region.</p>
+            </li>
+            <li>
+              <strong>Gutscheine</strong>
+              <p>Für Reparaturbetriebe, Werkstätten und Secondhand-Läden in Nordrhein-Westfalen.</p>
+            </li>
+            <li>
+              <strong>Überraschungen aus der Reparaturszene</strong>
+              <p>Wird bis zum Start ergänzt. Wer etwas beisteuern möchte, meldet sich gerne bei uns.</p>
+            </li>
+          </ul>
+          <p className="form-notice">Die genauen Preise samt stiftender Organisation stehen hier, sobald sie feststehen.</p></>}
     </section>
 
     <section className="content-section" aria-labelledby="lottery-terms-title">
@@ -126,11 +186,22 @@ export default async function LotteryPage() {
       <div className="legal-terms">
         <section>
           <h3>Wer veranstaltet das Gewinnspiel?</h3>
-          <p>Gut Einern e.V., Einern 120, 42279 Wuppertal, im Rahmen des Projekts Reparaturrekord NRW. Kontakt: <a href="mailto:mail@gut-einern.org">mail@gut-einern.org</a>. Die vollständigen Angaben stehen im <Link href="/imprint">Impressum</Link>.</p>
+          {/* Kommt aus dem Backend und ist noch nicht abschliessend geklaert.
+              Solange nichts hinterlegt ist, steht hier genau das - eine
+              erfundene Angabe waere in Teilnahmebedingungen das Schlimmste. */}
+          {organizer.name
+            ? <p>
+                {organizer.name}{organizer.address ? `, ${organizer.address}` : ""}, im Rahmen des Projekts Reparaturrekord NRW.
+                {organizer.email
+                  ? <> Kontakt: <a href={`mailto:${organizer.email}`}>{organizer.email}</a>.</>
+                  : " Eine Kontaktadresse für das Gewinnspiel wird noch bekannt gegeben."}
+                {" "}Die vollständigen Angaben stehen im <Link href="/imprint">Impressum</Link>.
+              </p>
+            : <p>Der Veranstalter des Gewinnspiels steht noch nicht abschließend fest und wird hier genannt, sobald er feststeht. Für Rückfragen bis dahin: die Angaben im <Link href="/imprint">Impressum</Link>.</p>}
         </section>
         <section>
           <h3>Wer darf teilnehmen?</h3>
-          <p>Alle Personen ab 18 Jahren mit Wohnsitz in Deutschland, die eine Reparatur aus {regionLabel} einreichen. Jüngere Personen dürfen mit Einverständnis einer erziehungsberechtigten Person teilnehmen. Ausgeschlossen sind Personen, die am Projekt oder an der Durchführung des Gewinnspiels mitwirken, sowie deren Angehörige.</p>
+          <p>Alle Personen ab 18 Jahren mit Wohnsitz in {regionLabel}, die eine Reparatur aus {regionLabel} einreichen. Jüngere Personen dürfen mit Einverständnis einer erziehungsberechtigten Person teilnehmen. Gewinnen kann nur, wem der reparierte Gegenstand gehört. Ausgeschlossen sind Personen, die am Projekt oder an der Durchführung des Gewinnspiels mitwirken, sowie deren Angehörige.</p>
         </section>
         <section>
           <h3>Wie funktioniert die Teilnahme?</h3>
@@ -142,7 +213,7 @@ export default async function LotteryPage() {
         </section>
         <section>
           <h3>Wann und wie wird gezogen?</h3>
-          <p>Die Ziehung erfolgt nach dem Ende des Einreichungszeitraums unter allen angemeldeten und von der Moderation freigegebenen Einreichungen. Gezogen wird nach dem Zufallsprinzip. Wer gewinnt, wird an die angegebene E-Mail-Adresse benachrichtigt und hat vier Wochen Zeit zu antworten; danach kann der Preis neu vergeben werden.</p>
+          <p>Die Ziehung erfolgt nach dem Ende des Einreichungszeitraums unter allen angemeldeten und von der Moderation freigegebenen Einreichungen. Gezogen wird nach dem Zufallsprinzip, und zwar für jeden Preis einzeln; einzelne Preise können im Rahmen einer öffentlichen Veranstaltung gezogen werden. Wer gewinnt, wird an die angegebene E-Mail-Adresse benachrichtigt und hat vier Wochen Zeit zu antworten; danach kann der Preis neu vergeben werden.</p>
         </section>
         <section>
           <h3>Was passiert mit den Preisen?</h3>
