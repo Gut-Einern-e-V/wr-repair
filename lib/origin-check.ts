@@ -33,6 +33,36 @@ export type OriginSource = "photo" | "gps" | "manual" | "ip";
 
 const originSources = new Set<OriginSource>(["photo", "gps", "manual", "ip"]);
 
+/**
+ * Reihenfolge, in der die Signale gesammelt und angezeigt werden - absteigend
+ * nach Beweiskraft, dieselbe Ordnung wie in {@link OriginSource}.
+ */
+const signalOrder: OriginSource[] = ["photo", "gps", "manual", "ip"];
+
+/**
+ * Ein einzelnes Herkunftssignal (Issue #87).
+ *
+ * Bis hierher gab es je Einreichung genau *eine* Ortsangabe: die mit der
+ * hoechsten Beweiskraft, die im Gebiet lag. Fuer die Moderation war das zu
+ * wenig. Wer ein Foto aus Bayern hochlaedt und im Formular "Wuppertal"
+ * anklickt, sieht in der Konsole genau aus wie jemand aus Wuppertal - Karte
+ * und Koordinaten zeigen den ausgewaehlten Kreis, und der Vercel-Header war
+ * das einzige Gegenzeugnis.
+ *
+ * Jedes Signal ist bereits anonymisiert, bevor es hier ankommt: Foto und
+ * Standortabfrage mit dem Zufallsversatz aus dem Browser, die Kreis-Auswahl
+ * mit einer Streuung ueber den Kreis, die IP-Herkunft mit demselben Versatz
+ * auf dem Server. Kein Signal ist genauer als die eine Angabe, die vorher
+ * schon gespeichert wurde.
+ */
+export type OriginSignal = {
+  source: OriginSource;
+  lat: number;
+  lon: number;
+  /** Kreis, in dem der Punkt liegt. Null heisst: ausserhalb des Gebiets. */
+  kreis: string | null;
+};
+
 export type OriginDecision = {
   /** False heisst: freundlich absagen, nichts speichern. */
   allowed: boolean;
@@ -50,6 +80,16 @@ export type OriginDecision = {
   source: OriginSource | null;
   /** Wert fuer `repairs.origin_ip_region`, z. B. "DE-BY". */
   ipRegion: string | null;
+  /**
+   * Wert fuer `repairs.origin_signals` - alle erhobenen Herkunftssignale.
+   *
+   * Absichtlich leer, solange sich die Signale einig sind: Wenn Foto,
+   * Standortabfrage, Kreis-Auswahl und Verbindung denselben Kreis nennen, ist
+   * die Entscheidung klar, und die zusaetzlichen Punkte waeren nur mehr
+   * gespeicherte Standortdaten ohne Erkenntnisgewinn (Issue #87). Erst der
+   * Widerspruch ist die Information, und erst dann wird er aufgehoben.
+   */
+  signals: OriginSignal[];
 };
 
 /**
@@ -102,6 +142,66 @@ function readClaimedOrigin(formData: FormData): { point: AnonymizedPoint; source
 }
 
 /**
+ * Die Herkunftssignale, die der Browser mitgeschickt hat.
+ *
+ * Format: ein JSON-Objekt `{"photo": {"lat": .., "lon": ..}, "gps": {...}}`.
+ * Jeder Punkt wird einzeln geprueft - `isCoarsePoint` laesst nur Werte durch,
+ * die auf ~110 m gerundet sind, genau wie bei der Hauptangabe. Was durchfaellt,
+ * wird verworfen und nicht etwa die ganze Einreichung.
+ *
+ * Die Quellenangabe bleibt eine Angabe: Ein selbst gebauter Aufruf kann jeden
+ * Punkt unter jedem Namen schicken. Fuer die Moderation ist das kein Problem,
+ * solange es so benannt ist - sie liest Signale als Aussagen der Einreichung,
+ * nicht als Messwerte. Die eine Ausnahme ist "ip": Diesen Punkt setzt
+ * {@link decideOrigin} immer selbst aus den Vercel-Headern, ein mitgeschickter
+ * wird ueberschrieben.
+ */
+function readClaimedSignals(formData: FormData): Map<OriginSource, AnonymizedPoint> {
+  const signals = new Map<OriginSource, AnonymizedPoint>();
+
+  const raw = formData.get("origin_signals");
+  if (typeof raw !== "string" || !raw) return signals;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return signals;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return signals;
+
+  for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+    if (!originSources.has(key as OriginSource)) continue;
+    if (!value || typeof value !== "object") continue;
+    const { lat, lon } = value as { lat?: unknown; lon?: unknown };
+    if (!isCoarsePoint(lat, lon)) continue;
+    signals.set(key as OriginSource, { lat: lat as number, lon: lon as number });
+  }
+
+  return signals;
+}
+
+/**
+ * Widersprechen sich die Signale?
+ *
+ * Der Massstab ist der Kreis und nicht der Punkt: Zwei Signale aus derselben
+ * Stadt liegen wegen des Zufallsversatzes nie exakt aufeinander, meinen aber
+ * dasselbe. Ein Punkt ausserhalb des Gebiets hat keinen Kreis und zaehlt als
+ * eigener Wert - genau der Fall aus Issue #87, in dem jemand von ausserhalb
+ * einen Kreis innerhalb auswaehlt.
+ */
+export function signalsDisagree(signals: OriginSignal[], region: RegionConfig): boolean {
+  if (signals.length < 2) return false;
+
+  /* Ohne Kreis - also ausserhalb des Landes oder in einem Gebiet ohne
+     Kreis-Polygone - tritt an seine Stelle das Urteil von locateInRegion. Der
+     Praefix ist ein Zeichen, das in keinem Kreisnamen vorkommt: Sonst faende
+     ein Kreis namens "outside" hier seinen Zwilling. */
+  const seen = new Set(signals.map((signal) => signal.kreis ?? `\u0000${locateInRegion(signal, region)}`));
+  return seen.size > 1;
+}
+
+/**
  * Entscheidet ueber Annahme und Herkunft einer Einreichung.
  *
  * `exifPoint` ist die serverseitig aus dem Bild gelesene, bereits
@@ -124,6 +224,24 @@ export function decideOrigin(
   if (claimed) candidates.push(claimed);
   if (exifPoint) candidates.push({ point: exifPoint, source: "photo" });
   if (fromIp) candidates.push({ point: fromIp, source: "ip" });
+
+  /* Alle Signale zusammentragen, nicht nur das eine, das am Ende gewinnt
+     (Issue #87). Reihenfolge der Quellen ist dabei egal - jede Quelle kommt
+     genau einmal vor, und was der Browser als "ip" schickt, ersetzt der
+     Serverwert: Die Verbindung ist das einzige Signal, das wir selbst messen
+     koennen. Ebenso ersetzt eine serverseitig aus dem Bild gelesene
+     Koordinate die vom Browser behauptete Fotoherkunft. */
+  const claimedSignals = readClaimedSignals(formData);
+  if (claimed && !claimedSignals.has(claimed.source)) claimedSignals.set(claimed.source, claimed.point);
+  if (exifPoint) claimedSignals.set("photo", exifPoint);
+  if (fromIp) claimedSignals.set("ip", fromIp);
+
+  const signals: OriginSignal[] = signalOrder
+    .filter((source) => claimedSignals.has(source))
+    .map((source) => {
+      const point = claimedSignals.get(source)!;
+      return { source, lat: point.lat, lon: point.lon, kreis: kreisForPoint(point) };
+    });
 
   const inside = candidates.find(({ point }) => locateInRegion(point, region) === "inside") ?? null;
   // Ohne konfigurierte Geometrie gibt es kein "inside"; dann gilt wie bisher
@@ -148,6 +266,8 @@ export function decideOrigin(
     regionLabel: geoCheck.allowed ? geoCheck.region : inside ? region.label : null,
     source: resolved?.source ?? null,
     ipRegion,
+    // Nur bei Widerspruch, siehe OriginDecision.signals.
+    signals: signalsDisagree(signals, region) ? signals : [],
   };
 }
 

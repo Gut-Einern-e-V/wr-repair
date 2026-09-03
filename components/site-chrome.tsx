@@ -5,6 +5,7 @@ import { AccessBar } from "@/components/access-bar";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { FundingStrip } from "@/components/funding-strip";
 import { ConsentSettingsLink } from "@/components/consent-settings-link";
+import { MadeInWuppertal } from "@/components/made-in-wuppertal";
 
 const messages = getMessages();
 
@@ -19,6 +20,11 @@ export async function SiteHeader() {
       ? <img className="brand-logo" src={logoUrl} alt="" />
       : <span className="brand-mark">R</span>}<span>Reparaturrekord<br />NRW</span></Link>
     <nav aria-label="Hauptnavigation"><Link href="/stories">{messages.navigation.stories}</Link><Link href="/about">{messages.navigation.project}</Link><Link href="/supporters">{messages.navigation.supporters}</Link><Link href="/mitmachen">{messages.navigation.submit}</Link></nav>
+    {/* Eigener Knopf statt eines weiteren Navigationspunkts (Issue #33): Das
+        Festival ist ein Termin mit Datum, kein Dauerthema wie "Projekt" oder
+        "Geschichten" - und es faellt in der Reihe gleich aussehender Links
+        nicht auf. Die Unterseiten haengen darunter und stehen nicht im Kopf. */}
+    <Link className="header-festival" href="/festival">{messages.navigation.festival}</Link>
     <Link className="header-link" href="/stats">{messages.navigation.live}</Link>
     <MobileNavigation />
     </header>
@@ -34,8 +40,9 @@ export function SiteFooter({ funding = true }: { funding?: boolean } = {}) {
     {funding && <FundingStrip />}
     <footer className="site-footer">
       <p><strong>Reparaturrekord NRW</strong><br />Ein Projekt der FAB Region Bergisches Land.</p>
-      <div><Link href="/gewinnspiel">{messages.navigation.lottery}</Link><Link href="/privacy">{messages.footer.privacy}</Link><Link href="/imprint">{messages.footer.imprint}</Link><Link href="/accessibility">{messages.footer.accessibility}</Link><Link href="/leichte-sprache">{messages.footer.easyLanguage}</Link><ConsentSettingsLink /></div>
+      <div><Link href="/gewinnspiel">{messages.navigation.lottery}</Link><Link href="/privacy">{messages.footer.privacy}</Link><Link href="/imprint">{messages.footer.imprint}</Link><Link href="/accessibility">{messages.footer.accessibility}</Link><Link href="/leichte-sprache">{messages.footer.easyLanguage}</Link><Link href="/open-source">{messages.footer.openSource}</Link><ConsentSettingsLink /></div>
       <p>Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
     </footer>
+    <MadeInWuppertal />
   </>;
 }

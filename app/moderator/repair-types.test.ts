@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildQuery, draftFromRepair, isUnderReview, missingImageNote, type ModerationRepair } from "./repair-types";
+import { buildQuery, draftFromRepair, isUnderReview, missingImageNote, originSignalRows, originWarning, type ModerationRepair } from "./repair-types";
+import type { ModerationOrigin, ModerationOriginSignal } from "@/lib/moderation";
 
 function repair(overrides: Partial<ModerationRepair> = {}): ModerationRepair {
   return {
@@ -95,5 +96,76 @@ describe("Fehlendes Bild", () => {
       .toBe("Bild nachträglich gelöscht");
     expect(missingImageNote(repair({ status: "pending", imageDeletedAt: "2026-08-27T09:00:00.000Z" })))
       .toBe("Bild nachträglich gelöscht");
+  });
+});
+
+/** Eine Herkunft, wie sie aus lib/moderation.ts kommt. */
+function origin(overrides: Partial<ModerationOrigin> = {}): ModerationOrigin {
+  return {
+    lat: 51.256, lon: 7.15, kreis: "Wuppertal", source: "manual", ipRegion: "DE-NW",
+    mismatch: false, outside: false, mapX: 0.5, mapY: 0.5, signals: [],
+    ...overrides,
+  };
+}
+
+function signal(overrides: Partial<ModerationOriginSignal> = {}): ModerationOriginSignal {
+  return { source: "photo", lat: 48.137, lon: 11.575, kreis: null, mapX: 3, mapY: 2, used: false, ...overrides };
+}
+
+describe("Herkunftshinweis", () => {
+  it("nennt widerspruechliche Angaben vor dem Hinweis auf die Verbindung", () => {
+    const widerspruch = repair({
+      origin: origin({
+        mismatch: true,
+        signals: [signal(), signal({ source: "manual", lat: 51.256, lon: 7.15, kreis: "Wuppertal", used: true })],
+      }),
+    });
+
+    expect(originWarning(widerspruch)).toBe("Angaben widersprechen sich");
+  });
+
+  it("bleibt still, wenn nur eine stimmige Angabe vorliegt", () => {
+    expect(originWarning(repair({ origin: origin() }))).toBeNull();
+  });
+
+  it("schlaegt nicht an, solange alle Angaben irgendwo im Land liegen", () => {
+    /* Die IP-Herkunft raet stadtgenau und landet regelmaessig im Nachbarkreis.
+       Gespeichert wird dieser Unterschied, aber er aendert nichts an der
+       Frage, ob die Reparatur zaehlt - und darf die Schnellpruefung deshalb
+       nicht anhalten. */
+    const nachbarkreis = repair({
+      origin: origin({
+        signals: [
+          signal({ source: "manual", lat: 51.256, lon: 7.15, kreis: "Wuppertal", used: true }),
+          signal({ source: "ip", lat: 50.938, lon: 6.96, kreis: "Köln" }),
+        ],
+      }),
+    });
+
+    expect(originWarning(nachbarkreis)).toBeNull();
+    // Sichtbar sind die Angaben trotzdem, nur eben in der Vollansicht.
+    expect(originSignalRows(nachbarkreis.origin!)).toHaveLength(2);
+  });
+});
+
+describe("Liste der Herkunftsangaben", () => {
+  it("bleibt leer, solange es nichts zu vergleichen gibt", () => {
+    expect(originSignalRows(origin())).toEqual([]);
+  });
+
+  it("stellt die gespeicherte Angabe voran und nummeriert wie die Karte", () => {
+    const rows = originSignalRows(origin({
+      signals: [
+        signal(),
+        signal({ source: "manual", lat: 51.256, lon: 7.15, kreis: "Wuppertal", used: true }),
+        signal({ source: "ip", lat: 50.938, lon: 6.96, kreis: "Köln" }),
+      ],
+    }));
+
+    // Die als `used` markierte Angabe steht nicht doppelt in der Liste.
+    expect(rows.map((row) => row.number)).toEqual([1, 2, 3]);
+    expect(rows[0]).toMatchObject({ number: 1, kreis: "Wuppertal", used: true });
+    expect(rows[1]).toMatchObject({ number: 2, kreis: null, used: false });
+    expect(rows[2]).toMatchObject({ number: 3, kreis: "Köln", used: false });
   });
 });

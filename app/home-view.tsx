@@ -8,6 +8,7 @@ import { CampaignWindowNotice } from "@/components/campaign-window-notice";
 import { CategoryMotif } from "@/components/category-motif";
 import { ConsentSettingsLink } from "@/components/consent-settings-link";
 import { FundingStrip } from "@/components/funding-strip";
+import { MadeInWuppertal } from "@/components/made-in-wuppertal";
 import { HeroCountdown } from "@/components/hero-countdown";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { RepairMosaic } from "@/components/repair-mosaic";
@@ -403,9 +404,11 @@ export function HomeView({ stories }: HomeViewProps) {
 
       <footer className="site-footer">
         <p><strong>Reparaturrekord NRW</strong><br />Ein Projekt der FAB Region Bergisches Land.</p>
-        <div><Link href="/gewinnspiel">Gewinnspiel</Link><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link><ConsentSettingsLink /></div>
+        <div><Link href="/gewinnspiel">Gewinnspiel</Link><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link><Link href="/open-source">Open Source</Link><ConsentSettingsLink /></div>
         <p>Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
       </footer>
+
+      <MadeInWuppertal />
 
       {isFormOpen && (
         <div className="modal-backdrop" role="presentation" onMouseDown={closeSubmission}>

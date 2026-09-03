@@ -10,6 +10,7 @@ import {
   draftFromRepair,
   isUnderReview,
   missingImageNote,
+  originSignalRows,
   originSourceLabel,
   originWarning,
   performedByLabel,
@@ -43,6 +44,7 @@ export default function RepairDetail({
   const [comment, setComment] = useState(repair.moderator_comment ?? "");
   const [draft, setDraft] = useState<MetadataDraft>(() => draftFromRepair(repair));
   const warning = originWarning(repair);
+  const signalRows = repair.origin ? originSignalRows(repair.origin) : [];
 
   return (
     <article className="repair-review">
@@ -111,6 +113,39 @@ export default function RepairDetail({
                   </dd>
                 </div>
               </dl>
+              {/* Die einzelnen Angaben, wenn sie auseinandergehen (Issue #87).
+                  Vorher stand hier nur die eine gespeicherte Zelle - bei einer
+                  manuellen Kreis-Auswahl also der angeklickte Kreis, und der
+                  sieht auf der Karte aus wie ein Beleg. Die Nummern entsprechen
+                  den Punkten auf der Karte darueber. */}
+              {signalRows.length > 0 && (
+                <div className="origin-signals">
+                  <h5>Die Angaben gehen auseinander</h5>
+                  <ol>
+                    {signalRows.map((row) => (
+                      <li key={row.number} className={row.used ? "is-used" : undefined}>
+                        <span className="origin-signal-number" aria-hidden="true">{row.number}</span>
+                        <span className="origin-signal-source">{row.label}{row.used && <em> – gespeichert</em>}</span>
+                        <span className="origin-signal-kreis">{row.kreis ?? "Außerhalb des Landes"}</span>
+                        <a
+                          className="origin-signal-point"
+                          href={`https://www.openstreetmap.org/?mlat=${row.lat}&mlon=${row.lon}&zoom=11`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          {row.lat.toFixed(3)}, {row.lon.toFixed(3)}
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                  <p className="moderator-comment">
+                    Gespeichert wird die Angabe mit der höchsten Beweiskraft, die im Land liegt. Die übrigen stehen hier,
+                    weil sie etwas anderes sagen. Jeder Punkt ist um bis zu 1 km zufällig verschoben, ein Kreis wird über
+                    seine Fläche gestreut – die Abstände sind also nicht auf den Meter zu lesen, wohl aber die Frage,
+                    ob es derselbe Kreis ist.
+                  </p>
+                </div>
+              )}
               {repair.origin.mismatch && (
                 <p className="moderator-comment">
                   Die Verbindung kam aus einer anderen Gegend als die Ortsangabe. Das ist kein Ablehnungsgrund –
