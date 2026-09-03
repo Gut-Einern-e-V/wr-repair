@@ -105,7 +105,7 @@ h2 { margin-bottom: 0; font-size: clamp(2rem, 4vw, 3.6rem); line-height: .96; le
 .success-state p:last-of-type { margin-bottom: 25px; font-size: 17px; }
 
 @media (max-width: 720px) {
-  .site-header { min-height: 67px; padding: 10px 16px; }.site-header nav, .header-link, .header-festival { display: none; }.brand-mark { width: 34px; height: 34px; }
+  .site-header { min-height: 67px; padding: 10px 16px; }.brand-mark { width: 34px; height: 34px; }
   .hero-grid, .how-it-works { grid-template-columns: 1fr; }
   .how-it-works, .category-section, .stories-section { padding: 52px 16px; }.home-stats-preview { grid-template-columns: 1fr; gap: 32px; padding: 52px 16px; }.steps { margin-top: 10px; grid-template-columns: 1fr; }.steps li { min-height: 88px; display: flex; gap: 22px; align-items: center; border-right: var(--line); }.steps p { margin: 0; }.steps span { min-width: 26px; }
   .section-heading { align-items: start; flex-direction: column; margin-bottom: 26px; }.category-grid { grid-template-columns: repeat(2, 1fr); }.category-card { min-height: 126px; }.category-card strong { font-size: 18px; }
@@ -133,7 +133,13 @@ h2 { margin-bottom: 0; font-size: clamp(2rem, 4vw, 3.6rem); line-height: .96; le
 
 /* Das ausgefahrene Menue selbst steht am Ende der Datei (Issue #56); hier
    bleibt nur, was die Schaltflaeche im Kopf betrifft. */
-@media (max-width: 720px) { .site-header { position: relative; }.mobile-navigation { display: block; margin-left: auto; }.mobile-nav-toggle { display: grid; gap: 5px; width: 42px; height: 42px; padding: 10px; border: var(--line); border-radius: 0; background: var(--yellow); }.mobile-nav-toggle i { display: block; width: 100%; height: 2px; background: var(--ink); }.mobile-nav-toggle:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; } }
+/* Der Kopf schaltet fruueher auf das Menue um als der uebrige Inhalt: Marke,
+   vier Navigationslinks, Festivalknopf und Live-Stand brauchen zusammen rund
+   840 Pixel. Darunter stiessen sie aneinander - "Einreichen" lief in den
+   Knopf, "Live-Stand" brach um. Der restliche Seitenaufbau wechselt weiterhin
+   bei 720 Pixeln; ein Kopf, der etwas eher zum Menue wird, ist unauffaellig,
+   ein Kopf, in dem sich Text ueberlagert, nicht. */
+@media (max-width: 840px) { .site-header { position: relative; }.site-header nav, .header-link { display: none; }.mobile-navigation { display: block; margin-left: auto; }.mobile-nav-toggle { display: grid; gap: 5px; width: 42px; height: 42px; padding: 10px; border: var(--line); border-radius: 0; background: var(--yellow); }.mobile-nav-toggle i { display: block; width: 100%; height: 2px; background: var(--ink); }.mobile-nav-toggle:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; } }
 
 .campaign-window { max-width: 1240px; margin: 0 auto; padding: 72px 24px; border-bottom: var(--line); background: linear-gradient(135deg, rgba(149, 212, 187, 0.5), transparent 62%), var(--paper); }.campaign-window h2 { max-width: 670px; margin-bottom: 18px; }.campaign-window > p:not(.section-index):not(.campaign-window-links) { max-width: 610px; font-size: 18px; line-height: 1.5; }.campaign-window-links { display: flex; flex-wrap: wrap; gap: 22px; margin: 0; }.campaign-window-links a { font: 500 12px var(--mono); text-underline-offset: 4px; text-transform: uppercase; }
 
@@ -1676,14 +1682,60 @@ h1, h2, h3 { overflow-wrap: break-word; }
    die Unternavigation der drei Seiten, die Eckdaten und den Kasten fuer alles,
    was noch nicht feststeht (Issue #33). Der Rest der Seiten laeuft ueber die
    vorhandenen Inhaltsklassen. */
+/* Knopf und Live-Stand als eine Gruppe rechts im Kopf. Ohne die Gruppe schob
+   `space-between` den Knopf frei in die Mitte, wo er zu nichts gehoerte. */
+.header-actions { display: flex; align-items: center; gap: 24px; }
+
+/* Der Knopf soll wie ein Aufkleber auf dem Papier liegen und nicht wie eine
+   rote Flaeche im Kopf schweben: harte Kante, harter Schatten, kein Verlauf.
+   Der Schatten macht aus dem Rechteck einen Gegenstand - dieselbe Sprache wie
+   die Aufkleber-Ueberschriften und das gedrehte Logo-Kaestchen.
+
+   Der volle Name "Repair & Share Festival" statt nur "Festival": Das Fest hat
+   einen Namen, und "Festival" allein sagt neben "Geschichten" und "Projekt"
+   nichts. In Versalien wird der Name lang, deshalb steht er in zwei Zeilen -
+   der Knopf bleibt dadurch schmal genug, dass die Navigation daneben Platz
+   hat, und wirkt eher wie ein Aufkleber als wie eine Zeile Text. */
 .header-festival {
-  display: inline-flex; align-items: center; min-height: 38px; padding: 8px 14px;
+  display: inline-flex; align-items: center; padding: 7px 12px;
   border: var(--line); background: var(--red); color: var(--paper);
-  font: 500 12px var(--mono); letter-spacing: .05em; text-transform: uppercase; text-decoration: none;
-  transition: transform 120ms ease;
+  box-shadow: 3px 3px 0 var(--ink);
+  font: 500 11px/1.25 var(--mono); letter-spacing: .04em; text-transform: uppercase; text-decoration: none;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
 }
-.header-festival:hover { transform: translate(-2px, -2px); }
-.header-festival:active { transform: translateY(2px); }
+/* Der Umbruch sitzt auf dem inneren `span`, damit er von der Zeichenbreite
+   abhaengt und nicht vom Innenabstand: In einer Festbreitenschrift ist 1ch
+   genau ein Zeichen. "REPAIR & SHARE" sind 14 Zeichen, der ganze Name 23 -
+   bei 17ch passt die erste Zeile immer und die zweite nie dazu. Der Name
+   bricht damit in jedem Fenster an derselben Stelle, statt je nach Breite
+   zwei oder drei Zeilen zu werden. */
+.header-festival span { max-width: 17ch; }
+.header-festival:hover {
+  transform: translate(-2px, -2px); box-shadow: 5px 5px 0 var(--ink);
+  background: var(--red-deep);
+  /* Der Knopf traegt schon eine eigene Flaeche - die Unterstreichung der
+     Navigationslinks wuerde darauf nur wie ein Fehler aussehen. */
+  text-decoration: none;
+}
+.header-festival:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--ink); }
+
+/* Zwischen 841 und 1080 Pixeln wird die Kopfzeile knapp: Marke, vier
+   Navigationslinks, Knopf und Live-Stand. Statt umzubrechen ruecken die
+   Abstaende zusammen. */
+@media (min-width: 841px) and (max-width: 1080px) {
+  .site-header { padding: 12px 16px; }
+  .site-header nav { gap: 18px; }
+  .header-actions { gap: 14px; }
+  .header-festival { padding: 6px 9px; font-size: 10px; }
+}
+
+/* Darunter uebernimmt das Menue, dort steht das Festival als eigener Eintrag.
+   Die Regel muss hier stehen und nicht oben bei den uebrigen Kopf-Regeln: Bei
+   gleicher Spezifitaet gewinnt die spaetere Regel, und `.header-actions` wird
+   erst hier definiert. Vorher stand das Verstecken oben - wirkungslos, sodass
+   der Knopf auch auf dem Telefon noch sichtbar war und dort neben dem
+   Menuesymbol lag. */
+@media (max-width: 840px) { .header-actions { display: none; } }
 
 .festival-nav { display: flex; flex-wrap: wrap; gap: 0; width: fit-content; max-width: 100%; margin-bottom: 34px; border: var(--line); }
 .festival-nav > * {
@@ -1704,6 +1756,42 @@ h1, h2, h3 { overflow-wrap: break-word; }
 /* Gelber Balken links wie die Erklaerkaesten in Leichter Sprache: Was noch
    offen ist, soll sich vom Feststehenden auf einen Blick unterscheiden. */
 .festival-pending { max-width: 680px; margin: 0; padding: 16px 20px; border-left: 8px solid var(--yellow); background: var(--paper); line-height: 1.5; }
+
+/* Auf den Festivalseiten steht der Vorspann als Geschwister der Ueberschrift
+   und nicht darin - `.section-heading` ist eine Flex-Zeile, ein dritter Absatz
+   darin wuerde neben der Ueberschrift landen. */
+.content-section > .section-lead { max-width: 680px; margin: -14px 0 30px; font-size: 18px; line-height: 1.5; }
+
+/* Die beiden Gelaende. Zwei Karten in derselben harten Rahmensprache wie die
+   Eckdaten daneben - kein zweites Kartenformat fuer denselben Seitenzweck. */
+.festival-venues { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; padding: 0; margin: 0; list-style: none; border: var(--line); border-right: 0; }
+.festival-venues > li { padding: 22px 20px; border-right: var(--line); background: var(--paper); }
+.festival-venues h3 { margin: 0; font-size: 26px; }
+.festival-venue-address { margin: 12px 0 14px; font: 500 15px/1.5 var(--mono); }
+.festival-venues > li > p:not(.festival-venue-address):not(.link-row) { max-width: 420px; margin: 0; line-height: 1.5; }
+.festival-venues .link-row { align-items: baseline; gap: 10px 20px; }
+/* Der Kartenlink ist der Knopf, OpenStreetMap die stille Alternative daneben. */
+.festival-venues .link-row a:not(.text-button) { font: 12px var(--mono); text-transform: uppercase; text-underline-offset: 4px; }
+
+/* Zuglinien und Buslinien: Kennung links, Erklaerung rechts. Als
+   Beschreibungsliste und nicht als Tabelle - es sind Begriffspaare, keine
+   Daten in Spalten. */
+.travel-routes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0; margin: 0; border-top: var(--line); border-left: var(--line); }
+.travel-routes > div { padding: 20px; border-right: var(--line); border-bottom: var(--line); }
+.travel-routes dt { color: var(--red-deep); font: 500 12px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+.travel-routes dd { max-width: 440px; margin: 12px 0 0; font-size: 17px; line-height: 1.5; }
+.travel-routes strong { font-weight: 700; }
+
+.travel-note { max-width: 680px; margin: 26px 0 0; font-size: 16px; line-height: 1.5; }
+.travel-note a { text-underline-offset: 4px; }
+
+@media (max-width: 720px) {
+  .festival-venues { grid-template-columns: 1fr; border-right: var(--line); }
+  .festival-venues > li { border-right: 0; border-bottom: var(--line); }
+  .festival-venues > li:last-child { border-bottom: 0; }
+  .travel-routes { grid-template-columns: 1fr; }
+  .content-section > .section-lead { margin-top: -6px; font-size: 17px; }
+}
 .festival-pending + .festival-pending { margin-top: 14px; }
 .two-column-copy .festival-pending { margin-top: 18px; }
 

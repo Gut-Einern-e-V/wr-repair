@@ -1,16 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import NextImage from "next/image";
 import Link from "next/link";
-import { AccessBar } from "@/components/access-bar";
 import { CampaignWindowNotice } from "@/components/campaign-window-notice";
 import { CategoryMotif } from "@/components/category-motif";
-import { ConsentSettingsLink } from "@/components/consent-settings-link";
-import { FundingStrip } from "@/components/funding-strip";
-import { MadeInWuppertal } from "@/components/made-in-wuppertal";
 import { HeroCountdown } from "@/components/hero-countdown";
-import { MobileNavigation } from "@/components/mobile-navigation";
 import { RepairMosaic } from "@/components/repair-mosaic";
 import { RepairSubmissionForm } from "@/components/repair-submission-form";
 import { StepIcon } from "@/components/step-icons";
@@ -93,9 +88,15 @@ function useAnimatedCounter(value: number | null) {
 export type HomeViewProps = {
   /* Kommt statisch aus content/stories/, deshalb ohne Netzwerkanfrage im Browser. */
   stories: StoryTeaser[];
+  /* Kopf und Fuss der Seite - gerendert von app/page.tsx aus `SiteHeader` und
+     `SiteFooter`, damit die Startseite denselben Kopf hat wie jede andere
+     Seite. Als Element und nicht als Aufruf, weil beide auf dem Server laufen
+     und diese Komponente im Browser. */
+  header: ReactNode;
+  footer: ReactNode;
 };
 
-export function HomeView({ stories }: HomeViewProps) {
+export function HomeView({ stories, header, footer }: HomeViewProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [category, setCategory] = useState<RepairCategory>(repairCategories[0].value);
   const [repairCount, setRepairCount] = useState<number | null>(null);
@@ -190,20 +191,7 @@ export function HomeView({ stories }: HomeViewProps) {
 
   return (
     <main className="page-shell">
-      <AccessBar />
-      <header className="site-header">
-        <Link className="brand" href="/" aria-label="Reparaturrekord NRW Startseite">
-          <span className="brand-mark">R</span>
-          <span>Reparaturrekord<br />NRW</span>
-        </Link>
-        <nav aria-label="Hauptnavigation">
-          <Link href="/stories">Geschichten</Link>
-          <Link href="/about">Projekt</Link>
-          <Link href="/supporters">Unterstützung</Link>
-        </nav>
-        <Link className="header-link" href="/stats">Live-Stand</Link>
-        <MobileNavigation />
-      </header>
+      {header}
 
       <section id="inhalt" className="hero-poster" aria-labelledby="hero-title">
         <div className="hero-poster-photo" aria-hidden="true">
@@ -400,15 +388,7 @@ export function HomeView({ stories }: HomeViewProps) {
         <Link className="button button-secondary" href="/about">Über das Projekt <span aria-hidden="true">&#8594;</span></Link>
       </section>
 
-      <FundingStrip />
-
-      <footer className="site-footer">
-        <p><strong>Reparaturrekord NRW</strong><br />Ein Projekt der FAB Region Bergisches Land.</p>
-        <div><Link href="/gewinnspiel">Gewinnspiel</Link><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link><Link href="/open-source">Open Source</Link><ConsentSettingsLink /></div>
-        <p>Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
-      </footer>
-
-      <MadeInWuppertal />
+      {footer}
 
       {isFormOpen && (
         <div className="modal-backdrop" role="presentation" onMouseDown={closeSubmission}>

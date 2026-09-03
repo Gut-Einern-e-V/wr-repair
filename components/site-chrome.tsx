@@ -23,17 +23,24 @@ export async function SiteHeader() {
     {/* Eigener Knopf statt eines weiteren Navigationspunkts (Issue #33): Das
         Festival ist ein Termin mit Datum, kein Dauerthema wie "Projekt" oder
         "Geschichten" - und es faellt in der Reihe gleich aussehender Links
-        nicht auf. Die Unterseiten haengen darunter und stehen nicht im Kopf. */}
-    <Link className="header-festival" href="/festival">{messages.navigation.festival}</Link>
-    <Link className="header-link" href="/stats">{messages.navigation.live}</Link>
+        nicht auf. Die Unterseiten haengen darunter und stehen nicht im Kopf.
+
+        Knopf und Live-Stand stehen zusammen in einer Gruppe: Im Kopf verteilt
+        `space-between` seine Kinder ueber die ganze Breite, und als eigenes
+        Kind stand der rote Knopf frei zwischen Navigation und Live-Stand -
+        ohne Bezug zu beidem. In der Gruppe sitzt er da, wo die Handlungen der
+        Seite sind. */}
+    <div className="header-actions">
+      <Link className="header-festival" href="/festival"><span>{messages.navigation.festival}</span></Link>
+      <Link className="header-link" href="/stats">{messages.navigation.live}</Link>
+    </div>
     <MobileNavigation />
     </header>
   </>;
 }
 
 /* Der Foerderhinweis gehoert auf jede oeffentliche Seite und steht deshalb hier,
-   direkt ueber dem Footer. Die Startseite bindet ihn selbst ein, weil sie ihren
-   eigenen Footer rendert. `funding={false}` nur dort, wo die Foerderlogos schon
+   direkt ueber dem Footer. `funding={false}` nur dort, wo die Foerderlogos schon
    im Seiteninhalt stehen (/supporters) - zweimal auf einer Seite ist redundant. */
 export function SiteFooter({ funding = true }: { funding?: boolean } = {}) {
   return <>
