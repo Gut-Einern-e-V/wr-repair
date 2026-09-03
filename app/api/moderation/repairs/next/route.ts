@@ -63,12 +63,22 @@ export async function POST(request: Request) {
       .from("repairs")
       .select("id", { count: "exact", head: true })
       .eq("status", "pending")
-      .not("kreis", "is", null);
+      .not("kreis", "is", null)
+      /* Dieselbe Bedingung wie in `claim_next_repair()` (Issue #87): Eine
+         Einreichung, bei der ein Herkunftssignal aus dem Land herauszeigt,
+         gehoert in die Liste und nicht in die Wischschlange - und darf hier
+         deshalb auch nicht mitgezaehlt werden. Die Spalte ist generiert; die
+         Formel steht in supabase/migrations/202609030002_origin_signals.sql. */
+      .not("origin_signals_outside", "is", true);
     if (expectedIpRegion) {
       pending = pending.or(`origin_ip_region.is.null,origin_ip_region.eq.${expectedIpRegion}`);
     }
-    const { count } = await pending;
-    remaining = count ?? 0;
+    const { count, error: countError } = await pending;
+    /* Bei einem Fehler lieber gar keine Zahl als eine falsche: Solange
+       Migration 202609030002 nicht ausgerollt ist, kennt PostgREST die
+       generierte Spalte nicht und weist die ganze Abfrage ab. Eine "0" waere
+       dann die Aussage "nichts mehr zu tun" - und das waere gelogen. */
+    remaining = countError ? null : count ?? 0;
   }
 
   if (!claimed) {

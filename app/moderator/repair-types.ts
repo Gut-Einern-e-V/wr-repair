@@ -96,8 +96,52 @@ export function originSourceLabel(source: OriginSource | null) {
 export function originWarning(repair: ModerationRepair): string | null {
   if (!repair.origin) return "Ohne Ortsangabe";
   if (repair.origin.outside) return "Herkunft außerhalb";
+  /* Vor "Verbindung woanders", weil er mehr sagt: Der Hinweis auf die
+     Verbindung stuetzt sich auf ein einziges Gegenzeugnis, hier zeigt eine der
+     Angaben selbst aus dem Land heraus (Issue #87).
+
+     Bewusst nur dieser Fall und nicht jeder Unterschied: Gespeichert werden
+     die Signale schon, sobald sie auf verschiedene Kreise zeigen - das tun sie
+     oft, weil die IP-Herkunft stadtgenau raet und im Nachbarkreis landen kann.
+     Fuer die Entscheidung "zaehlt diese Reparatur" macht das keinen
+     Unterschied, beide Kreise liegen im Land. Ein Signal *ausserhalb* macht
+     ihn. Die feineren Unterschiede stehen trotzdem in der Vollansicht. */
+  if (repair.origin.signals.some((signal) => signal.kreis === null)) return "Angaben widersprechen sich";
   if (repair.origin.mismatch) return "Verbindung woanders";
   return null;
+}
+
+/**
+ * Die Herkunftsangaben in derselben Reihenfolge und Nummerierung wie auf der
+ * Karte (Issue #87): zuerst die gespeicherte Hauptangabe, danach die Signale,
+ * die davon abweichen.
+ *
+ * Gibt eine leere Liste zurueck, wenn es nichts zu vergleichen gibt - dann
+ * waren sich die Signale einig, und die Spalte ist gar nicht erst gefuellt
+ * worden.
+ */
+export function originSignalRows(origin: ModerationOrigin) {
+  if (origin.signals.length < 2) return [];
+
+  const extras = origin.signals.filter((signal) => !signal.used);
+  return [
+    {
+      number: 1,
+      label: originSourceLabel(origin.source),
+      kreis: origin.kreis,
+      lat: origin.lat,
+      lon: origin.lon,
+      used: true,
+    },
+    ...extras.map((signal, index) => ({
+      number: index + 2,
+      label: originSourceLabel(signal.source),
+      kreis: signal.kreis,
+      lat: signal.lat,
+      lon: signal.lon,
+      used: false,
+    })),
+  ];
 }
 
 /**

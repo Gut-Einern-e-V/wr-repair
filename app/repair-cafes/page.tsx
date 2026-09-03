@@ -75,7 +75,7 @@ export default function RepairCafesPage() {
           <p className="cafe-highlight-date"><time dateTime="2026-10-31">Samstag, 31. Oktober 2026</time></p>
           <h3>Repair &amp; Share Festival, Wuppertal</h3>
           <p>Das Finale des Rekordmonats: ein ganzer Tag Reparatur und Secondhand. Hier soll die letzte große Portion Reparaturen zusammenkommen.</p>
-          <a className="text-button" href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">Infos zum Festival <span aria-hidden="true">&#8599;</span></a>
+          <Link className="text-button" href="/festival">Infos zum Festival <span aria-hidden="true">&#8594;</span></Link>
         </li>
       </ol>
     </section>

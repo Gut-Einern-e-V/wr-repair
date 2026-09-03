@@ -1,6 +1,6 @@
 import { requireModerator } from "@/lib/admin-auth";
 import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
-import { hasOriginMismatch, type OriginSource } from "@/lib/origin-check";
+import { hasOriginMismatch, type OriginSignal, type OriginSource } from "@/lib/origin-check";
 import { projectToUnitSquare } from "@/lib/nrw-map";
 import type { RegionConfig } from "@/lib/region-config";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -18,32 +18,40 @@ const baseModerationColumns =
   "id, category, brand_model, duration_minutes, item_value_euros, performed_by, story, repair_succeeded, image_path, image_alt_text, tags, consent_publication, status, location_region, moderator_comment, created_at, entry_time, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region";
 
 /**
- * Vermerk, dass das Bild geloescht wurde - durch eine Ablehnung (Issue #58)
- * oder nachtraeglich auf Wunsch (Issue #49). Kommt aus Migration
- * 202609010001.
+ * Spalten aus juengeren Migrationen, die fehlen duerfen.
+ *
+ * - `image_deleted_at`: Vermerk, dass das Bild geloescht wurde - durch eine
+ *   Ablehnung (Issue #58) oder nachtraeglich auf Wunsch (Issue #49). Aus
+ *   Migration 202609010001.
+ * - `origin_signals`: die widerspruechlichen Herkunftssignale (Issue #87).
+ *   Aus Migration 202609030002.
  */
-const IMAGE_DELETED_COLUMN = "image_deleted_at";
+const OPTIONAL_COLUMNS = ["image_deleted_at", "origin_signals"] as const;
 
 /**
- * Ob die Spalte schon existiert - einmal je Serverprozess geprueft.
+ * Welche der optionalen Spalten es gibt - einmal je Serverprozess geprueft.
  *
  * Ohne diese Pruefung wuerde die Abfrage die ganze Warteschlange abweisen,
- * solange die Migration nicht ausgerollt ist: PostgREST antwortet auf eine
+ * solange eine Migration nicht ausgerollt ist: PostgREST antwortet auf eine
  * unbekannte Spalte mit einem Fehler fuer die gesamte Anfrage. Genau in dieses
  * Fenster faellt jede Vorschau-Umgebung, die gegen das Projekt ohne die neue
  * Migration laeuft. Ein Deployment darf die Moderation nicht anhalten, bis
  * jemand die Migration nachzieht - vgl. Issue #64 und die dort gezogene Lehre
  * in app/api/repairs/route.ts.
  */
-let hasImageDeletedColumn: boolean | null = null;
+let availableOptionalColumns: string[] | null = null;
 
 export async function getModerationColumns(supabase: SupabaseClient) {
-  if (hasImageDeletedColumn === null) {
-    const { error } = await supabase.from("repairs").select(IMAGE_DELETED_COLUMN).limit(1);
-    hasImageDeletedColumn = !error;
+  if (availableOptionalColumns === null) {
+    const available: string[] = [];
+    for (const column of OPTIONAL_COLUMNS) {
+      const { error } = await supabase.from("repairs").select(column).limit(1);
+      if (!error) available.push(column);
+    }
+    availableOptionalColumns = available;
   }
 
-  return hasImageDeletedColumn ? `${baseModerationColumns}, ${IMAGE_DELETED_COLUMN}` : baseModerationColumns;
+  return [baseModerationColumns, ...availableOptionalColumns].join(", ");
 }
 
 /**
@@ -82,6 +90,8 @@ export type ModerationRow = {
   kreis: string | null;
   origin_source: string | null;
   origin_ip_region: string | null;
+  /** Fehlt, solange Migration 202609030002 nicht gelaufen ist. */
+  origin_signals?: unknown;
 };
 
 /**
@@ -105,6 +115,23 @@ export type ModerationOrigin = {
   outside: boolean;
   mapX: number;
   mapY: number;
+  /**
+   * Die einzelnen Herkunftssignale, wenn sie sich widersprechen (Issue #87).
+   *
+   * Leer ist der Normalfall und heisst: Die Signale waren sich einig, es gab
+   * nichts zu speichern. Ist die Liste gefuellt, steht darin genau der
+   * Widerspruch, den die Moderation aufloesen soll - Foto hier, Kreis-Auswahl
+   * dort. `used` markiert das Signal, das als Hauptangabe gespeichert wurde.
+   */
+  signals: ModerationOriginSignal[];
+};
+
+/** Ein Herkunftssignal, fuer die Karte vorprojiziert. */
+export type ModerationOriginSignal = OriginSignal & {
+  mapX: number;
+  mapY: number;
+  /** Dieses Signal ist die gespeicherte Hauptangabe. */
+  used: boolean;
 };
 
 /* numeric aus Postgres kommt je nach Treiber als Zahl oder als String. */
@@ -115,6 +142,43 @@ function toNumber(value: number | string | null): number | null {
 }
 
 const originSources = new Set(["photo", "gps", "manual", "ip"]);
+
+/**
+ * Die gespeicherten Signale einlesen und fuer die Karte vorprojizieren.
+ *
+ * Defensiv, weil `origin_signals` eine jsonb-Spalte ist: Ihr Inhalt ist von
+ * Postgres nur als "irgendein Array" garantiert (siehe Migration
+ * 202609030002). Was nicht die erwartete Form hat, wird uebersprungen - eine
+ * kaputte Zeile darf die Moderationsansicht nicht ausfallen lassen.
+ */
+function toModerationSignals(raw: unknown, main: { lat: number; lon: number }): ModerationOriginSignal[] {
+  if (!Array.isArray(raw)) return [];
+
+  const signals: ModerationOriginSignal[] = [];
+  for (const entry of raw) {
+    if (!entry || typeof entry !== "object") continue;
+    const { source, lat, lon, kreis } = entry as Record<string, unknown>;
+    if (typeof source !== "string" || !originSources.has(source)) continue;
+    if (typeof lat !== "number" || typeof lon !== "number") continue;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+    const { x, y } = projectToUnitSquare({ lat, lon });
+    signals.push({
+      source: source as OriginSource,
+      lat,
+      lon,
+      kreis: typeof kreis === "string" ? kreis : null,
+      mapX: x,
+      mapY: y,
+      // Der Vergleich laeuft ueber die Koordinate und nicht ueber die Quelle:
+      // Zwei Signale koennen dieselbe Quelle nicht teilen, aber die
+      // Hauptangabe kann aus einer Quelle stammen, die hier gar nicht steht.
+      used: lat === main.lat && lon === main.lon,
+    });
+  }
+
+  return signals;
+}
 
 function toModerationOrigin(row: ModerationRow, region: RegionConfig): ModerationOrigin | null {
   const lat = toNumber(row.location_lat);
@@ -132,6 +196,7 @@ function toModerationOrigin(row: ModerationRow, region: RegionConfig): Moderatio
     outside: row.kreis === null,
     mapX: x,
     mapY: y,
+    signals: toModerationSignals(row.origin_signals, { lat, lon }),
   };
 }
 
@@ -190,7 +255,7 @@ export function toModerationRepair<Row extends ModerationRow>(
   /* Die Herkunftsspalten gehen als aufbereitetes `origin`-Objekt raus, nicht
      zusaetzlich als lose Spalten - sie werden hier nur weggeschnitten. */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { image_path, image_deleted_at, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region, ...rest } = row;
+  const { image_path, image_deleted_at, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region, origin_signals, ...rest } = row;
   const claimedUntil = claimed_at && row.status === "pending"
     ? new Date(Date.parse(claimed_at) + CLAIM_LEASE_SECONDS * 1000).toISOString()
     : null;

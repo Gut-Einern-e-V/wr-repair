@@ -459,6 +459,33 @@ export async function POST(request: Request) {
      Benachrichtigung hoch, damit die Moderation die Einreichung nicht in der
      Sekunde oeffnet, in der das Foto noch fehlt. */
   after(async () => {
+    /* Die widerspruechlichen Herkunftssignale nachtragen (Issue #87).
+
+       Bewusst als eigenes Update hinter der Antwort und nicht als Spalte im
+       Insert: Faellt `origin_signals` weg, weil die Migration noch nicht
+       ausgerollt ist, wiese Postgres sonst *jede* Einreichung ab - dieselbe
+       Falle, die `image_deleted_at` in lib/moderation.ts umgeht. So kostet ein
+       fehlendes Feld hoechstens die Belege, nie die Reparatur.
+
+       Nur wenn sich die Signale widersprechen; bei einstimmiger Lage ist
+       `origin.signals` leer und hier gibt es nichts zu tun (siehe
+       OriginDecision.signals in lib/origin-check.ts). */
+    if (origin.signals.length) {
+      const { error: signalsError } = await supabase
+        .from("repairs")
+        .update({ origin_signals: origin.signals })
+        .eq("id", repairId);
+
+      if (signalsError) {
+        await logSubmissionFailure(supabase, request, {
+          stage: "insert",
+          reason: "origin_signals_failed",
+          detail: signalsError.message,
+          repairId,
+        });
+      }
+    }
+
     if (uploadImage && imagePath) {
       // `upsert`, damit ein Wiederholungsversuch nicht an der bereits
       // vorhandenen Datei desselben Vorgangs scheitert.

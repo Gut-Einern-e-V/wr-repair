@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { anonymizeCoordinates } from "./geo-anonymize";
-import { decideOrigin, expectedIpRegionTag, hasOriginMismatch, locateInRegion } from "./origin-check";
+import { decideOrigin, expectedIpRegionTag, hasOriginMismatch, locateInRegion, signalsDisagree } from "./origin-check";
 import { getRegionConfig } from "./region-config";
 
 const nrw = getRegionConfig();
@@ -127,6 +127,109 @@ describe("Herkunftspruefung einer Einreichung", () => {
     );
 
     expect(decideOrigin(request, formData, nrw).allowed).toBe(false);
+  });
+});
+
+describe("Herkunftssignale", () => {
+  /** Koeln, damit es einen zweiten Kreis innerhalb von NRW gibt. */
+  const inCologne = anonymizeCoordinates(50.938, 6.96)!;
+
+  it("hebt nichts auf, solange alle Signale denselben Kreis nennen", () => {
+    const { request, formData } = submission(
+      connectionFrom("NW", { lat: 51.256, lon: 7.15 }),
+      {
+        origin_lat: String(inNrw.lat),
+        origin_lon: String(inNrw.lon),
+        origin_source: "gps",
+        origin_signals: JSON.stringify({ gps: inNrw }),
+      },
+    );
+    const decision = decideOrigin(request, formData, nrw);
+
+    expect(decision.kreis).toBe("Wuppertal");
+    // Verbindung und Standortabfrage zeigen beide nach Wuppertal - eine klare
+    // Entscheidung, und dann wird nichts zusaetzlich gespeichert.
+    expect(decision.signals).toEqual([]);
+  });
+
+  it("haelt alle Signale fest, wenn sie auf verschiedene Kreise zeigen", () => {
+    const { request, formData } = submission(
+      connectionFrom("NW", { lat: 50.938, lon: 6.96 }),
+      {
+        origin_lat: String(inNrw.lat),
+        origin_lon: String(inNrw.lon),
+        origin_source: "manual",
+        origin_signals: JSON.stringify({ manual: inNrw, photo: inBavaria }),
+      },
+    );
+    const decision = decideOrigin(request, formData, nrw);
+
+    // Gespeichert wird weiterhin die Angabe mit der hoechsten Beweiskraft im
+    // Gebiet; das Foto aus Bayern faellt dafuer durch.
+    expect(decision.kreis).toBe("Wuppertal");
+
+    // Absteigend nach Beweiskraft, unabhaengig davon, wie der Browser sie
+    // geschickt hat.
+    expect(decision.signals.map((signal) => signal.source)).toEqual(["photo", "manual", "ip"]);
+    expect(decision.signals.map((signal) => signal.kreis)).toEqual([null, "Wuppertal", "Köln"]);
+  });
+
+  it("setzt das IP-Signal immer selbst, auch wenn der Browser eines mitschickt", () => {
+    const { request, formData } = submission(
+      connectionFrom("NW", { lat: 50.938, lon: 6.96 }),
+      {
+        origin_lat: String(inNrw.lat),
+        origin_lon: String(inNrw.lon),
+        origin_source: "gps",
+        // Behauptet, die Verbindung komme aus Wuppertal - der Header sagt Koeln.
+        origin_signals: JSON.stringify({ gps: inNrw, ip: inNrw }),
+      },
+    );
+    const decision = decideOrigin(request, formData, nrw);
+
+    expect(decision.signals.find((signal) => signal.source === "ip")?.kreis).toBe("Köln");
+  });
+
+  it("verwirft ein zu genaues Signal, ohne die Einreichung zu verlieren", () => {
+    const { request, formData } = submission(
+      connectionFrom("NW", { lat: 50.938, lon: 6.96 }),
+      {
+        origin_lat: String(inNrw.lat),
+        origin_lon: String(inNrw.lon),
+        origin_source: "gps",
+        origin_signals: JSON.stringify({ gps: inNrw, photo: { lat: 51.25621, lon: 7.15034 } }),
+      },
+    );
+    const decision = decideOrigin(request, formData, nrw);
+
+    expect(decision.allowed).toBe(true);
+    expect(decision.signals.map((signal) => signal.source)).toEqual(["gps", "ip"]);
+  });
+
+  it("uebersteht kaputte Signale, statt die Einreichung abzuweisen", () => {
+    for (const raw of ["", "kein json", "[]", "null", JSON.stringify({ gps: "irgendwas", quelle: inNrw })]) {
+      const { request, formData } = submission(
+        connectionFrom("NW", { lat: 51.256, lon: 7.15 }),
+        { origin_signals: raw },
+      );
+      const decision = decideOrigin(request, formData, nrw);
+
+      expect(decision.allowed).toBe(true);
+      expect(decision.signals).toEqual([]);
+    }
+  });
+
+  it("misst den Widerspruch am Kreis und nicht am Punkt", () => {
+    const wuppertal = { source: "gps" as const, ...inNrw, kreis: "Wuppertal" };
+    const nochmalWuppertal = { source: "photo" as const, ...inCologne, kreis: "Wuppertal" };
+    const draussen = { source: "ip" as const, ...inBavaria, kreis: null };
+
+    // Verschiedene Punkte, derselbe Kreis: kein Widerspruch.
+    expect(signalsDisagree([wuppertal, nochmalWuppertal], nrw)).toBe(false);
+    // Ein einzelnes Signal kann sich nicht widersprechen.
+    expect(signalsDisagree([draussen], nrw)).toBe(false);
+    // Innerhalb und ausserhalb ist der Fall aus Issue #87.
+    expect(signalsDisagree([wuppertal, draussen], nrw)).toBe(true);
   });
 });
 

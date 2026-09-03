@@ -187,6 +187,33 @@ export function RepairSubmissionForm({
   useEffect(() => {
     locationSourceRef.current = locationSource;
   }, [locationSource]);
+  /**
+   * Alle Herkunftssignale, die im Formular zusammenkommen (Issue #87).
+   *
+   * `anonymizedOrigin` haelt nur das eine, das am Ende gilt. Fuer die
+   * Moderation ist aber gerade der Unterschied interessant: Ein Foto aus
+   * Bayern und ein danach angeklickter Kreis in NRW sind zusammen eine ganz
+   * andere Aussage als jedes fuer sich. Jeder Punkt ist derselbe bereits
+   * anonymisierte Wert, der auch als Hauptangabe taugen wuerde - hier wird
+   * nichts Genaueres aufgehoben, nur mehr davon.
+   *
+   * Eine Quelle ueberschreibt nur sich selbst: Ein zweites Foto ersetzt die
+   * Fotoherkunft, laesst die Standortabfrage aber stehen.
+   */
+  const [originSignals, setOriginSignals] = useState<Partial<Record<"photo" | "gps" | "manual" | "ip", AnonymizedPoint>>>({});
+
+  function rememberSignal(source: "photo" | "gps" | "manual" | "ip", point: AnonymizedPoint | null) {
+    setOriginSignals((previous) => {
+      if (!point) {
+        if (!(source in previous)) return previous;
+        const next = { ...previous };
+        delete next[source];
+        return next;
+      }
+      return { ...previous, [source]: point };
+    });
+  }
+
   const [selectedKreis, setSelectedKreis] = useState("");
   const [isLocating, setIsLocating] = useState(false);
   const [locationStatus, setLocationStatus] = useState("");
@@ -258,6 +285,7 @@ export function RepairSubmissionForm({
         if (locationSourceRef.current !== null) return;
 
         setAnonymizedOrigin({ lat: data.lat, lon: data.lon });
+        rememberSignal("ip", { lat: data.lat, lon: data.lon });
         setLocationSource("ip-suggestion");
         setSelectedKreis(data.kreis);
         setLocationStatus(`Vorschlag anhand deiner Internetverbindung: "${data.kreis}". Bitte bestätigen oder unten korrigieren.`);
@@ -289,6 +317,8 @@ export function RepairSubmissionForm({
     setCompressionMessage("");
     setUploadFile(null);
     setAnonymizedOrigin(null);
+    // Das alte Bild ist weg, seine Herkunft damit auch (Issue #87).
+    rememberSignal("photo", null);
 
     if (previewUrl) {
       URL.revokeObjectURL(previewUrl);
@@ -312,6 +342,7 @@ export function RepairSubmissionForm({
       // rastern, danach komprimieren. Das Komprimat enthaelt kein EXIF mehr.
       const origin = await readAnonymizedOrigin(file);
       const compressedFile = await createCompressedImage(file);
+      rememberSignal("photo", origin);
       if (origin) {
         setAnonymizedOrigin(origin);
         setLocationSource("photo");
@@ -366,6 +397,7 @@ export function RepairSubmissionForm({
           return;
         }
         setAnonymizedOrigin(anonymized);
+        rememberSignal("gps", anonymized);
         setLocationSource("gps");
         setSelectedKreis("");
         setLocationStatus("Standort erkannt. Für die Karte wird nur ein zufällig verschobener Punkt übertragen, nicht der genaue Ort.");
@@ -392,6 +424,7 @@ export function RepairSubmissionForm({
     setLocationStatus("");
 
     if (!name) {
+      rememberSignal("manual", null);
       if (locationSource === "manual" || locationSource === "ip-suggestion") {
         setAnonymizedOrigin(null);
         setLocationSource(null);
@@ -418,6 +451,7 @@ export function RepairSubmissionForm({
     if (!anonymized) return;
 
     setAnonymizedOrigin(anonymized);
+    rememberSignal("manual", anonymized);
     setLocationSource("manual");
     setLocationStatus(`"${name}" ausgewählt. Für die Karte wird nur ein ungefährer Punkt im Kreis übertragen.`);
   }
@@ -486,6 +520,14 @@ export function RepairSubmissionForm({
          IP-Herkunft ist keine Angabe der einreichenden Person - er heisst
          beim Server deshalb "ip". */
       formData.set("origin_source", locationSource === "ip-suggestion" ? "ip" : locationSource ?? "manual");
+    }
+    /* Und daneben alles, was das Formular sonst noch ueber die Herkunft
+       erfahren hat (Issue #87). Der Server hebt es nur auf, wenn sich die
+       Angaben widersprechen - dann ist es genau das, was die Moderation zum
+       Entscheiden braucht. Jeder Punkt ist bereits anonymisiert; die rohen
+       Koordinaten haben das Geraet nie verlassen. */
+    if (Object.keys(originSignals).length) {
+      formData.set("origin_signals", JSON.stringify(originSignals));
     }
     return formData;
   }
