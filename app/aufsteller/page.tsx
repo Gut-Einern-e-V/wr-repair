@@ -1,6 +1,18 @@
-import Link from "next/link";
-import QRCode from "qrcode";
+import { headers } from "next/headers";
+import { Noto_Sans_Arabic } from "next/font/google";
 import { getSiteUrl } from "@/lib/share";
+import { buildQrGlyph } from "@/lib/qr-glyph";
+import { PosterStudio } from "./poster-studio";
+
+/* Nunito deckt kein Arabisch ab - ohne eigene Schrift faellt die arabische
+   Fassung auf eine beliebige Systemschrift zurueck und passt nicht zum Rest.
+   `preload: false`, weil die Schrift nur auf dieser einen Seite gebraucht wird. */
+const notoSansArabic = Noto_Sans_Arabic({
+  subsets: ["arabic"],
+  display: "swap",
+  preload: false,
+  variable: "--font-arabic",
+});
 
 export const metadata = {
   title: "Aufsteller mit QR-Code",
@@ -11,34 +23,17 @@ export const metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function PosterPage() {
-  const submissionUrl = `${getSiteUrl() || "http://localhost:3000"}/mitmachen`;
-  const qrDataUrl = await QRCode.toDataURL(submissionUrl, {
-    width: 1200,
-    margin: 1,
-    errorCorrectionLevel: "M",
-    color: { dark: "#101626", light: "#95d4bb" },
-  });
-  const readableUrl = submissionUrl.replace(/^https?:\/\//, "");
+  /* Ohne Rueckfallebene stand auf dem gedruckten Aufsteller `localhost:3000`,
+     sobald `NEXT_PUBLIC_SITE_URL` fehlte (Issue #92). Der Host aus der Anfrage
+     ist immer die Domain, unter der jemand den Generator gerade aufruft. */
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const submissionUrl = `${getSiteUrl(host ? `${protocol}://${host}` : "") || "http://localhost:3000"}/mitmachen`;
 
-  return <main className="poster-page">
-    <p className="poster-hint no-print">
-      Druckvorlage für einen Aufsteller (A4, Hochformat). Über die Druckfunktion des Browsers ausgeben – der QR-Code führt direkt zur
-      Schnell-Eintragung. <Link className="text-button" href="/mitmachen">Seite ansehen <span aria-hidden="true">&#8594;</span></Link>
-    </p>
-    <article className="poster-sheet">
-      <p className="brand-kicker">Reparaturrekord NRW</p>
-      <h1 className="sticker-head is-mint"><span className="sticker">Repariert?</span><span className="sticker">Jetzt eintragen!</span></h1>
-      <p className="poster-lead">Scanne den Code mit der Kamera deines Smartphones und trage deine Reparatur in zwei Minuten ein.</p>
-      {/* Ein Data-URL-Bild wird zur Laufzeit erzeugt und kann den Next.js-Optimizer nicht nutzen. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="poster-qr" src={qrDataUrl} alt={`QR-Code zu ${readableUrl}`} />
-      <p className="poster-url">{readableUrl}</p>
-      <ol className="poster-steps">
-        <li><span>01</span>Foto der Reparatur aufnehmen</li>
-        <li><span>02</span>Kategorie wählen und kurz beschreiben</li>
-        <li><span>03</span>Nach der Prüfung zählt deine Reparatur</li>
-      </ol>
-      <p className="poster-footer">Ein Projekt der FAB Region Bergisches Städtedreieck</p>
-    </article>
-  </main>;
+  return <PosterStudio
+    submissionUrl={submissionUrl}
+    qrGlyph={buildQrGlyph(submissionUrl)}
+    arabicFontClassName={notoSansArabic.variable}
+  />;
 }

@@ -20,7 +20,9 @@ Configure the Supabase and Friendly Captcha values described in `.env.example` b
 
 `/mitmachen` is a standalone, mobile-first page that shows the submission form directly — it is the landing page for QR codes so scanners do not have to scroll the home page. The home page modal renders the same `RepairSubmissionForm` component, so both stay identical.
 
-`/aufsteller` is a printable A4 stand. It generates a QR code for `NEXT_PUBLIC_SITE_URL + /mitmachen` at request time, so a domain change only requires updating that environment variable. Print it with the browser print dialog.
+`/aufsteller` is a print-template generator for a QR stand. Format (A4 one-up, A5 two-up on a landscape A4 sheet, A6 four-up on a portrait A4 sheet), language (German, English, Arabic or a trilingual sheet), background (paper, mint, yellow, dark — the coloured ones get rounded corners), the funding logos, the three steps and the cut lines are all switchable; print it with the browser print dialog. Sheet formats and copy live in `lib/poster.ts`, the QR code is rendered as an SVG path by `lib/qr-glyph.ts` so it scales to every format and takes its colours from CSS.
+
+The QR code points at `/mitmachen` on `NEXT_PUBLIC_SITE_URL`; when that variable is unset the page falls back to the host of the incoming request, so a printed stand never carries a `localhost` address.
 
 After a submission the confirmation screen links to `/reparatur/<id>`. That page shows the moderation state and only offers the native share dialog (Web Share API, clipboard fallback) once the entry is approved, so nothing unmoderated can be shared. Approved entries also get a branded Open Graph image at `/reparatur/<id>/opengraph-image`.
 
