@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { mergeRegion, mergeThrottle, parseWindow, publicLogoUrl, type SettingsRow } from "./app-settings";
+import { buildAppSettings, mergeRegion, mergeThrottle, parseWindow, publicLogoUrl, type SettingsRow } from "./app-settings";
+import { defaultLotteryOrganizer } from "./organisation";
 import { DEFAULT_THROTTLE_PER_MINUTE } from "./rate-limit";
 import { getRegionConfig } from "./region-config";
 
@@ -115,5 +116,28 @@ describe("mergeThrottle", () => {
     // insgesamt ausfallen lassen (Issue #80).
     const throttle = mergeThrottle(row({ rate_limit_allowlist: ["203.0.113.4", "kaputt", "2001:db8::/32"] }));
     expect(throttle.allowlist).toEqual(["203.0.113.4", "2001:db8::/32"]);
+  });
+});
+
+describe("Veranstalter des Gewinnspiels", () => {
+  it("nennt ohne Einstellungszeile die Vorgabe - eine Verlosung ohne Veranstalter gibt es nicht", () => {
+    expect(buildAppSettings(null).lotteryOrganizer).toEqual({ ...defaultLotteryOrganizer });
+  });
+
+  it("laesst das Backend jedes Feld einzeln ueberschreiben", () => {
+    const organizer = buildAppSettings(row({
+      lottery_organizer_name: "Repair Café Wuppertal",
+      lottery_organizer_email: "  verlosung@example.org  ",
+    })).lotteryOrganizer;
+
+    expect(organizer.name).toBe("Repair Café Wuppertal");
+    expect(organizer.email).toBe("verlosung@example.org");
+    // Nicht ueberschrieben, also weiterhin die Vorgabe.
+    expect(organizer.address).toBe(defaultLotteryOrganizer.address);
+  });
+
+  it("nimmt ein geleertes Feld als Rueckkehr zur Vorgabe, nicht als leere Angabe", () => {
+    const organizer = buildAppSettings(row({ lottery_organizer_name: "   " })).lotteryOrganizer;
+    expect(organizer.name).toBe(defaultLotteryOrganizer.name);
   });
 });

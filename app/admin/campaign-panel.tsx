@@ -32,14 +32,14 @@ export type RateLimitSettings = {
 };
 
 /**
- * Wer das Gewinnspiel veranstaltet (Issue #45). Alle drei Felder koennen leer
- * sein - das heisst "steht noch nicht fest" und wird auf der oeffentlichen
- * Seite auch so geschrieben.
+ * Wer das Gewinnspiel veranstaltet (Issue #45). Die Felder kommen nie leer aus
+ * dem Backend: Ein geleertes Feld faellt auf die Vorgabe aus
+ * lib/organisation.ts zurueck (Issue #78).
  */
 export type LotteryOrganizerSettings = {
-  name: string | null;
-  address: string | null;
-  email: string | null;
+  name: string;
+  address: string;
+  email: string;
 };
 
 export type AdminSettings = {

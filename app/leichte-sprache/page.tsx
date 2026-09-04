@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import { getAppSettings } from "@/lib/app-settings";
+import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { QuickSubmission } from "@/app/mitmachen/quick-submission";
 
 export const metadata = {
@@ -106,7 +107,7 @@ export default async function EasyLanguagePage() {
         <p className="easy-warning">Achtung:<br />Das Formular ist nicht in Leichter Sprache.</p>
         <p>Brauchst du Hilfe beim Ausfüllen?</p>
         <p>Dann schreib uns eine E-Mail.</p>
-        <p>Unsere E-Mail-Adresse ist:<br /><a href="mailto:mail@gut-einern.org">mail@gut-einern.org</a></p>
+        <p>Unsere E-Mail-Adresse ist:<br /><a href={mailto(CONTACT_EMAIL)}>{CONTACT_EMAIL}</a></p>
         <div className="easy-form">
           <QuickSubmission />
         </div>
@@ -145,7 +146,7 @@ export default async function EasyLanguagePage() {
         <p>Vielleicht kannst du etwas nicht lesen.</p>
         <p>Oder ein Knopf funktioniert nicht.</p>
         <p>Dann schreib uns bitte.</p>
-        <p>Unsere E-Mail-Adresse ist:<br /><a href="mailto:mail@gut-einern.org">mail@gut-einern.org</a></p>
+        <p>Unsere E-Mail-Adresse ist:<br /><a href={mailto(CONTACT_EMAIL)}>{CONTACT_EMAIL}</a></p>
         <p>Schreib uns bitte diese 3 Sachen:</p>
         <ul className="easy-pages">
           <li>Auf welcher Seite war das Problem?</li>
@@ -167,7 +168,12 @@ export default async function EasyLanguagePage() {
     </article>
 
     <footer className="easy-footer">
-      <p>Ein Projekt von der FAB Region <W>Bergisches·Städtedreieck</W>.</p>
+      {/* Zwei kurze Saetze statt eines langen (Issue #78): Wer die Seite
+          betreibt und wer sie gemacht hat, sind seit dem Wechsel zum CSCP
+          zwei verschiedene Haeuser - in Leichter Sprache bekommt jedes
+          seinen eigenen Satz. */}
+      <p>Das Projekt kommt vom CSCP.<br />Das CSCP ist eine Organisation in Wuppertal.</p>
+      <p>Die Website hat die FAB Region <W>Bergisches·Städtedreieck</W> gemacht.</p>
       <div><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link></div>
     </footer>
   </main>;

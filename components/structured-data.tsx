@@ -1,4 +1,5 @@
 import { getSiteUrl } from "@/lib/share";
+import { CONTACT_EMAIL, circularWeek, operator } from "@/lib/organisation";
 import type { Story } from "@/lib/stories";
 
 /**
@@ -10,7 +11,13 @@ import type { Story } from "@/lib/stories";
  * (siehe node_modules/next/dist/docs/01-app/02-guides/json-ld.md).
  */
 
+/* Zwei Organisationen mit verschiedenen Rollen (Issue #78): Betreiberin und
+   damit `publisher` ist das CSCP, das den Rekordversuch im Rahmen der Circular
+   Week ausrichtet. Die FAB Region hat die Website beigesteuert und steht
+   deshalb als `creator`. Vorher war beides die FAB Region - fuer Suchmaschinen
+   war der Absender damit ein anderer als im Impressum. */
 const ORGANIZATION_ID = "#organization";
+const CREATOR_ID = "#creator";
 
 /* `<` wird maskiert, damit auch ein spaeter aus Inhalten gespeister Wert das
    Script-Element nicht verlassen kann. */
@@ -30,12 +37,29 @@ export function SiteStructuredData() {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "NGO",
+        "@type": "Organization",
         "@id": `${siteUrl}/${ORGANIZATION_ID}`,
-        name: "FAB Region Bergisches Land",
-        url: "https://www.fab-bergisch.org/",
-        description: "Trägerin des Reparaturrekords NRW – einem Weltrekordversuch, bei dem Nordrhein-Westfalen einen Monat lang jede Reparatur zählt.",
+        name: operator.legalName,
+        alternateName: operator.shortName,
+        url: operator.website,
+        email: CONTACT_EMAIL,
+        telephone: operator.phone,
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: operator.street,
+          postalCode: operator.postalCode,
+          addressLocality: operator.city,
+          addressCountry: "DE",
+        },
+        description: `Betreiberin des Reparaturrekords NRW – einem Weltrekordversuch im Rahmen der ${circularWeek.name}, bei dem Nordrhein-Westfalen einen Monat lang jede Reparatur zählt.`,
         areaServed: { "@type": "AdministrativeArea", name: "Nordrhein-Westfalen" },
+      },
+      {
+        "@type": "NGO",
+        "@id": `${siteUrl}/${CREATOR_ID}`,
+        name: "FAB Region Bergisches Städtedreieck",
+        url: "https://www.fab-bergisch.org/",
+        description: "Partnerprojekt, in dem die Website zum Reparaturrekord NRW entstanden ist.",
       },
       {
         "@type": "WebSite",
@@ -44,6 +68,7 @@ export function SiteStructuredData() {
         name: "Reparaturrekord NRW",
         inLanguage: "de-DE",
         publisher: { "@id": `${siteUrl}/${ORGANIZATION_ID}` },
+        creator: { "@id": `${siteUrl}/${CREATOR_ID}` },
       },
     ],
   }} />;
@@ -62,7 +87,12 @@ export function StoryStructuredData({ story }: { story: Story }) {
     datePublished: story.date,
     inLanguage: "de-DE",
     mainEntityOfPage: `${siteUrl}/stories/${story.slug}`,
-    author: { "@type": "Organization", name: "FAB Region Bergisches Land" },
+    /* Die Organisation steht hier ausgeschrieben und nicht nur als Verweis:
+       Diese Seite rendert `SiteStructuredData` nicht mit, ein blosser `@id`
+       zeigte also auf einen Knoten, den dieses Dokument gar nicht enthaelt.
+       Die `@id` bleibt trotzdem dabei, damit beide Seiten dieselbe
+       Organisation meinen. */
+    author: { "@type": "Organization", "@id": `${siteUrl}/${ORGANIZATION_ID}`, name: operator.legalName, url: operator.website },
     publisher: { "@id": `${siteUrl}/${ORGANIZATION_ID}` },
   }} />;
 }

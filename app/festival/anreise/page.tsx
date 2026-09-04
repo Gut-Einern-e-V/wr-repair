@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { FESTIVAL_DATE_TEXT, FestivalFacts, FestivalNav, FestivalPending, FestivalVenues } from "../festival-chrome";
 
 export const metadata = {
@@ -134,7 +135,7 @@ export default function FestivalTravelPage() {
         <p>Rund um das Gelände gibt es kaum Parkplätze, und die Straßen im Viertel sind eng. Ein Tag lang Parksuchverkehr wäre für die Nachbarschaft eine Zumutung &ndash; und für ein Fest über den sorgsamen Umgang mit Dingen ein schiefes Bild.</p>
         <p>Wer auf das Auto angewiesen ist, etwa weil schwere Werkzeugkisten mitkommen oder weil Bus und Bahn nicht barrierefrei nutzbar sind, meldet sich bitte vorher bei uns. Für Anlieferung und für Menschen mit Mobilitätseinschränkungen finden wir eine Lösung.</p>
         <p className="link-row">
-          <a className="text-button" href="mailto:mail@gut-einern.org?subject=Repair%20%26%20Share%20Festival%20-%20Anreise">Wegen der Anreise schreiben <span aria-hidden="true">&#8594;</span></a>
+          <a className="text-button" href={mailto(CONTACT_EMAIL, "Repair & Share Festival - Anreise")}>Wegen der Anreise schreiben <span aria-hidden="true">&#8594;</span></a>
         </p>
       </div>
     </section>

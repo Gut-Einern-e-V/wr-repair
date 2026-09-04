@@ -1,15 +1,58 @@
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { CONTACT_EMAIL, mailto, operator, projectCredits } from "@/lib/organisation";
 
 export const metadata = { title: "Impressum" };
 
+/* Betreiber ist seit Issue #78 das CSCP: Der Reparaturrekord gehoert zur
+   Circular Week 2026, und damit wandert die Anbieterkennzeichnung von Gut
+   Einern e.V. dorthin. Die Pflichtangaben stehen in lib/organisation.ts und
+   sind aus https://www.cscp.org/imprint/ uebernommen.
+
+   Der Abschnitt "Wer hinter dem Reparaturrekord steht" ist keine
+   Pflichtangabe, gehoert aber hierher: Drei Organisationen tragen drei
+   verschiedene Rollen, und ohne die Aufzaehlung liest sich das Impressum so,
+   als haette das CSCP auch die Website gebaut. */
 export default function ImprintPage() {
   return <main className="page-shell content-page"><SiteHeader /><article id="inhalt" className="legal-page">
     <p className="eyebrow">Rechtliche Informationen</p><h1>Impressum</h1>
-    <section><h2>Anbieterkennzeichnung</h2><p>Gut Einern e.V.<br />Einern 120<br />42279 Wuppertal</p><p>Vertreten durch den Vorstand:<br />Dominik Stingl (1. Vorstand)<br />Patrik Beneke (2. Vorstand)<br />Silke Wilke (Kassenwartin)</p><p>Vereinsregister: Amtsgericht Wuppertal, VR 31296<br />Umsatzsteuer-ID: DE352779410</p></section>
-    <section><h2>Kontakt</h2><p>E-Mail: <a href="mailto:mail@gut-einern.org">mail@gut-einern.org</a><br />Telefon: 0202 75843282</p></section>
-    <section><h2>Verantwortlich fuer redaktionelle Inhalte</h2><p>Dominik Stingl<br />Einern 120<br />42279 Wuppertal</p></section>
-    <section><h2>Haftung fuer externe Inhalte</h2><p>Diese Anwendung verlinkt auf externe Angebote. Fuer deren Inhalte ist die jeweils dahinterstehende Organisation verantwortlich. Bei Bekanntwerden einer Rechtsverletzung werden betroffene Verweise geprueft und gegebenenfalls entfernt.</p></section>
-    <section><h2>Urheberrecht</h2><p>Texte, Gestaltung und selbst erstellte Inhalte dieser Anwendung duerfen nur im Rahmen der jeweils angegebenen Lizenz oder mit Zustimmung der Rechteinhabenden weiterverwendet werden. Inhalte Dritter, insbesondere Logos und Bilder, sind als solche kenntlich gemacht und unterliegen dem Urheberrecht der jeweiligen Rechteinhabenden.</p></section>
-    <section><h2>Rechtlicher Pruefstand</h2><p>Aufbau und Pflichtangaben orientieren sich an der Informationsstruktur der FAB Region. Die Angaben basieren auf dem Impressum von Gut Einern e.V. und muessen vor dem oeffentlichen Start durch die verantwortliche Organisation rechtlich freigegeben werden. Insbesondere Vertretung, Registerangaben, Steuerangaben und Streitbeilegungshinweise sind dann abschliessend zu bestaetigen.</p></section>
+    <section>
+      <h2>Anbieterkennzeichnung</h2>
+      <p>Angaben gemäß § 5 Digitale-Dienste-Gesetz (DDG)</p>
+      <p>{operator.legalName} ({operator.shortName})<br />{operator.street}<br />{operator.postalCode} {operator.city}</p>
+      <p>Vertreten durch:<br />{operator.representedBy}</p>
+      <p>Handelsregister: {operator.registerCourt}, {operator.registerNumber}<br />Umsatzsteuer-Identifikationsnummer nach § 27 a Umsatzsteuergesetz: {operator.vatId}</p>
+    </section>
+    <section>
+      <h2>Kontakt</h2>
+      <p>E-Mail: <a href={mailto(CONTACT_EMAIL)}>{CONTACT_EMAIL}</a><br />Telefon: {operator.phone}</p>
+    </section>
+    <section>
+      <h2>Verantwortlich für redaktionelle Inhalte</h2>
+      <p>{operator.legalName}<br />{operator.street}<br />{operator.postalCode} {operator.city}</p>
+    </section>
+    <section>
+      <h2>Wer hinter dem Reparaturrekord steht</h2>
+      {projectCredits.map((credit) => <p key={credit.role}>
+        <strong>{credit.role}:</strong> {credit.description}{" "}
+        <a href={credit.url} target="_blank" rel="noreferrer">{credit.name} <span aria-hidden="true">&#8599;</span></a>
+      </p>)}
+    </section>
+    <section>
+      <h2>Streitbeilegung</h2>
+      <p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung bereit: <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noreferrer">ec.europa.eu/consumers/odr <span aria-hidden="true">&#8599;</span></a>. Unsere E-Mail-Adresse steht oben in dieser Anbieterkennzeichnung.</p>
+      <p>Zur Teilnahme an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle sind wir nicht verpflichtet und nicht bereit.</p>
+    </section>
+    <section>
+      <h2>Haftung für externe Inhalte</h2>
+      <p>Diese Anwendung verlinkt auf externe Angebote. Für deren Inhalte ist die jeweils dahinterstehende Organisation verantwortlich. Bei Bekanntwerden einer Rechtsverletzung werden betroffene Verweise geprüft und gegebenenfalls entfernt.</p>
+    </section>
+    <section>
+      <h2>Urheberrecht</h2>
+      <p>Texte, Gestaltung und selbst erstellte Inhalte dieser Anwendung dürfen nur im Rahmen der jeweils angegebenen Lizenz oder mit Zustimmung der Rechteinhabenden weiterverwendet werden. Inhalte Dritter, insbesondere Logos und Bilder, sind als solche kenntlich gemacht und unterliegen dem Urheberrecht der jeweiligen Rechteinhabenden.</p>
+    </section>
+    <section>
+      <h2>Rechtlicher Prüfstand</h2>
+      <p>Die Pflichtangaben sind aus dem Impressum des {operator.shortName} übernommen. Vor dem öffentlichen Start müssen sie durch die verantwortliche Organisation für dieses Angebot bestätigt werden – insbesondere, ob Vertretung, Register- und Steuerangaben unverändert gelten und ob eine eigene Kontakttelefonnummer für den Reparaturrekord angegeben werden soll.</p>
+    </section>
   </article><SiteFooter /></main>;
 }

@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Nunito, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { getSiteUrl } from "@/lib/share";
+import { operator } from "@/lib/organisation";
 import { ConsentAnalytics } from "@/components/consent-analytics";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ScrollReveal } from "@/components/scroll-reveal";
@@ -42,9 +43,13 @@ export const metadata: Metadata = {
   },
   description: "Einen Monat lang zaehlt Nordrhein-Westfalen jede Reparatur: Repariere etwas, trage es ein und werde Teil des Reparatur-Weltrekords.",
   applicationName: "Reparaturrekord NRW",
-  authors: [{ name: "FAB Region Bergisches Land", url: "https://www.fab-bergisch.org/" }],
-  creator: "FAB Region Bergisches Land",
-  publisher: "FAB Region Bergisches Land",
+  /* `creator` ist, wer die Seite gemacht hat, `publisher`, wer sie
+     herausgibt - seit Issue #78 sind das zwei verschiedene Haeuser: Die
+     Website kommt aus der FAB Region, herausgegeben wird sie vom CSCP, das
+     auch im Impressum steht. */
+  authors: [{ name: "FAB Region Bergisches Städtedreieck", url: "https://www.fab-bergisch.org/" }],
+  creator: "FAB Region Bergisches Städtedreieck",
+  publisher: operator.legalName,
   /* Der Kanonische zeigt je Seite auf sich selbst. Ohne diese Angabe zaehlen
      Suchmaschinen Aufrufe mit Kampagnenparametern als eigene Adressen. */
   alternates: { canonical: "./" },
