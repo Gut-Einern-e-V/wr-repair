@@ -3,6 +3,7 @@ import NextImage from "next/image";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { brandPhotos } from "@/lib/brand-photos";
 import { getAppSettings } from "@/lib/app-settings";
+import { mailto } from "@/lib/organisation";
 import { readPrizes, type PrizeRow } from "@/lib/lottery-store";
 import { publicPrizeLogoUrl } from "@/lib/prize-logo";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
@@ -18,8 +19,9 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
  * Die Preise kommen aus dem Backend (Issue #45): Sie werden gestiftet und
  * stehen oft erst kurz vor dem Start fest. Solange keiner eingetragen ist,
  * sagt die Seite ehrlich, dass die Liste noch waechst, statt eine Zahl zu
- * erfinden - und dasselbe gilt fuer den Veranstalter, der ebenfalls aus den
- * Einstellungen kommt und noch nicht abschliessend geklaert ist.
+ * erfinden. Der Veranstalter kommt aus derselben Quelle, hat seit Issue #78
+ * aber eine Vorgabe im Quelltext - das CSCP, das den Rekordversuch im Rahmen
+ * der Circular Week 2026 ausrichtet.
  *
  * Die Teilnahmebedingungen sind wie Impressum und Datenschutz formuliert: So
  * genau wie moeglich, mit einem sichtbaren Hinweis, dass sie vor dem
@@ -186,18 +188,15 @@ export default async function LotteryPage() {
       <div className="legal-terms">
         <section>
           <h3>Wer veranstaltet das Gewinnspiel?</h3>
-          {/* Kommt aus dem Backend und ist noch nicht abschliessend geklaert.
-              Solange nichts hinterlegt ist, steht hier genau das - eine
-              erfundene Angabe waere in Teilnahmebedingungen das Schlimmste. */}
-          {organizer.name
-            ? <p>
-                {organizer.name}{organizer.address ? `, ${organizer.address}` : ""}, im Rahmen des Projekts Reparaturrekord NRW.
-                {organizer.email
-                  ? <> Kontakt: <a href={`mailto:${organizer.email}`}>{organizer.email}</a>.</>
-                  : " Eine Kontaktadresse für das Gewinnspiel wird noch bekannt gegeben."}
-                {" "}Die vollständigen Angaben stehen im <Link href="/imprint">Impressum</Link>.
-              </p>
-            : <p>Wer das Gewinnspiel veranstaltet, steht noch nicht abschließend fest und wird hier genannt, sobald es feststeht. Für Rückfragen bis dahin: die Angaben im <Link href="/imprint">Impressum</Link>.</p>}
+          {/* Kommt weiterhin aus dem Backend, hat seit Issue #78 aber eine
+              Vorgabe im Quelltext - der Zweig "steht noch nicht fest" ist
+              damit entfallen. Ein Gewinnspiel ohne benannten Veranstalter
+              waere in Teilnahmebedingungen ohnehin eine Luecke. */}
+          <p>
+            {organizer.name}, {organizer.address}, im Rahmen des Projekts Reparaturrekord NRW.
+            {" "}Kontakt: <a href={mailto(organizer.email)}>{organizer.email}</a>.
+            {" "}Die vollständigen Angaben stehen im <Link href="/imprint">Impressum</Link>.
+          </p>
         </section>
         <section>
           <h3>Wer darf teilnehmen?</h3>

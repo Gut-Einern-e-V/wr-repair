@@ -58,11 +58,11 @@ describe("Verlosung: wer teilnimmt", () => {
 
   it("schliesst das Projektteam ueber die Ausschlussliste aus", () => {
     const entries = [
-      entry({ id: "team", email: "moderation@gut-einern.org" }),
+      entry({ id: "team", email: "moderation@cscp.org" }),
       entry({ id: "extern", email: "jemand@example.org" }),
     ];
 
-    expect(eligibleEntries(entries, ["@gut-einern.org"]).map((item) => item.id)).toEqual(["extern"]);
+    expect(eligibleEntries(entries, ["@cscp.org"]).map((item) => item.id)).toEqual(["extern"]);
   });
 });
 

@@ -3,6 +3,7 @@ import { createSupabaseAdminClient } from "./supabase/server";
 import { getRecordGoal } from "./dashboard";
 import { normalizeIpRules } from "./ip-allowlist";
 import { DEFAULT_THROTTLE_PER_MINUTE, type PublicThrottle } from "./rate-limit";
+import { defaultLotteryOrganizer } from "./organisation";
 import { getRegionConfig, type RegionConfig } from "./region-config";
 import { getSubmissionWindow, type SubmissionWindow } from "./submission-window";
 
@@ -32,13 +33,14 @@ export type AppSettings = {
   logoUrl: string | null;
   logoPath: string | null;
   /**
-   * Wer das Gewinnspiel veranstaltet (Issue #45).
+   * Wer das Gewinnspiel veranstaltet (Issue #45, Vorgabe seit Issue #78).
    *
-   * Steht in den Teilnahmebedingungen und ist noch nicht abschliessend
-   * geklaert. Deshalb aus dem Backend und nicht aus dem Quelltext: Sobald
-   * Name, Anschrift und Kontaktadresse feststehen, werden sie eingetragen -
-   * ohne Deployment. Null heisst nicht "Vorgabe", sondern "steht noch nicht
-   * fest"; die oeffentliche Seite sagt dann genau das.
+   * Steht in den Teilnahmebedingungen. Anfangs war das offen, deshalb kam es
+   * aus dem Backend; seit der Reparaturrekord beim CSCP liegt, steht die
+   * Vorgabe im Quelltext (siehe {@link defaultLotteryOrganizer}). Das Backend
+   * ueberschreibt sie weiterhin, und zwar Feld fuer Feld - genauso wie bei
+   * Region und Zeitraum. Ein geleertes Feld heisst damit "wieder die Vorgabe",
+   * nicht "leer lassen": Ein Gewinnspiel ohne Veranstalter gibt es nicht.
    */
   lotteryOrganizer: LotteryOrganizer;
   /** False when the settings row could not be read, e.g. before the migration ran. */
@@ -48,9 +50,9 @@ export type AppSettings = {
 };
 
 export type LotteryOrganizer = {
-  name: string | null;
-  address: string | null;
-  email: string | null;
+  name: string;
+  address: string;
+  email: string;
 };
 
 export type SettingsRow = {
@@ -193,9 +195,9 @@ export function buildAppSettings(row: SettingsRow | null): AppSettings {
     logoPath: row?.logo_path ?? null,
     logoUrl: publicLogoUrl(row?.logo_path ?? null),
     lotteryOrganizer: {
-      name: row?.lottery_organizer_name?.trim() || null,
-      address: row?.lottery_organizer_address?.trim() || null,
-      email: row?.lottery_organizer_email?.trim() || null,
+      name: row?.lottery_organizer_name?.trim() || defaultLotteryOrganizer.name,
+      address: row?.lottery_organizer_address?.trim() || defaultLotteryOrganizer.address,
+      email: row?.lottery_organizer_email?.trim() || defaultLotteryOrganizer.email,
     },
     persisted: row !== null,
     row,

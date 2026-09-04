@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AccessBar } from "@/components/access-bar";
+import { circularWeek, operator } from "@/lib/organisation";
 import { QuickSubmission } from "./quick-submission";
 
 export const metadata = {
@@ -26,7 +27,7 @@ export default function QuickSubmissionPage() {
     </section>
     <footer className="quick-submit-footer">
       <div><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link></div>
-      <p>Ein Projekt der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region Bergisches Städtedreieck</a>.</p>
+      <p>Eine Initiative der <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>, organisiert vom <a href={operator.website} target="_blank" rel="noreferrer">{operator.shortName}</a>.</p>
     </footer>
   </main>;
 }

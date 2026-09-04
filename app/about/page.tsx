@@ -4,12 +4,13 @@ import { PartnerLogoGrid } from "@/components/partner-logo-grid";
 import { RegionTriangle } from "@/components/region-triangle";
 import { getAppSettings } from "@/lib/app-settings";
 import { brandPhotos } from "@/lib/brand-photos";
+import { CONTACT_EMAIL, circularWeek, mailto, operator } from "@/lib/organisation";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 
 export const metadata = {
   title: "Über das Projekt",
   description:
-    "Warum die FAB Region Bergisches Städtedreieck einen Reparatur-Weltrekord versucht: Reparieren sichtbar machen, Wissen teilen und zeigen, wie viel Kreislaufwirtschaft im Alltag schon steckt.",
+    "Warum der Reparaturrekord NRW einen Weltrekord versucht: Reparieren sichtbar machen, Wissen teilen und zeigen, wie viel Kreislaufwirtschaft im Alltag schon steckt. Eine Initiative der Circular Week 2026, getragen von der FAB Region Bergisches Städtedreieck.",
 };
 
 /* Die Seite nennt die eingestellte Zielzahl (Issue #74). Sie ist im Backend
@@ -58,7 +59,8 @@ export default async function AboutPage() {
       <div>
         <p className="section-index">Wer dahinter steht</p>
         <h2 id="region-title">Drei Städte, eine gemeinsame Idee.</h2>
-        <p>Der Reparaturrekord kommt aus der FAB Region Bergisches Städtedreieck – einem gemeinsamen Projekt von Wuppertal, Solingen und Remscheid. Die drei Städte liegen so dicht beieinander, dass man sie seit jeher als Dreieck denkt.</p>
+        <p>Der Reparaturrekord ist eine Initiative der <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>, der europäischen Aktionswoche zur Kreislaufwirtschaft. Organisiert wird er vom <a href={operator.website} target="_blank" rel="noreferrer">{operator.shortName}</a> in Wuppertal.</p>
+        <p>In der Region getragen wird er von der FAB Region Bergisches Städtedreieck – einem gemeinsamen Projekt von Wuppertal, Solingen und Remscheid. Die drei Städte liegen so dicht beieinander, dass man sie seit jeher als Dreieck denkt.</p>
         <p>Die Idee stammt aus dem weltweiten <a href="https://fab.city/" target="_blank" rel="noreferrer">Fab-City-Netzwerk</a>: Regionen sollen wieder mehr von dem herstellen, reparieren und im Kreislauf halten, was sie verbrauchen. Im Bergischen richtet sich das auf drei Bereiche – Textilien, Ernährung und Bauen.</p>
         <p>Ausprobiert wird das an drei Orten:</p>
         <ul className="region-places">
@@ -101,9 +103,9 @@ export default async function AboutPage() {
 
     <section className="content-callout">
       <div className="banner-photo" aria-hidden="true"><NextImage src={brandPhotos.celebrate.src} alt="" fill sizes="(max-width: 1120px) 100vw, 1120px" /></div>
-      <p>Reparaturrekord NRW ist Teil der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region Bergisches Städtedreieck</a>.</p>
+      <p>Reparaturrekord NRW ist Teil der <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>.</p>
       <div className="project-contact-actions">
-        <a className="button button-secondary" href="mailto:mail@gut-einern.org?subject=Reparaturrekord%20NRW%20unterstuetzen">Projekt unterstützen <span aria-hidden="true">&#8594;</span></a>
+        <a className="button button-secondary" href={mailto(CONTACT_EMAIL, "Reparaturrekord NRW unterstuetzen")}>Projekt unterstützen <span aria-hidden="true">&#8594;</span></a>
         <Link className="text-button" href="/supporters">Alle, die uns unterstützen <span aria-hidden="true">&#8594;</span></Link>
       </div>
     </section>

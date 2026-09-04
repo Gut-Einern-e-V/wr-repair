@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { defaultLotteryOrganizer } from "@/lib/organisation";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { useJsonResource } from "@/lib/use-json-resource";
 import type { PrizeView, WinnerView } from "@/lib/lottery-store";
@@ -98,7 +99,7 @@ function OrganizerCard({
       }
 
       onStatus("Der Veranstalter des Gewinnspiels wurde gespeichert.");
-      onSaved({ lotteryOrganizer: organizer, stored: { ...settings.stored, lotteryOrganizer: Boolean(organizer.name?.trim()) } });
+      onSaved({ lotteryOrganizer: organizer, stored: { ...settings.stored, lotteryOrganizer: Boolean(organizer.name.trim()) } });
     } finally {
       setIsSaving(false);
     }
@@ -108,13 +109,13 @@ function OrganizerCard({
     <section className="admin-card" aria-labelledby="organizer-heading">
       <div className="admin-card-head">
         <h3 id="organizer-heading">Veranstalter</h3>
-        <span className="section-index">{settings.stored.lotteryOrganizer ? "Eingetragen" : "Steht noch aus"}</span>
+        <span className="section-index">{settings.stored.lotteryOrganizer ? "Eingetragen" : "Vorgabe"}</span>
       </div>
-      <p>Diese Angaben stehen in den Teilnahmebedingungen auf <Link href="/gewinnspiel">/gewinnspiel</Link>. Solange sie leer sind, schreibt die Seite offen, dass der Veranstalter noch nicht feststeht – sie erfindet nichts.</p>
+      <p>Diese Angaben stehen in den Teilnahmebedingungen auf <Link href="/gewinnspiel">/gewinnspiel</Link>. Ein Feld, das du leerst, fällt auf die Vorgabe zurück – das ist {defaultLotteryOrganizer.name}, {defaultLotteryOrganizer.address}, {defaultLotteryOrganizer.email}. Leer bleibt keines: Ein Gewinnspiel ohne benannten Veranstalter gibt es nicht.</p>
       <form className="campaign-form" onSubmit={save}>
-        <label>Name<input maxLength={200} value={organizer.name ?? ""} placeholder="z. B. CSCP gGmbH" onChange={(event) => setOrganizer({ ...organizer, name: event.target.value })} /></label>
-        <label>Anschrift<input maxLength={300} value={organizer.address ?? ""} placeholder="Straße, PLZ Ort" onChange={(event) => setOrganizer({ ...organizer, address: event.target.value })} /></label>
-        <label>Kontaktadresse<input type="email" maxLength={200} value={organizer.email ?? ""} placeholder="noch offen" onChange={(event) => setOrganizer({ ...organizer, email: event.target.value })} /></label>
+        <label>Name<input maxLength={200} value={organizer.name} placeholder={defaultLotteryOrganizer.name} onChange={(event) => setOrganizer({ ...organizer, name: event.target.value })} /></label>
+        <label>Anschrift<input maxLength={300} value={organizer.address} placeholder={defaultLotteryOrganizer.address} onChange={(event) => setOrganizer({ ...organizer, address: event.target.value })} /></label>
+        <label>Kontaktadresse<input type="email" maxLength={200} value={organizer.email} placeholder={defaultLotteryOrganizer.email} onChange={(event) => setOrganizer({ ...organizer, email: event.target.value })} /></label>
         <button className="button button-primary" type="submit" disabled={isSaving}>{isSaving ? "Speichert ..." : "Veranstalter speichern"}</button>
       </form>
     </section>
@@ -257,7 +258,7 @@ export default function LotteryPanel({
         <div className="admin-card-head"><h3 id="exclusions-heading">Ausschlussliste</h3><span className="section-index">{data?.exclusions.length ?? 0} Einträge</span></div>
         <p>Das Projektteam und alle, die an der Durchführung mitwirken, können nicht gewinnen – so steht es in den Teilnahmebedingungen. Wer hier steht, wird bei der Ziehung übersprungen. Eine ganze Adresse (<code>anna@example.org</code>) oder ein ganzes Haus (<code>@example.org</code>).</p>
         <form className="campaign-form" onSubmit={addExclusion}>
-          <label>Adresse oder Domain<input value={newPattern} maxLength={320} required placeholder="@gut-einern.org" onChange={(event) => setNewPattern(event.target.value)} /></label>
+          <label>Adresse oder Domain<input value={newPattern} maxLength={320} required placeholder="@cscp.org" onChange={(event) => setNewPattern(event.target.value)} /></label>
           <label>Notiz<input value={newNote} maxLength={200} placeholder="z. B. Projektteam" onChange={(event) => setNewNote(event.target.value)} /></label>
           <button className="button button-secondary" type="submit" disabled={busy === "exclusion"}>{busy === "exclusion" ? "Speichert ..." : "Ausschluss hinzufügen"}</button>
         </form>

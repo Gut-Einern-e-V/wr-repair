@@ -1,6 +1,7 @@
 import { getAppSettings } from "@/lib/app-settings";
 import { getStoryTeasers } from "@/lib/stories";
 import { getSiteUrl } from "@/lib/share";
+import { CONTACT_EMAIL, circularWeek, operator, operatorAddressLine } from "@/lib/organisation";
 
 /**
  * /llms.txt (Issue #67).
@@ -38,7 +39,7 @@ export async function GET() {
 
   const body = `# Reparaturrekord NRW
 
-> Ein Weltrekordversuch der FAB Region Bergisches Land: Einen Monat lang zaehlt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag haelt. Wer etwas repariert hat, traegt es mit Foto und ein paar Angaben ein; nach der Pruefung durch die Moderation zaehlt der Beitrag.
+> Ein Weltrekordversuch der ${circularWeek.name}, organisiert vom ${operator.shortName} und umgesetzt mit der FAB Region Bergisches Staedtedreieck: Einen Monat lang zaehlt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag haelt. Wer etwas repariert hat, traegt es mit Foto und ein paar Angaben ein; nach der Pruefung durch die Moderation zaehlt der Beitrag.
 
 ${campaignLine(campaign.status, campaign.startAt, campaign.endAt)} Das Ziel liegt bei ${settings.recordGoal.toLocaleString("de-DE")} gezaehlten Reparaturen.
 
@@ -62,7 +63,7 @@ ${stories.length ? stories.map((story) => `- [${story.title}](${siteUrl}/stories
 ## Rechtliches
 
 - [Datenschutz](${siteUrl}/privacy): Welche Daten erhoben werden und wie mit Ortsangaben umgegangen wird.
-- [Impressum](${siteUrl}/imprint): Verantwortlich ist die FAB Region Bergisches Land.
+- [Impressum](${siteUrl}/imprint): Verantwortlich ist das ${operator.shortName}, ${operator.legalName}, ${operatorAddressLine}. Kontakt: ${CONTACT_EMAIL}.
 - [Barrierefreiheit](${siteUrl}/accessibility): Erklaerung zur Barrierefreiheit der Seite.
 `;
 

@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { FESTIVAL_DATE_TEXT, FestivalFacts, FestivalNav, FestivalPending } from "../festival-chrome";
 
-const CONTACT = "mailto:mail@gut-einern.org?subject=Repair%20%26%20Share%20Festival%20-%20Initiative";
+const CONTACT = mailto(CONTACT_EMAIL, "Repair & Share Festival - Initiative");
 
 export const metadata = {
   title: "Festival für Initiativen",
@@ -95,7 +96,7 @@ export default function FestivalInitiativesPage() {
       <div>
         <p>Das Festival wird von der FAB Region Bergisches Städtedreieck zusammen mit der Utopiastadt organisiert. Für alles, was mit eurer Teilnahme zu tun hat, schreibt uns direkt.</p>
         <p className="link-row">
-          <a className="text-button" href={CONTACT}>mail@gut-einern.org <span aria-hidden="true">&#8594;</span></a>
+          <a className="text-button" href={CONTACT}>{CONTACT_EMAIL} <span aria-hidden="true">&#8594;</span></a>
           <a className="text-button" href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region <span aria-hidden="true">&#8599;</span></a>
         </p>
       </div>

@@ -6,6 +6,7 @@ import { ShareButton } from "@/components/share-button";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { getPublicRepairStatus } from "@/lib/repair-status";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
+import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { buildRepairPath, buildRepairUrl, buildShareText } from "@/lib/share";
 
 export const dynamic = "force-dynamic";
@@ -62,7 +63,7 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
         {repair.imageUrl && (
           <p className="form-notice">
             Soll das Foto nicht mehr zu sehen sein – etwa weil jemand darauf erkennbar ist?{" "}
-            <a href={`mailto:mail@gut-einern.org?subject=Foto%20loeschen%20(${repair.id})`}>Schreib uns</a>, wir löschen es.
+            <a href={mailto(CONTACT_EMAIL, `Foto loeschen (${repair.id})`)}>Schreib uns</a>, wir löschen es.
             Deine Reparatur zählt danach weiter.
           </p>
         )}
@@ -84,7 +85,7 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
         <p className="form-notice">Das eingereichte Foto wurde dabei gelöscht. Wir bewahren keine Bilder auf, die nicht veröffentlicht werden.</p>
         <div className="repair-status-actions">
           <Link className="button button-primary" href="/mitmachen">Neue Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
-          <a className="text-button" href="mailto:mail@gut-einern.org?subject=Reparaturrekord%20NRW%20Einreichung">Kontakt aufnehmen <span aria-hidden="true">&#8594;</span></a>
+          <a className="text-button" href={mailto(CONTACT_EMAIL, "Reparaturrekord NRW Einreichung")}>Kontakt aufnehmen <span aria-hidden="true">&#8594;</span></a>
         </div>
       </> : <>
         <p className="repair-status-lead">Danke! Deine Reparatur liegt bei der Moderation. Sobald sie freigegeben ist, zählt sie zum Rekord und du kannst sie hier teilen.</p>

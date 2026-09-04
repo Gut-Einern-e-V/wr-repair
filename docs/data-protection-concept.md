@@ -134,7 +134,9 @@ Daten an ein Schriftennetzwerk gehen.
 
 ## Verbindliche Vorab-Checkliste
 
-- [ ] Verantwortliche Stelle, Datenschutzkontakt und Kontaktweg fuer Loeschanfragen festlegen.
+- [x] Verantwortliche Stelle und Kontaktweg festgelegt (Issue #78): Collaborating Centre on Sustainable
+      Consumption and Production gGmbH (CSCP), Hagenauer Str. 30, 42107 Wuppertal, reparatur@cscp.org.
+      Offen bleibt, ob ein eigener Datenschutzkontakt benannt wird.
 - [ ] Oeffentliche Seiten fuer Datenschutz, Impressum und Barrierefreiheit rechtlich freigeben.
 - [ ] Aufbewahrungsfristen beschliessen und einen automatischen Loeschprozess implementieren.
 - [ ] AVV, Regionen und Sicherheitsdokumentation von Vercel, Supabase und Friendly Captcha pruefen.

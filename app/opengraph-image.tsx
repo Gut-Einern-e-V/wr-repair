@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { circularWeek } from "@/lib/organisation";
 
 /**
  * Vorschaubild fuer geteilte Links (Issue #67).
@@ -45,7 +46,7 @@ export default function OpengraphImage() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", color: INK, fontSize: 28 }}>
           <span style={{ maxWidth: 760 }}>Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein.</span>
-          <span style={{ fontSize: 22, letterSpacing: 2, textTransform: "uppercase" }}>FAB Region</span>
+          <span style={{ fontSize: 22, letterSpacing: 2, textTransform: "uppercase" }}>{circularWeek.name}</span>
         </div>
       </div>
     ),

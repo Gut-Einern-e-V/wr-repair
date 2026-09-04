@@ -3,6 +3,7 @@ import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { getAppSettings } from "@/lib/app-settings";
 import { publicLimit } from "@/lib/rate-limit";
 import { getSiteUrl } from "@/lib/share";
+import { DEVELOPER_EMAIL, mailto } from "@/lib/organisation";
 import { ApiExamples } from "./examples";
 
 export const metadata = {
@@ -77,7 +78,7 @@ export default async function ApiDocsPage() {
       <section>
         <h2>Worum es geht</h2>
         <p>Alles, was der <Link href="/stats">Live-Stand</Link> anzeigt, ist über offene HTTP-Routen abrufbar &ndash; ohne API-Key, ohne Anmeldung, ohne Registrierung. Die Bühnenseite läuft im Browser: Was sie lesen kann, kann jede lesen. Deshalb steht hier, worauf du dich verlassen darfst.</p>
-        <p>Gedacht ist das für gebaute Anzeigen: ein ESP32 mit LED-Matrix im Repair Café, ein Raspberry Pi am Fernseher im Foyer, ein Zähler auf einer eigenen Website. Wenn du etwas damit gebaut hast, freuen wir uns über eine Nachricht an <a href="mailto:mail@gut-einern.org?subject=Anzeige%20mit%20der%20Reparaturrekord-Schnittstelle">mail@gut-einern.org</a>.</p>
+        <p>Gedacht ist das für gebaute Anzeigen: ein ESP32 mit LED-Matrix im Repair Café, ein Raspberry Pi am Fernseher im Foyer, ein Zähler auf einer eigenen Website. Wenn du etwas damit gebaut hast, freuen wir uns über eine Nachricht an <a href={mailto(DEVELOPER_EMAIL, "Anzeige mit der Reparaturrekord-Schnittstelle")}>{DEVELOPER_EMAIL}</a>.</p>
         <p>Die vollständigen Feldtabellen stehen im Repository: <a href={`${REPO}/public-api.md`} target="_blank" rel="noreferrer">Übersicht</a>, <a href={`${REPO}/hardware-display-api.md`} target="_blank" rel="noreferrer">/api/stats für Displays</a> und <a href={`${REPO}/dashboard-api.md`} target="_blank" rel="noreferrer">/api/dashboard für eigene Visualisierungen</a>.</p>
       </section>
 
@@ -166,7 +167,7 @@ export default async function ApiDocsPage() {
             : <> Aktuell ist er ausgeschaltet, es gelten die Werte in der Tabelle oben.</>}
         </p>
         <p>Für dein Gerät heißt das: <strong>auf <code>429</code> vorbereitet sein</strong>, auch wenn es monatelang nicht vorkommt. Wer im Fünf-Minuten-Takt fragt, merkt vom Schonmodus ohnehin nichts.</p>
-        <p><strong>Feste Anzeigen können freigegeben werden.</strong> Ein Rechner am Beamer oder ein Display im Foyer, das dauerhaft läuft, soll nie anschlagen &ndash; solche Adressen lassen sich im Backend von jeder Grenze ausnehmen, einzeln (<code>203.0.113.4</code>) oder als Präfix des Anschlusses (<code>203.0.113.0/24</code>, <code>2001:db8::/32</code>). Wenn du so etwas aufbaust, schreib uns die Adresse an <a href="mailto:mail@gut-einern.org?subject=IP-Freigabe%20f%C3%BCr%20eine%20Anzeige">mail@gut-einern.org</a>. Die Freigabe gilt nur fürs Lesen; die Einreichung bleibt für alle gleich gedrosselt.</p>
+        <p><strong>Feste Anzeigen können freigegeben werden.</strong> Ein Rechner am Beamer oder ein Display im Foyer, das dauerhaft läuft, soll nie anschlagen &ndash; solche Adressen lassen sich im Backend von jeder Grenze ausnehmen, einzeln (<code>203.0.113.4</code>) oder als Präfix des Anschlusses (<code>203.0.113.0/24</code>, <code>2001:db8::/32</code>). Wenn du so etwas aufbaust, schreib uns die Adresse an <a href={mailto(DEVELOPER_EMAIL, "IP-Freigabe für eine Anzeige")}>{DEVELOPER_EMAIL}</a>. Die Freigabe gilt nur fürs Lesen; die Einreichung bleibt für alle gleich gedrosselt.</p>
         <div className="api-table-scroll">
           <table className="api-table">
             <thead><tr><th>Anzeige</th><th>Empfohlener Takt</th></tr></thead>
