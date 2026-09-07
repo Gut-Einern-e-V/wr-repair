@@ -39,7 +39,7 @@ export default function OpenSourcePage() {
       </section>
       <section>
         <h2>Bevor eine Kopie online geht</h2>
-        <p>Eine Kopie ist schnell aufgesetzt, aber nicht ohne Weiteres startklar. Anzupassen sind mindestens: die verantwortliche Organisation, alle Rechtstexte, die Löschfristen für Fotos und Standortdaten, sämtliche Zugangsdaten und Schlüssel sowie die Teilnahmebedingungen. Die Region selbst – Name, Grenzen, Prüfung der Herkunft – steht in der Konfiguration und muss nicht im Code geändert werden.</p>
+        <p>Eine Kopie ist schnell aufgesetzt, aber nicht ohne Weiteres startklar. Anzupassen sind mindestens: die verantwortliche Organisation, alle Rechtstexte, die Löschfristen für Fotos und Standortdaten sowie die Teilnahmebedingungen. Die Region selbst – Name, Grenzen, Prüfung der Herkunft – steht in der Konfiguration und muss nicht im Code geändert werden.</p>
       </section>
       <section>
         <h2>Nur die Zahlen, nicht der ganze Code</h2>

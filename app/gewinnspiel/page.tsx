@@ -23,9 +23,11 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
  * aber eine Vorgabe im Quelltext - das CSCP, das den Rekordversuch im Rahmen
  * der Circular Week 2026 ausrichtet.
  *
- * Die Teilnahmebedingungen sind wie Impressum und Datenschutz formuliert: So
- * genau wie moeglich, mit einem sichtbaren Hinweis, dass sie vor dem
- * oeffentlichen Start rechtlich freigegeben werden muessen.
+ * Die Teilnahmebedingungen stehen hier als geltende Bedingungen, nicht als
+ * Entwurf (Issue #94): Der frueher angehaengte Abschnitt "Rechtlicher
+ * Pruefstand" war eine Notiz ans eigene Team - eine Teilnahmebedingung, die
+ * sich selbst fuer unfertig erklaert, bindet niemanden. Interne Vorbehalte
+ * gehoeren in Issues und in docs/, nicht auf eine oeffentliche Seite.
  */
 
 export const metadata = {
@@ -225,10 +227,6 @@ export default async function LotteryPage() {
         <section>
           <h3>Sonstiges</h3>
           <p>Der Rechtsweg ist ausgeschlossen. Das Gewinnspiel kann aus wichtigem Grund – etwa bei technischen Störungen oder Manipulationsversuchen – geändert oder beendet werden. Es steht in keiner Verbindung zu einem sozialen Netzwerk oder einer Plattform.</p>
-        </section>
-        <section>
-          <h3>Rechtlicher Prüfstand</h3>
-          <p>Diese Bedingungen sind ein Entwurf des Projektteams. Vor dem öffentlichen Start müssen sie durch die verantwortliche Organisation rechtlich freigegeben werden – insbesondere Altersgrenze, Teilnahmeausschlüsse, Fristen und die Angaben zu den gestifteten Preisen.</p>
         </section>
       </div>
     </section>
