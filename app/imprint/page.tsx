@@ -8,6 +8,12 @@ export const metadata = { title: "Impressum" };
    Einern e.V. dorthin. Die Pflichtangaben stehen in lib/organisation.ts und
    sind aus https://www.cscp.org/imprint/ uebernommen.
 
+   Was hier nicht mehr steht: ein Abschnitt "Rechtlicher Pruefstand", der die
+   eigenen Pflichtangaben unter Vorbehalt stellte (Issue #94). Ein Impressum,
+   das sich selbst fuer ungeprueft erklaert, erfuellt § 5 DDG nicht - und der
+   Vorbehalt war eine Notiz ans eigene Team. Solche Vorbehalte gehoeren in
+   Issues und nach docs/, nicht auf eine oeffentliche Seite.
+
    Der Abschnitt "Wer hinter dem Reparaturrekord steht" ist keine
    Pflichtangabe, gehoert aber hierher: Drei Organisationen tragen drei
    verschiedene Rollen, und ohne die Aufzaehlung liest sich das Impressum so,
@@ -49,10 +55,6 @@ export default function ImprintPage() {
     <section>
       <h2>Urheberrecht</h2>
       <p>Texte, Gestaltung und selbst erstellte Inhalte dieser Anwendung dürfen nur im Rahmen der jeweils angegebenen Lizenz oder mit Zustimmung der Rechteinhabenden weiterverwendet werden. Inhalte Dritter, insbesondere Logos und Bilder, sind als solche kenntlich gemacht und unterliegen dem Urheberrecht der jeweiligen Rechteinhabenden.</p>
-    </section>
-    <section>
-      <h2>Rechtlicher Prüfstand</h2>
-      <p>Die Pflichtangaben sind aus dem Impressum des {operator.shortName} übernommen. Vor dem öffentlichen Start müssen sie durch die verantwortliche Organisation für dieses Angebot bestätigt werden – insbesondere, ob Vertretung, Register- und Steuerangaben unverändert gelten und ob eine eigene Kontakttelefonnummer für den Reparaturrekord angegeben werden soll.</p>
     </section>
   </article><SiteFooter /></main>;
 }
