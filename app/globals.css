@@ -44,7 +44,12 @@ button { cursor: pointer; }
 .site-header, .hero-grid, .how-it-works, .category-section, .stories-section, .project-banner, .site-footer { max-width: 1240px; margin: 0 auto; }
 .site-header { min-height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: var(--line); }
 .brand { display: flex; gap: 9px; align-items: center; text-decoration: none; font: 500 12px/1.08 var(--mono); letter-spacing: .02em; text-transform: uppercase; }
-.brand-mark { display: grid; place-items: center; width: 38px; height: 38px; background: var(--red); color: var(--paper); font-size: 24px; }
+/* Nur die Form. Farbe, Schnitt und Drehung stehen weiter unten im Abschnitt
+   "Wortmarke" - hier standen sie einmal auch, in Rot, und diese toten
+   Deklarationen haben die Teilbilder in app/opengraph-image.tsx und
+   app/reparatur/[id]/ jahrelang fehlgeleitet: Sie haben das Rot uebernommen,
+   das auf der Seite selbst nie zu sehen war. */
+.brand-mark { display: grid; place-items: center; width: 38px; height: 38px; font-size: 24px; }
 nav { display: flex; gap: 25px; font: 500 12px var(--mono); text-transform: uppercase; }
 nav a, .header-link { text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .header-link { font: 500 12px var(--mono); text-transform: uppercase; }

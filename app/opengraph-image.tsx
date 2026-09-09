@@ -20,9 +20,8 @@ export const contentType = "image/png";
 
 const INK = "#101626";
 const BG = "#efece5";
-const PAPER = "#f7f5f0";
 const MINT = "#95d4bb";
-const RED = "#ec424c";
+const YELLOW = "#ffc432";
 
 /* ImageResponse kennt keine Standardschrift mit Umlauten in Wunschqualitaet,
    aber Satzbau und Zeichen hier sind einfach genug fuer die eingebaute. */
@@ -31,7 +30,9 @@ export default function OpengraphImage() {
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: BG, padding: "56px 64px", border: `12px solid ${INK}` }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 84, height: 84, background: RED, color: PAPER, fontSize: 56, fontWeight: 700 }}>R</div>
+          {/* Gelb und leicht gedreht wie im Kopf der Website; rot war die
+              Marke in einer alten Fassung des Stylesheets. */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 84, height: 84, background: YELLOW, color: INK, fontSize: 50, fontWeight: 900, transform: "rotate(-2deg)" }}>R</div>
           <div style={{ display: "flex", flexDirection: "column", color: INK, fontSize: 26, letterSpacing: 2, textTransform: "uppercase", lineHeight: 1.15 }}>
             <span>Reparaturrekord</span>
             <span>NRW</span>
@@ -39,8 +40,13 @@ export default function OpengraphImage() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 12, marginBottom: 8 }}>
+          {/* Ink auf Mint, wie `.sticker-head .sticker` im Stylesheet. Hier
+              stand roter Text - aus derselben alten Fassung wie die rote
+              Wortmarke darueber. Rot ist im Projekt fuer Fehler und
+              Ablehnungen reserviert und traegt laut Styleguide keinen
+              Fliesstext (design.md, Abschnitt 4). */}
           {["Gemeinsam zum", "Reparatur-", "Weltrekord"].map((line) => (
-            <div key={line} style={{ display: "flex", background: MINT, color: RED, padding: "6px 18px", fontSize: 72, fontWeight: 700, lineHeight: 1.05 }}>{line}</div>
+            <div key={line} style={{ display: "flex", background: MINT, color: INK, padding: "6px 18px", fontSize: 72, fontWeight: 700, lineHeight: 1.05 }}>{line}</div>
           ))}
         </div>
 

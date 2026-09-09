@@ -44,10 +44,8 @@ export const runtime = "nodejs";
 /** Farben aus dem Styleguide; hier als Literale, weil Satori keine CSS-Variablen kennt. */
 const ink = "#101626";
 const bg = "#efece5";
-const paper = "#f7f5f0";
 const yellow = "#ffc432";
 const mint = "#95d4bb";
-const red = "#ec424c";
 
 /**
  * Dasselbe feine Papierraster wie auf der Website und auf dem Aufsteller
@@ -204,7 +202,11 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: layout.brandSize, fontWeight: 700, letterSpacing: 2 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: layout.markSize, height: layout.markSize, background: red, color: paper, fontSize: layout.markSize * 0.68 }}>R</div>
+            {/* Gelb, gesetztes R, leicht gedreht - genau die Wortmarke aus
+                dem Kopf der Website. Rot war sie zuletzt in einer alten
+                Fassung des Stylesheets; im Projekt ist Rot fuer Fehler und
+                Ablehnungen reserviert (design.md, Abschnitt 4). */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: layout.markSize, height: layout.markSize, background: groundSpec.mark, color: groundSpec.markText, fontSize: layout.markSize * 0.6, fontWeight: 900, transform: "rotate(-2deg)" }}>R</div>
             REPARATURREKORD NRW
           </div>
 

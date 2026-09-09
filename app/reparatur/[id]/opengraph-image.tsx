@@ -51,7 +51,9 @@ export default async function RepairShareImage({ params }: ImageProps) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: 30, fontWeight: 700, letterSpacing: 2 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 64, height: 64, background: "#ec424c", color: "#f7f5f0", fontSize: 44 }}>R</div>
+          {/* Gelb und leicht gedreht wie im Kopf der Website; rot war die
+              Marke in einer alten Fassung des Stylesheets. */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 64, height: 64, background: "#ffc432", color: "#101626", fontSize: 38, fontWeight: 900, transform: "rotate(-2deg)" }}>R</div>
           REPARATURREKORD NRW
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>

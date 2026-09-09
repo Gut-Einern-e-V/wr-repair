@@ -82,13 +82,23 @@ export type GroundSpec = {
   /** Flaeche der Aufkleber-Ueberschrift. */
   sticker: string;
   stickerText: string;
+  /**
+   * Das gesetzte "R" der Wortmarke.
+   *
+   * Gelb mit Ink-Text, so wie im Kopf der Website (siehe `.brand-mark` im
+   * Abschnitt "Wortmarke" in app/globals.css). Auf gelbem Grund waere es
+   * unsichtbar, dort tauschen Flaeche und Schrift die Rollen - dasselbe
+   * Farbpaar, nur umgekehrt.
+   */
+  mark: string;
+  markText: string;
 };
 
 export const shareVisualGrounds: Record<ShareVisualGround, GroundSpec> = {
-  paper: { ground: "#f7f5f0", text: "#101626", muted: "rgba(16, 22, 38, .72)", sticker: "#95d4bb", stickerText: "#101626" },
-  mint: { ground: "#b4e0cc", text: "#101626", muted: "rgba(16, 22, 38, .72)", sticker: "#f7f5f0", stickerText: "#101626" },
-  yellow: { ground: "#f4bd4c", text: "#101626", muted: "rgba(16, 22, 38, .72)", sticker: "#f7f5f0", stickerText: "#101626" },
-  ink: { ground: "#101626", text: "#efece5", muted: "rgba(239, 236, 229, .72)", sticker: "#ffc432", stickerText: "#101626" },
+  paper: { ground: "#f7f5f0", text: "#101626", muted: "rgba(16, 22, 38, .72)", sticker: "#95d4bb", stickerText: "#101626", mark: "#ffc432", markText: "#101626" },
+  mint: { ground: "#b4e0cc", text: "#101626", muted: "rgba(16, 22, 38, .72)", sticker: "#f7f5f0", stickerText: "#101626", mark: "#ffc432", markText: "#101626" },
+  yellow: { ground: "#f4bd4c", text: "#101626", muted: "rgba(16, 22, 38, .72)", sticker: "#f7f5f0", stickerText: "#101626", mark: "#101626", markText: "#ffc432" },
+  ink: { ground: "#101626", text: "#efece5", muted: "rgba(239, 236, 229, .72)", sticker: "#ffc432", stickerText: "#101626", mark: "#ffc432", markText: "#101626" },
 };
 
 export const shareVisualGroundOrder: ShareVisualGround[] = ["paper", "mint", "yellow", "ink"];
