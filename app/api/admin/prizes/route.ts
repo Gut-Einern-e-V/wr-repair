@@ -1,19 +1,32 @@
-import { requireSuperadmin } from "@/lib/admin-auth";
+import { revalidatePath } from "next/cache";
+import { requireAdmin } from "@/lib/admin-auth";
 import { readPrizes } from "@/lib/lottery-store";
-import { publicPrizeLogoUrl } from "@/lib/prize-logo";
+import { publicPrizeLogoUrl, publicPrizePhotoUrl } from "@/lib/prize-logo";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 /**
- * Die Preise des Gewinnspiels pflegen (Issue #45).
+ * Die Preise des Gewinnspiels pflegen (Issues #45, #98, #99).
  *
  * Sie werden gestiftet und stehen oft erst kurz vor dem Start fest - deshalb
- * eine Verwaltung im Backend und keine Liste im Quelltext. Nur Superadmins:
- * Ein Preis ist eine oeffentliche Zusage, und wer sie geben darf, ist dieselbe
- * kleine Gruppe, die auch die Ziehung ausloest.
+ * eine Verwaltung im Backend und keine Liste im Quelltext.
+ *
+ * Seit Issue #99 duerfen Admins das und nicht nur Superadmins: Ein Preis kommt
+ * waehrend der Aktion herein, oft telefonisch, und muss gleich eingetragen
+ * werden koennen. Die Ziehung bleibt Superadmin-Sache - sie ist der Teil, den
+ * niemand zuruecknehmen kann, ohne dass es auffaellt.
+ *
+ * Die Reihenfolge steht nicht mehr in diesem Formular, sondern hinter zwei
+ * Pfeilen je Preis (siehe order/route.ts). Ein neuer Preis stellt sich hinten
+ * an: Wer einen eintraegt, will nicht, dass er die schon sortierte Liste
+ * durcheinanderbringt.
  */
 
 const logoTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"]);
-const maxLogoBytes = 1024 * 1024;
+/* Ein Foto ist ein Foto - ein SVG waere hier keines, und Fremdinhalt in einer
+   Datei, die der Browser als Dokument ausfuehrt, hat auf einer oeffentlichen
+   Seite nichts zu suchen. */
+const photoTypes = new Set(["image/png", "image/jpeg", "image/webp"]);
+const maxImageBytes = 1024 * 1024;
 const sponsorKinds = new Set(["organisation", "person"]);
 
 function validWebsite(value: string) {
@@ -33,14 +46,13 @@ type PrizeFields = {
   sponsor_website: string | null;
   quantity: number;
   is_main: boolean;
-  sort_order: number;
 };
 
 /**
  * Die Angaben aus dem Formular pruefen.
  *
- * FormData statt JSON, weil das Logo mitkommt - dieselbe Form wie bei den
- * Partnerlogos. Alles ausser dem Titel ist freiwillig: Ein Preis, dessen
+ * FormData statt JSON, weil Logo und Foto mitkommen - dieselbe Form wie bei
+ * den Partnerlogos. Alles ausser dem Titel ist freiwillig: Ein Preis, dessen
  * Stifter noch nicht genannt werden moechte, muss sich trotzdem eintragen
  * lassen.
  */
@@ -75,11 +87,6 @@ function readFields(form: FormData): { fields: PrizeFields } | { error: string }
     return { error: "Die Anzahl muss eine ganze Zahl zwischen 1 und 999 sein." };
   }
 
-  const sortOrder = Number.parseInt(String(form.get("sortOrder") ?? "0"), 10);
-  if (!Number.isInteger(sortOrder) || Math.abs(sortOrder) > 10_000) {
-    return { error: "Die Reihenfolge muss eine ganze Zahl sein." };
-  }
-
   return {
     fields: {
       title,
@@ -89,25 +96,61 @@ function readFields(form: FormData): { fields: PrizeFields } | { error: string }
       sponsor_website: sponsorWebsite || null,
       quantity,
       is_main: String(form.get("isMain") ?? "") === "true",
-      sort_order: sortOrder,
     },
   };
 }
 
-async function storeLogo(supabase: ReturnType<typeof createSupabaseAdminClient>, prizeId: string, logo: File) {
-  if (!logoTypes.has(logo.type) || logo.size === 0 || logo.size > maxLogoBytes) {
-    return { path: null, error: "Das Logo muss ein PNG, WebP, JPG oder SVG bis 1 MB sein." };
+type Slot = { bucket: "prize-logos" | "prize-photos"; field: "logo" | "photo"; column: "logo_path" | "image_path"; types: Set<string>; label: string };
+
+/* Logo und Foto laufen durch denselben Ablauf, nur in verschiedene Eimer.
+   Zweimal derselbe Code waere zwei Stellen, an denen die Groessengrenze steht
+   - und beim naechsten Mal stimmt eine von beiden nicht mehr. */
+const slots: Slot[] = [
+  { bucket: "prize-logos", field: "logo", column: "logo_path", types: logoTypes, label: "Das Logo muss ein PNG, WebP, JPG oder SVG bis 1 MB sein." },
+  { bucket: "prize-photos", field: "photo", column: "image_path", types: photoTypes, label: "Das Foto muss ein PNG, WebP oder JPG bis 1 MB sein." },
+];
+
+async function storeImage(supabase: ReturnType<typeof createSupabaseAdminClient>, slot: Slot, prizeId: string, file: File) {
+  if (!slot.types.has(file.type) || file.size === 0 || file.size > maxImageBytes) {
+    return { path: null, error: slot.label };
   }
 
-  const extension = logo.name.split(".").pop()?.toLowerCase() || "png";
+  const extension = file.name.split(".").pop()?.toLowerCase() || "png";
   const path = `${prizeId}-${Date.now()}.${extension}`;
-  const { error } = await supabase.storage.from("prize-logos").upload(path, logo, { contentType: logo.type, upsert: false });
-  if (error) return { path: null, error: "Das Logo konnte nicht gespeichert werden." };
+  const { error } = await supabase.storage.from(slot.bucket).upload(path, file, { contentType: file.type, upsert: false });
+  if (error) return { path: null, error: `${slot.field === "logo" ? "Das Logo" : "Das Foto"} konnte nicht gespeichert werden.` };
   return { path, error: null };
 }
 
+/**
+ * Wo der neue Preis in seiner Gruppe landet: hinten.
+ *
+ * Hauptpreise und kleine Preise sind zwei Listen (`is_main desc, sort_order`),
+ * jede mit eigener Zaehlung.
+ */
+async function nextSortOrder(supabase: ReturnType<typeof createSupabaseAdminClient>, isMain: boolean) {
+  const { data } = await supabase
+    .from("lottery_prizes")
+    .select("sort_order")
+    .eq("is_main", isMain)
+    .order("sort_order", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const highest = Number(data?.sort_order ?? -1);
+  return Number.isFinite(highest) ? highest + 1 : 0;
+}
+
+/* Die Gewinnspielseite liegt fuenf Minuten im Zwischenspeicher (siehe
+   app/gewinnspiel/page.tsx). Wer einen Preis eintraegt, schaut aber sofort
+   nach, ob er dort steht - und hielt den alten Stand fuer einen Fehler
+   (Issue #99). */
+function refreshPublicPage() {
+  revalidatePath("/gewinnspiel");
+}
+
 export async function GET() {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
   }
@@ -117,11 +160,17 @@ export async function GET() {
     return Response.json({ error: "Die Preise konnten nicht geladen werden. Wurde die Migration ausgefuehrt?", detail: error?.message }, { status: 502 });
   }
 
-  return Response.json({ prizes: rows.map((prize) => ({ ...prize, logoUrl: publicPrizeLogoUrl(prize.logo_path) })) });
+  return Response.json({
+    prizes: rows.map((prize) => ({
+      ...prize,
+      logoUrl: publicPrizeLogoUrl(prize.logo_path),
+      photoUrl: publicPrizePhotoUrl(prize.image_path),
+    })),
+  });
 }
 
 export async function POST(request: Request) {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
   }
@@ -134,28 +183,36 @@ export async function POST(request: Request) {
 
   const supabase = createSupabaseAdminClient();
   const prizeId = crypto.randomUUID();
-  const logo = form.get("logo");
-  let logoPath: string | null = null;
+  const paths: Partial<Record<Slot["column"], string | null>> = {};
+  const uploaded: { bucket: Slot["bucket"]; path: string }[] = [];
 
-  if (logo instanceof File && logo.size > 0) {
-    const stored = await storeLogo(supabase, prizeId, logo);
-    if (!stored.path) return Response.json({ error: stored.error }, { status: 400 });
-    logoPath = stored.path;
+  for (const slot of slots) {
+    const file = form.get(slot.field);
+    if (!(file instanceof File) || file.size === 0) continue;
+
+    const stored = await storeImage(supabase, slot, prizeId, file);
+    if (!stored.path) {
+      // Was schon oben liegt, gehoert niemandem mehr, wenn die Zeile ausfaellt.
+      for (const done of uploaded) await supabase.storage.from(done.bucket).remove([done.path]);
+      return Response.json({ error: stored.error }, { status: 400 });
+    }
+    paths[slot.column] = stored.path;
+    uploaded.push({ bucket: slot.bucket, path: stored.path });
   }
 
-  const { error } = await supabase.from("lottery_prizes").insert({ id: prizeId, ...parsed.fields, logo_path: logoPath });
+  const sortOrder = await nextSortOrder(supabase, parsed.fields.is_main);
+  const { error } = await supabase.from("lottery_prizes").insert({ id: prizeId, ...parsed.fields, ...paths, sort_order: sortOrder });
   if (error) {
-    // Ohne Zeile hat das Logo keinen Besitzer mehr - es waere sonst eine Datei,
-    // die niemand je wiederfindet.
-    if (logoPath) await supabase.storage.from("prize-logos").remove([logoPath]);
-    return Response.json({ error: "Der Preis konnte nicht gespeichert werden. Wurde die Migration ausgefuehrt?" }, { status: 502 });
+    for (const done of uploaded) await supabase.storage.from(done.bucket).remove([done.path]);
+    return Response.json({ error: "Der Preis konnte nicht gespeichert werden. Wurde die Migration ausgefuehrt?", detail: error.message }, { status: 502 });
   }
 
+  refreshPublicPage();
   return Response.json({ ok: true }, { status: 201 });
 }
 
 export async function PATCH(request: Request) {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
   }
@@ -172,37 +229,57 @@ export async function PATCH(request: Request) {
   const supabase = createSupabaseAdminClient();
   const { data: existing, error: readError } = await supabase
     .from("lottery_prizes")
-    .select("id, logo_path")
+    .select("id, logo_path, image_path")
     .eq("id", prizeId)
     .maybeSingle();
 
   if (readError) return Response.json({ error: "Der Preis konnte nicht gelesen werden." }, { status: 502 });
   if (!existing) return Response.json({ error: "Diesen Preis gibt es nicht (mehr)." }, { status: 404 });
 
-  const logo = form.get("logo");
-  let logoPath = existing.logo_path as string | null;
-  let replaced: string | null = null;
+  const paths: Partial<Record<Slot["column"], string | null>> = {};
+  /* Dateien, die nach dem Speichern weg koennen: die ersetzten und die
+     ausdruecklich entfernten. Geloescht wird erst, wenn die Zeile steht. */
+  const obsolete: { bucket: Slot["bucket"]; path: string }[] = [];
+  const added: { bucket: Slot["bucket"]; path: string }[] = [];
 
-  if (logo instanceof File && logo.size > 0) {
-    const stored = await storeLogo(supabase, prizeId, logo);
-    if (!stored.path) return Response.json({ error: stored.error }, { status: 400 });
-    replaced = logoPath;
-    logoPath = stored.path;
+  for (const slot of slots) {
+    const current = (existing as Record<string, unknown>)[slot.column] as string | null;
+    const file = form.get(slot.field);
+    const remove = String(form.get(`remove-${slot.field}`) ?? "") === "true";
+
+    if (file instanceof File && file.size > 0) {
+      const stored = await storeImage(supabase, slot, prizeId, file);
+      if (!stored.path) {
+        for (const done of added) await supabase.storage.from(done.bucket).remove([done.path]);
+        return Response.json({ error: stored.error }, { status: 400 });
+      }
+      paths[slot.column] = stored.path;
+      added.push({ bucket: slot.bucket, path: stored.path });
+      if (current) obsolete.push({ bucket: slot.bucket, path: current });
+      continue;
+    }
+
+    if (remove && current) {
+      paths[slot.column] = null;
+      obsolete.push({ bucket: slot.bucket, path: current });
+    }
   }
 
-  const { error } = await supabase.from("lottery_prizes").update({ ...parsed.fields, logo_path: logoPath }).eq("id", prizeId);
+  const { error } = await supabase.from("lottery_prizes").update({ ...parsed.fields, ...paths }).eq("id", prizeId);
   if (error) {
-    if (replaced !== null && logoPath) await supabase.storage.from("prize-logos").remove([logoPath]);
-    return Response.json({ error: "Der Preis konnte nicht gespeichert werden." }, { status: 502 });
+    for (const done of added) await supabase.storage.from(done.bucket).remove([done.path]);
+    return Response.json({ error: "Der Preis konnte nicht gespeichert werden.", detail: error.message }, { status: 502 });
   }
 
   // Erst wenn die neue Adresse in der Zeile steht, darf die alte Datei weg.
-  if (replaced) await supabase.storage.from("prize-logos").remove([replaced]);
+  for (const done of obsolete) await supabase.storage.from(done.bucket).remove([done.path]);
+
+  refreshPublicPage();
   return Response.json({ ok: true });
 }
 
 export async function DELETE(request: Request) {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
   }
@@ -226,10 +303,13 @@ export async function DELETE(request: Request) {
     return Response.json({ error: "Auf diesen Preis wurde bereits gezogen. Nimm zuerst die Ziehung zurueck." }, { status: 409 });
   }
 
-  const { data: prize } = await supabase.from("lottery_prizes").select("logo_path").eq("id", prizeId).maybeSingle();
+  const { data: prize } = await supabase.from("lottery_prizes").select("logo_path, image_path").eq("id", prizeId).maybeSingle();
   const { error } = await supabase.from("lottery_prizes").delete().eq("id", prizeId);
   if (error) return Response.json({ error: "Der Preis konnte nicht entfernt werden." }, { status: 502 });
 
   if (prize?.logo_path) await supabase.storage.from("prize-logos").remove([prize.logo_path as string]);
+  if (prize?.image_path) await supabase.storage.from("prize-photos").remove([prize.image_path as string]);
+
+  refreshPublicPage();
   return Response.json({ ok: true });
 }

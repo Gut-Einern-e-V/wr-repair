@@ -31,7 +31,10 @@ export default function AdminConsole({ email, roles, initialSettings }: { email:
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
 
-  const tabs: Tab[] = isSuperadmin ? ["status", "campaign", "team", "partners", "lottery"] : ["status", "campaign", "team", "partners"];
+  /* Die Verlosung stand nur Superadmins offen (Issue #99). Preise kommen aber
+     waehrend der Aktion herein und muessen gleich eingetragen werden - die
+     Ziehung selbst bleibt Superadmin-Sache, das regelt der Bereich selbst. */
+  const tabs: Tab[] = ["status", "campaign", "team", "partners", "lottery"];
 
   const onStatus = useCallback((message: string) => { setStatus(message); setError(""); }, []);
   const onError = useCallback((message: string) => { setError(message); setStatus(""); }, []);
@@ -83,7 +86,7 @@ export default function AdminConsole({ email, roles, initialSettings }: { email:
         {tab === "campaign" && <CampaignPanel settings={settings} onStatus={onStatus} onError={onError} onSaved={(next) => setSettings((current) => ({ ...current, ...next }))} />}
         {tab === "team" && <TeamSettings onStatus={onStatus} onError={onError} />}
         {tab === "partners" && <PartnerPanel onStatus={onStatus} onError={onError} />}
-        {tab === "lottery" && isSuperadmin && <LotteryPanel settings={settings} onSaved={(next) => setSettings((current) => ({ ...current, ...next }))} onStatus={onStatus} onError={onError} />}
+        {tab === "lottery" && <LotteryPanel settings={settings} canDraw={isSuperadmin} onSaved={(next) => setSettings((current) => ({ ...current, ...next }))} onStatus={onStatus} onError={onError} />}
       </div>
     </main>
   );

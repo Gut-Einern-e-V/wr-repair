@@ -1,4 +1,4 @@
-import { publicPrizeLogoUrl } from "./prize-logo";
+import { publicPrizeLogoUrl, publicPrizePhotoUrl } from "./prize-logo";
 import { eligibleEntries, normalizeEmail, openSlots, pickEntries, type LotteryEntry } from "./lottery";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -18,6 +18,11 @@ export type PrizeRow = {
   sponsor_kind: "organisation" | "person";
   sponsor_website: string | null;
   logo_path: string | null;
+  /* Das Foto des Gewinns (Issue #99). Bis dahin zeigte ein Preis hoechstens
+     das Logo der stiftenden Organisation - was es zu gewinnen gab, sah man
+     nicht. Anders als das Logo gibt es das Foto auch bei privat gestifteten
+     Preisen. */
+  image_path: string | null;
   quantity: number;
   is_main: boolean;
   sort_order: number;
@@ -53,6 +58,7 @@ export type PrizeView = {
   sponsorKind: "organisation" | "person";
   sponsorWebsite: string | null;
   logoUrl: string | null;
+  photoUrl: string | null;
   quantity: number;
   isMain: boolean;
   sortOrder: number;
@@ -162,16 +168,36 @@ export async function readEntries(supabase: SupabaseClient) {
   return { rows, error: null };
 }
 
+const prizeColumns = "id, title, description, sponsor_name, sponsor_kind, sponsor_website, logo_path, quantity, is_main, sort_order";
+
+/** Postgres: Spalte existiert nicht. */
+const UNDEFINED_COLUMN = "42703";
+
 export async function readPrizes(supabase: SupabaseClient) {
-  const { data, error } = await supabase
+  const query = (columns: string) => supabase
     .from("lottery_prizes")
-    .select("id, title, description, sponsor_name, sponsor_kind, sponsor_website, logo_path, quantity, is_main, sort_order")
+    .select(columns)
     .order("is_main", { ascending: false })
     .order("sort_order")
     .order("created_at");
 
-  if (error) return { rows: null, error };
-  return { rows: (data ?? []) as PrizeRow[], error: null };
+  const { data, error } = await query(`${prizeColumns}, image_path`);
+  if (!error) return { rows: (data ?? []) as unknown as PrizeRow[], error: null };
+
+  /* Zwischen Deployment und Migration gibt es `image_path` noch nicht
+     (Issue #99). Dass deswegen *alle* Preise verschwinden - auf der
+     oeffentlichen Seite als Platzhalter, im Backend als Fehler -, waere
+     derselbe Ausfall, den dieses Issue behebt. Ohne die Spalte fehlt nur das
+     Foto, und das kann warten. */
+  if (error.code !== UNDEFINED_COLUMN) return { rows: null, error };
+
+  const fallback = await query(prizeColumns);
+  if (fallback.error) return { rows: null, error: fallback.error };
+  return {
+    rows: ((fallback.data ?? []) as unknown as Omit<PrizeRow, "image_path">[])
+      .map((row) => ({ ...row, image_path: null })),
+    error: null,
+  };
 }
 
 export async function readExclusions(supabase: SupabaseClient) {
@@ -204,6 +230,7 @@ export function buildPrizeViews(prizes: PrizeRow[], entries: EntryRow[]): PrizeV
       sponsorKind: prize.sponsor_kind,
       sponsorWebsite: prize.sponsor_website,
       logoUrl: publicPrizeLogoUrl(prize.logo_path),
+      photoUrl: publicPrizePhotoUrl(prize.image_path),
       quantity: prize.quantity,
       isMain: prize.is_main,
       sortOrder: prize.sort_order,

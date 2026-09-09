@@ -3,9 +3,9 @@ import NextImage from "next/image";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { brandPhotos } from "@/lib/brand-photos";
 import { getAppSettings } from "@/lib/app-settings";
-import { mailto } from "@/lib/organisation";
+import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { readPrizes, type PrizeRow } from "@/lib/lottery-store";
-import { publicPrizeLogoUrl } from "@/lib/prize-logo";
+import { publicPrizeLogoUrl, publicPrizePhotoUrl } from "@/lib/prize-logo";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 /**
@@ -52,16 +52,28 @@ function periodLine(startAt: Date | null, endAt: Date | null) {
 /**
  * Ein Preis auf der oeffentlichen Seite.
  *
- * Das Logo steht nur bei einer Organisation - eine Privatperson hat keines,
- * und ein Link auf sie waere eine Veroeffentlichung, die niemand zugesagt hat.
+ * Zwei Bilder mit verschiedenen Rollen (Issue #99): Das Foto zeigt, was es zu
+ * gewinnen gibt, und steht deshalb gross ueber dem Titel - vorher las man nur
+ * eine Zeile Text und sah einen Gewinn nie. Das Logo gehoert der stiftenden
+ * Organisation und bleibt klein an ihrem Namen; bei einer Privatperson bleibt
+ * es aus - sie hat keines, und ein Link auf sie waere eine Veroeffentlichung,
+ * die niemand zugesagt hat.
+ *
  * Die Anzahl steht dabei, sobald es mehr als eines gibt: Sie ist der
  * Unterschied zwischen einem und zehn Gewinnen.
  */
 function PrizeCard({ prize }: { prize: PrizeRow }) {
   const logoUrl = prize.sponsor_kind === "organisation" ? publicPrizeLogoUrl(prize.logo_path) : null;
+  const photoUrl = publicPrizePhotoUrl(prize.image_path);
 
   return <li className={prize.is_main ? "prize-card is-main" : "prize-card"}>
     {prize.is_main && <span className="prize-badge">Hauptpreis</span>}
+    {photoUrl && (
+      <span className="prize-photo">
+        {/* eslint-disable-next-line @next/next/no-img-element -- Foto aus dem oeffentlichen Speicher, Groesse steht im CSS. */}
+        <img src={photoUrl} alt="" />
+      </span>
+    )}
     <strong>{prize.title}{prize.quantity > 1 ? ` (${prize.quantity}×)` : ""}</strong>
     {prize.description && <p>{prize.description}</p>}
     {prize.sponsor_name && (
@@ -86,14 +98,35 @@ function PrizeCard({ prize }: { prize: PrizeRow }) {
  * Migration, bleibt die Liste leer - die Seite zeigt dann den Platzhalter und
  * nicht einen Fehler: Wer wissen will, wie das Gewinnspiel laeuft, findet die
  * Bedingungen darunter trotzdem.
+ *
+ * Der Fehler wird dabei protokolliert (Issue #99). Vorher verschwand er
+ * lautlos, und eine leere Liste sah genauso aus wie ein Gewinnspiel ohne
+ * eingetragene Preise - der Unterschied war von aussen nicht zu erkennen.
  */
 async function loadPrizes() {
   try {
-    const { rows } = await readPrizes(createSupabaseAdminClient());
+    const { rows, error } = await readPrizes(createSupabaseAdminClient());
+    if (error) console.error("Gewinnspiel: Preise konnten nicht gelesen werden.", error.message);
     return rows ?? [];
-  } catch {
+  } catch (error) {
+    console.error("Gewinnspiel: Preise konnten nicht gelesen werden.", error);
     return [];
   }
+}
+
+/**
+ * Der Hinweis unter den Preisen (Issue #99).
+ *
+ * Er steht unter beiden Faellen - eingetragene Preise und Platzhalter -, weil
+ * genau dann jemand darauf stoesst, der selbst etwas zu stiften haette. Mit
+ * Adresse und nicht nur "meldet sich gerne bei uns": Wer erst nach einem
+ * Kontakt suchen muss, schreibt nicht.
+ */
+function ContributeNote() {
+  return <p className="prize-contribute">
+    Du möchtest auch etwas beisteuern – Werkzeug, einen Gutschein, eine Reparaturstunde?{" "}
+    <a href={mailto(CONTACT_EMAIL, "Preis für das Gewinnspiel")}>Schreib uns</a>, wir nehmen es gerne mit auf.
+  </p>;
 }
 
 export default async function LotteryPage() {
@@ -162,7 +195,7 @@ export default async function LotteryPage() {
       </div>
       {prizes.length > 0
         ? <><ul className="prize-list">{prizes.map((prize) => <PrizeCard key={prize.id} prize={prize} />)}</ul>
-            <p className="form-notice">Die Liste wächst bis zum Start. Wer etwas beisteuern möchte, meldet sich gerne bei uns.</p></>
+            <ContributeNote /></>
         : <><ul className="prize-placeholder">
             <li>
               <strong>Werkzeug und Material</strong>
@@ -174,10 +207,12 @@ export default async function LotteryPage() {
             </li>
             <li>
               <strong>Überraschungen aus der Reparaturszene</strong>
-              <p>Wird bis zum Start ergänzt. Wer etwas beisteuern möchte, meldet sich gerne bei uns.</p>
+              {/* Die Einladung zum Beisteuern steht seit Issue #99 mit Adresse
+                  unter der Liste; zweimal derselbe Satz waere einer zu viel. */}
+              <p>Wird bis zum Start ergänzt.</p>
             </li>
           </ul>
-          <p className="form-notice">Die genauen Preise samt stiftender Organisation stehen hier, sobald sie feststehen.</p></>}
+          <ContributeNote /></>}
     </section>
 
     <section className="content-section" aria-labelledby="lottery-terms-title">

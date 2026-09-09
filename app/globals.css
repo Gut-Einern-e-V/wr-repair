@@ -1132,18 +1132,60 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .prize-form .choice { display: flex; gap: 10px; align-items: start; font: 14px/1.45 var(--sans); text-transform: none; }
 .prize-form .choice input { width: 20px; min-height: 20px; }
 .prize-form button { justify-self: start; margin: 0; }
-.prize-admin-list { display: grid; gap: 14px; }
+/* Reihenfolge von Hand (Issue #98) - zweimal derselbe Handgriff im Backend,
+   bei den Unterstuetzern und bei den Preisen. Eine Zeile je Eintrag mit
+   Pfeilen, Bild und Namen: So passen auch zwanzig Preise auf einen Schirm,
+   was sie als Karten mit ausgeklapptem Formular nie taten (Issue #99). */
+.order-controls { display: inline-flex; flex-direction: column; flex: 0 0 auto; gap: 2px; }
+.order-controls button {
+  width: 30px; min-height: 21px; padding: 0; border: var(--line); border-radius: 0;
+  background: var(--paper); color: var(--ink); font: 13px var(--sans); line-height: 1; cursor: pointer;
+}
+.order-controls button:disabled { opacity: .3; cursor: not-allowed; }
+.sortable-group { margin-top: 18px; }
+.sortable-group > .section-index { margin: 0 0 6px; }
+.sortable-list { border-top: var(--line); }
+.sortable-list > .sortable-item, .sortable-list > .sortable-row { border-bottom: var(--line); }
+.sortable-row { display: flex; align-items: center; gap: 14px; padding: 10px 0; }
+.sortable-thumb { display: flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 56px; height: 44px; background: var(--bg); }
+.sortable-thumb img { width: auto; height: auto; max-width: 52px; max-height: 40px; object-fit: contain; }
+.sortable-thumb-empty { font: 12px var(--mono); opacity: .5; }
+.sortable-title { display: grid; flex: 1 1 auto; gap: 2px; min-width: 0; }
+.sortable-title strong { font-size: 16px; }
+.sortable-title a, .sortable-title .quota-note { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sortable-actions { display: flex; flex-wrap: wrap; flex: 0 0 auto; gap: 14px; }
+.sortable-actions .text-button { margin: 0; font-size: 11px; }
+.sortable-item .prize-form { margin: 0 0 16px; }
 
 /* Ein Preis in der Ziehung, mit allem, was zu ihm gezogen wurde. */
 .lottery-prize { margin-top: 22px; padding-top: 18px; border-top: var(--line); }
 .lottery-prize h4 { margin: 0; font-size: 19px; }
 .lottery-prize > .button { margin: 12px 0 0; }
-.lottery-winner { margin: 12px 0; padding: 14px 16px; border: var(--line); background: var(--bg); }
-.lottery-winner p { margin: 0 0 6px; line-height: 1.45; }
-.lottery-winner-repair { font: 12px var(--mono); }
-.lottery-winner-story { max-width: 68ch; font-size: 15px; }
-.lottery-winner-actions { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px; }
-.lottery-winner-actions .text-button { margin: 0; font-size: 11px; }
+
+/* Die Gezogenen: eine Zeile je Person statt einer Karte (Issue #99). Bei
+   zweihundert Gewinnen war die alte Ansicht ein Kilometer Papier. Die
+   Reparaturgeschichte steht weiterhin dabei, nur eingeklappt - gebraucht wird
+   sie beim Schreiben einer Mail, nicht beim Ueberblick. */
+.winner-filter { margin: 18px 0 4px; }
+.winner-filter label { display: grid; gap: 5px; max-width: 340px; font: 11px var(--mono); text-transform: uppercase; }
+.winner-filter input { min-height: 44px; padding: 9px; border: var(--line); border-radius: 0; background: var(--bg); color: var(--ink); font: 15px var(--sans); }
+.winner-filter .quota-note { margin: 8px 0 0; }
+.winner-list { margin: 10px 0 0; }
+.winner-list > summary { cursor: pointer; font: 11px var(--mono); font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.winner-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 2fr) auto auto; gap: 4px 16px; align-items: baseline; padding: 9px 0; border-bottom: var(--line); }
+.winner-person { display: grid; gap: 2px; min-width: 0; }
+.winner-person a { overflow: hidden; text-overflow: ellipsis; }
+.winner-row .quota-note { margin: 0; }
+.winner-actions { display: flex; flex-wrap: wrap; gap: 14px; }
+.winner-actions .text-button { margin: 0; font-size: 11px; }
+.winner-story { grid-column: 1 / -1; }
+.winner-story summary { cursor: pointer; font: 10px var(--mono); font-weight: 800; text-transform: uppercase; letter-spacing: .07em; }
+.winner-story p { max-width: 68ch; margin: 6px 0 0; font-size: 15px; line-height: 1.45; }
+
+@media (max-width: 720px) {
+  .sortable-row { flex-wrap: wrap; }
+  .winner-row { grid-template-columns: minmax(0, 1fr); }
+}
 
 /* Zweiter Abschnitt innerhalb einer Karte - fuer die Freigabeliste unter der
    Drosselung (Issue #80). Die Linie darueber trennt die beiden Themen, ohne
@@ -1676,6 +1718,14 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .prize-card p { max-width: 40ch; margin: 0; font-size: 15px; line-height: 1.5; }
 .prize-sponsor { display: flex; align-items: center; gap: 10px; margin-top: 4px; font: 12px var(--mono); }
 .prize-sponsor img { max-height: 34px; max-width: 96px; width: auto; }
+/* Das Foto des Gewinns (Issue #99). Feste Hoehe und beschnitten: Aus drei
+   verschieden zugeschnittenen Handybildern wird so eine Reihe und keine
+   Treppe. Es steht innerhalb der Polsterung der Kachel - der Hauptpreis hat
+   darueber noch sein Abzeichen. */
+.prize-photo { display: block; }
+.prize-photo img { display: block; width: 100%; height: 168px; object-fit: cover; }
+/* Der Hinweis unter den Preisen: ein Satz, kein Warnkasten. */
+.prize-contribute { margin: 0; padding: 18px 22px; background: var(--paper); font-size: 15px; line-height: 1.5; }
 
 @media (max-width: 900px) {
   .legal-terms, .prize-placeholder, .prize-list { grid-template-columns: minmax(0, 1fr); }

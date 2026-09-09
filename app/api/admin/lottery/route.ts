@@ -1,4 +1,4 @@
-import { requireSuperadmin } from "@/lib/admin-auth";
+import { requireAdmin, requireSuperadmin } from "@/lib/admin-auth";
 import { drawForPrize, readLotteryOverview, withdrawWin } from "@/lib/lottery-store";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -11,11 +11,13 @@ export const runtime = "nodejs";
  * muss in der Liste stehen, sonst laesst sich der Gewinn nicht zustellen.
  * Wieviel gezogen wird, sagt die Anzahl des Preises.
  *
- * Alles hier ist Superadmin-Sache. Eine Ziehung ist nicht rueckgaengig zu
- * machen, ohne dass jemand davon erfaehrt.
+ * Den Stand duerfen Admins lesen (Issue #99): Wer die Preise pflegt und die
+ * Ausschlussliste fuehrt, muss sehen, was daraus geworden ist. Gezogen wird
+ * dagegen nur von Superadmins - eine Ziehung ist nicht rueckgaengig zu machen,
+ * ohne dass jemand davon erfaehrt.
  */
 export async function GET() {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
   }
@@ -28,6 +30,8 @@ export async function GET() {
   return Response.json(overview);
 }
 
+/* Ziehen, neu ziehen, zuruecknehmen: der unumkehrbare Teil und deshalb
+   weiterhin Superadmin-Sache. */
 export async function POST(request: Request) {
   const authorization = await requireSuperadmin();
   if (!authorization.authorized) {
