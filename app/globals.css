@@ -742,8 +742,10 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 
 /* Die Foerderlogos liegen als dunkle Variante vor und brauchen deshalb immer
    eine helle Flaeche - auf dem Papierblatt ist die schon da, sonst kommt ein
-   weisser Streifen darunter. Die Hoehen sind so gewaehlt, dass alle vier auf
-   jedem Format in eine Reihe passen. */
+   weisser Streifen darunter. Die Hoehen sind so gewaehlt, dass Wortmarke und
+   Abbinder auf jedem Format in eine Reihe passen und das EU-Emblem im Abbinder
+   (42 Prozent seiner Bildhoehe) hoeher bleibt als die Wortmarke der FAB Region
+   - so verlangt es der EFRE-Leitfaden (Issue #97). */
 .poster-funding {
   display: flex; flex-wrap: wrap; gap: .6em .9em; align-items: center; justify-content: center;
   width: 100%; margin-top: auto; padding: .7em .9em; background: #fff;
@@ -752,14 +754,14 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
   direction: ltr;
 }
 .poster-funding img { width: auto; max-width: 100%; object-fit: contain; }
-.poster-funding .is-fab { height: 2.3em; }
-.poster-funding .is-eu, .poster-funding .is-nrw { height: 1.8em; }
-.poster-funding .is-efre { height: .78em; }
+.poster-funding .is-fab { height: 1.5em; }
+.poster-funding .is-abbinder { height: 3.6em; }
 .poster-sheet.bg-paper .poster-funding { padding-right: 0; padding-left: 0; background: transparent; }
+.poster-sheet.is-a5 .poster-funding .is-fab { height: 1.4em; }
+.poster-sheet.is-a5 .poster-funding .is-abbinder { height: 3.3em; }
 .poster-sheet.is-a6 .poster-funding { gap: .45em .6em; }
-.poster-sheet.is-a6 .poster-funding .is-fab { height: 1.8em; }
-.poster-sheet.is-a6 .poster-funding .is-eu, .poster-sheet.is-a6 .poster-funding .is-nrw { height: 1.4em; }
-.poster-sheet.is-a6 .poster-funding .is-efre { height: .6em; }
+.poster-sheet.is-a6 .poster-funding .is-fab { height: 1.1em; }
+.poster-sheet.is-a6 .poster-funding .is-abbinder { height: 2.6em; }
 
 .poster-footer { margin: 0; color: var(--poster-muted); font-size: .72em; font-weight: 800; letter-spacing: .08em; line-height: 1.35; text-transform: uppercase; }
 .poster-inner[dir="rtl"] .poster-footer { letter-spacing: normal; }
@@ -1151,21 +1153,28 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
   letter-spacing: 0;
   text-transform: none;
 }
-/* Raster statt Umbruch: So steht jedes Logo in seiner eigenen Spalte und die
-   efre-Wortmarke rutscht nicht neben das Ministeriumslogo. */
+/* Zwei Spalten in festem Verhaeltnis statt Pixelhoehen (Issue #97): Der
+   EFRE-Leitfaden verlangt, dass das EU-Emblem mindestens so hoch ist wie das
+   groesste andere Logo. Im Abbinder ist das Emblem 42 Prozent der Bildhoehe,
+   die FAB-Wortmarke 27 Prozent ihrer eigenen Breite - erst ab einem
+   Spaltenverhaeltnis von 16:84 bleibt das Emblem das hoehere Zeichen. Als
+   Rasteranteile gilt das in jeder Fenstergroesse; feste Hoehen wuerden die
+   Bedingung beim Schrumpfen verlieren. Der Deckel haelt den Abbinder auf
+   breiten Schirmen bei rund 790 Pixeln. */
 .funding-logos {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, max-content));
+  grid-template-columns: minmax(0, 16fr) minmax(0, 84fr);
   align-items: center;
   justify-content: start;
-  gap: 26px 46px;
+  gap: 22px 40px;
+  max-width: 980px;
 }
-.funding-logos a, .funding-logos span { display: inline-flex; align-items: center; min-height: 0; padding: 0; background: transparent; }
-.funding-logos img { width: auto; max-width: 100%; height: auto; object-fit: contain; }
-.funding-logos .is-fab { height: 56px; }
-.funding-logos .is-eu { height: 44px; }
-.funding-logos .is-nrw { height: 44px; }
-.funding-logos .is-efre { height: 19px; }
+.funding-logos .funding-logo { display: flex; align-items: center; min-height: 0; padding: 0; background: transparent; }
+/* `<picture>` waehlt nach Fenstergroesse zwischen der Reihen- und der
+   untereinander-Fassung des Abbinders (components/funding-abbinder.tsx) und
+   ist im Layout nur eine Huelle. */
+.funding-logos picture, .funding-card picture { display: block; width: 100%; }
+.funding-logos img { width: 100%; max-width: 100%; height: auto; object-fit: contain; }
 
 /* Countdown im Hero-Kasten anstelle des QR-Codes. */
 .hero-countdown-label { margin: 0 0 10px; font: 800 11px/1.3 var(--sans); letter-spacing: .09em; text-transform: uppercase; }
@@ -1237,10 +1246,19 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .story-tile-more i { font-style: normal; }
 
 /* Foerderlogos im Seiteninhalt (/supporters). Die Logos haben einen weissen
-   Bildhintergrund und brauchen deshalb eine weisse Karte, nicht die gelbe Flaeche. */
-.funding-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 4px; margin: 30px 0 26px; }
+   Bildhintergrund und brauchen deshalb eine weisse Karte, nicht die gelbe Flaeche.
+
+   Der Abbinder ist eine gebundene Logo-Kombination (Issue #97) und liegt
+   deshalb als ein Bild in einer Karte ueber die ganze Breite - so bleibt die
+   Ministeriumszeile lesbar. Die Karte des Projekttraegers darueber bleibt
+   schmal: Ihr Logo darf nach dem EFRE-Leitfaden nicht groesser sein als das
+   EU-Emblem im Abbinder. */
+.funding-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin: 30px 0 26px; max-width: 980px; }
 .funding-card { display: grid; align-content: space-between; gap: 20px; min-height: 168px; padding: 24px; background: #fff; text-decoration: none; transition: box-shadow 120ms ease; }
-.funding-card img { justify-self: start; width: auto; max-width: 100%; height: auto; max-height: 54px; object-fit: contain; }
+.funding-card img { justify-self: start; width: auto; max-width: 100%; height: auto; max-height: 48px; object-fit: contain; }
+.funding-card:not(.is-abbinder) { width: min(100%, 320px); }
+.funding-card.is-abbinder { gap: 14px; min-height: 0; }
+.funding-card.is-abbinder img { width: 100%; max-height: none; }
 .funding-card span { color: var(--muted); font: 700 11px/1.4 var(--sans); letter-spacing: .06em; text-transform: uppercase; }
 .funding-card:hover, .funding-card:focus-visible { box-shadow: inset 0 0 0 4px var(--ink); }
 
@@ -1264,17 +1282,28 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .credit-logo img { width: auto; max-width: 100%; max-height: 40px; object-fit: contain; }
 
 @media (max-width: 1100px) {
-  .funding-logos { grid-template-columns: repeat(2, minmax(0, max-content)); gap: 24px 40px; }
+  .funding-logos { gap: 20px 30px; }
   .story-mosaic { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 200px; }
   .story-mosaic.is-mosaic > :not(:first-child) { grid-column: span 1; }
 }
 
 @media (max-width: 720px) {
   .funding-strip { padding-top: 26px; padding-bottom: 26px; gap: 20px; }
-  .funding-logos { grid-template-columns: minmax(0, max-content); gap: 22px; }
-  .funding-logos .is-fab { height: 48px; }
-  .funding-logos .is-eu, .funding-logos .is-nrw { height: 38px; }
-  .funding-logos .is-efre { height: 17px; }
+  /* Auf dem Telefon greift die untereinander-Fassung des Abbinders. Sie ist
+     etwa 1,29 mal so breit wie hoch, das EU-Emblem darin ein Fuenftel ihrer
+     Hoehe - die Wortmarke der FAB Region darf deshalb bis zu 57 Prozent der
+     Abbinderbreite einnehmen und bleibt trotzdem das kleinere Zeichen. In der
+     Reihenfassung waeren es 21 Prozent gewesen, also ein Stempel von 70
+     Pixeln. Das Seitenverhaeltnis steht zur Sicherheit hier: So kennt der
+     Browser die Hoehe schon vor dem Laden, auch ohne die Masse am `<source>`
+     zu lesen. */
+  .funding-logos { grid-template-columns: minmax(0, 1fr); gap: 18px; max-width: none; }
+  .funding-logos .is-fab { width: min(55%, 170px); }
+  .funding-logos .is-abbinder { width: min(100%, 320px); }
+  .funding-logos .is-abbinder img, .funding-card.is-abbinder img { aspect-ratio: 1200 / 928; }
+  /* Dieselbe Grenze auf /supporters: Die Karte des Projekttraegers steht dort
+     ueber dem Abbinder, ihr Logo bleibt schmaler als dessen EU-Emblem. */
+  .funding-card:not(.is-abbinder) img { max-width: min(55%, 170px); max-height: none; }
   .hero-countdown-clock { gap: 6px; }
   .hero-countdown-clock span { min-width: 0; flex: 1; padding: 8px 4px 6px; }
   .hero-countdown-clock strong { font-size: 22px; }

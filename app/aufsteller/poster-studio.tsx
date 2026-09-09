@@ -19,14 +19,14 @@ import {
 } from "@/lib/poster";
 import type { QrGlyph } from "@/lib/qr-glyph";
 
-/* Derselbe Foerderabbinder wie in components/funding-strip.tsx. Die Hoehen
-   stehen im Verhaeltnis der Seitenleiste (56/44/44/19 Pixel) und kommen als
-   `em` aus dem Stylesheet, damit sie mit dem Blattformat mitschrumpfen. */
+/* Derselbe Foerderabbinder wie in components/funding-strip.tsx: eine gebundene
+   Logo-Kombination, die der EFRE-Leitfaden nicht zerlegt sehen will (Issue
+   #97). Die Hoehen kommen als `em` aus dem Stylesheet, damit sie mit dem
+   Blattformat mitschrumpfen; die Wortmarke der FAB Region bleibt darin unter
+   der Hoehe des EU-Emblems. */
 const fundingLogos = [
   { src: "/funding/fab-region-dark.png", width: 1355, height: 381, className: "is-fab", alt: "FAB Region Bergisches Städtedreieck" },
-  { src: "/funding/eu-dark.png", width: 1405, height: 293, className: "is-eu", alt: "Kofinanziert von der Europäischen Union" },
-  { src: "/funding/nrw-dark.png", width: 1359, height: 294, className: "is-nrw", alt: "Ministerium für Umwelt, Naturschutz und Verkehr des Landes Nordrhein-Westfalen" },
-  { src: "/funding/efre-dark.png", width: 724, height: 98, className: "is-efre", alt: "www.efre.nrw" },
+  { src: "/funding/fab-region-abbinder-2025.webp", width: 2400, height: 320, className: "is-abbinder", alt: "Kofinanziert von der Europäischen Union · Ministerium für Umwelt, Naturschutz und Verkehr des Landes Nordrhein-Westfalen · www.efre.nrw" },
 ];
 
 /* Aufkleber und Grund duerfen laut Styleguide nie dieselbe Farbfamilie teilen:
