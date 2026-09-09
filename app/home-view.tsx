@@ -109,6 +109,12 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
      nicht aus der Statistik: Die ist vor dem Start geschlossen, das Ziel steht
      aber schon vorher. */
   const [campaignGoal, setCampaignGoal] = useState<number | null>(null);
+  /**
+   * Testlauf (Issue #102). Kommt aus derselben Antwort wie der Zeitraum, weil
+   * er ihn aushebelt: Waehrend eines Testlaufs nimmt die Einreichung an, auch
+   * wenn der Zeitraum noch nicht laeuft oder schon vorbei ist.
+   */
+  const [isTestRun, setIsTestRun] = useState(false);
   /* Die Phase aus der Uhr des Browsers statt aus der Antwort vom Laden der
      Seite: Sonst behauptet eine offen gebliebene Seite nach Ablauf der Frist
      weiter, es laufe noch (Issue #66). Sekundentakt, damit der Text im selben
@@ -145,9 +151,10 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
       try {
         const response = await fetch("/api/campaign", { cache: "no-store" });
         if (!response.ok) throw new Error("Kampagnenstatus nicht verfuegbar");
-        const data = await response.json() as CampaignDates & { goal?: number };
+        const data = await response.json() as CampaignDates & { goal?: number; testRun?: boolean };
         setCampaign({ startAt: data.startAt, endAt: data.endAt });
         if (typeof data.goal === "number" && data.goal > 0) setCampaignGoal(data.goal);
+        setIsTestRun(data.testRun === true);
       } catch {
         setCampaign({ startAt: null, endAt: null });
       }
@@ -163,13 +170,19 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
     return () => window.clearInterval(interval);
   }, [campaign]);
 
+  /* Was die Knoepfe tun, entscheidet der Testlauf mit; was die Texte sagen,
+     nicht: Die Ueberschriften sprechen weiter ueber den echten Zeitraum, denn
+     der beginnt durch eine Probe nicht frueher. Der Aufkleber im Hero sagt
+     dafuer deutlich, dass gerade geprobt wird (Issue #102). */
+  const canSubmit = phase === "open" || isTestRun;
+
   function closeSubmission() {
     setIsFormOpen(false);
   }
 
   function startSubmission(categoryValue?: RepairCategory) {
     if (categoryValue) setCategory(categoryValue);
-    if (phase !== "open") {
+    if (!canSubmit) {
       document.getElementById("campaign-window")?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
@@ -186,7 +199,7 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
      gilt das Ziel aus `/api/campaign`. Keine feste Zahl als letzter Rueckfall:
      Eine geratene Zielzahl ist schlechter als gar keine (Issue #74). */
   const goal = repairStats?.goal ?? campaignGoal;
-  const isDone = phase === "after";
+  const isDone = phase === "after" && !isTestRun;
   const records = [...repairRecords, goalRecord(goal)].filter((record) => record !== null);
 
   return (
@@ -199,6 +212,9 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
         </div>
         <div className="hero-poster-inner">
           <div className="hero-copy">
+            {/* Der Aufkleber aus Issue #102: Solange geprobt wird, soll das
+                niemandem entgehen, der auf der Startseite landet. */}
+            {isTestRun && <p className="test-run-flag">Testlauf &ndash; diese Einreichungen zählen nicht</p>}
             <p className="brand-kicker">{copy.kicker}</p>
             <h1 className="sticker-head is-mint" id="hero-title">
               <span className="sticker">Gemeinsam zum</span>
@@ -212,7 +228,7 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
               {isDone
                 ? <Link className="button button-primary" href="/stats">Rückblick ansehen <span aria-hidden="true">&#8594;</span></Link>
                 : <button className="button button-primary" type="button" onClick={() => startSubmission()}>
-                    {phase === "open" ? "Reparatur einreichen" : "Mehr zum Rekordversuch"} <span aria-hidden="true">&#8594;</span>
+                    {canSubmit ? "Reparatur einreichen" : "Mehr zum Rekordversuch"} <span aria-hidden="true">&#8594;</span>
                   </button>}
               <Link className="button button-secondary" href={isDone ? "/stories" : "/stats"}>
                 {isDone ? "Geschichten lesen" : "Live-Stand"} <span aria-hidden="true">&#8594;</span>
@@ -330,7 +346,7 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
             <h2 id="category-title">{isDone ? "Das wurde repariert." : "Kategorie wählen und Reparatur eintragen."}</h2>
             <p className="section-lead">{copy.categoryLead}</p>
           </div>
-          <button className="text-button" type="button" onClick={() => startSubmission()}>{phase === "open" ? "Ohne Kategorie starten" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span></button>
+          <button className="text-button" type="button" onClick={() => startSubmission()}>{canSubmit ? "Ohne Kategorie starten" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span></button>
         </div>
         <div className="category-grid">
           {repairCategories.map((item, index) => (
@@ -394,7 +410,7 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
         <div className="modal-backdrop" role="presentation" onMouseDown={closeSubmission}>
           <section className="submission-panel" role="dialog" aria-modal="true" aria-labelledby="submission-title" onMouseDown={(event) => event.stopPropagation()}>
             <button className="icon-button" type="button" aria-label="Formular schließen" onClick={closeSubmission}>&times;</button>
-            <RepairSubmissionForm initialCategory={category} onDone={closeSubmission} />
+            <RepairSubmissionForm initialCategory={category} onDone={closeSubmission} isTestRun={isTestRun} />
           </section>
         </div>
       )}

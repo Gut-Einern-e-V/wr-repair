@@ -44,7 +44,12 @@ button { cursor: pointer; }
 .site-header, .hero-grid, .how-it-works, .category-section, .stories-section, .project-banner, .site-footer { max-width: 1240px; margin: 0 auto; }
 .site-header { min-height: 80px; display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: var(--line); }
 .brand { display: flex; gap: 9px; align-items: center; text-decoration: none; font: 500 12px/1.08 var(--mono); letter-spacing: .02em; text-transform: uppercase; }
-.brand-mark { display: grid; place-items: center; width: 38px; height: 38px; background: var(--red); color: var(--paper); font-size: 24px; }
+/* Nur die Form. Farbe, Schnitt und Drehung stehen weiter unten im Abschnitt
+   "Wortmarke" - hier standen sie einmal auch, in Rot, und diese toten
+   Deklarationen haben die Teilbilder in app/opengraph-image.tsx und
+   app/reparatur/[id]/ jahrelang fehlgeleitet: Sie haben das Rot uebernommen,
+   das auf der Seite selbst nie zu sehen war. */
+.brand-mark { display: grid; place-items: center; width: 38px; height: 38px; font-size: 24px; }
 nav { display: flex; gap: 25px; font: 500 12px var(--mono); text-transform: uppercase; }
 nav a, .header-link { text-decoration-thickness: 1px; text-underline-offset: 4px; }
 .header-link { font: 500 12px var(--mono); text-transform: uppercase; }
@@ -257,6 +262,23 @@ h1 span:not(.sticker):not(.easy-dot), h2 span:not(.sticker):not(.easy-dot), h3 s
   letter-spacing: .11em; text-transform: uppercase; color: var(--yellow-soft);
 }
 
+/* --- Testlauf (Issue #102) ---------------------------------
+   Der Aufkleber sitzt ueber der Ueberschrift im Hero und oben im Formular. Rot
+   und schief: Er soll nach Markenwelt aussehen und trotzdem sofort auffallen -
+   ein Hinweis, den man uebersieht, waere gefaehrlicher als keiner, weil das
+   Formular waehrend eines Testlaufs fuer alle offensteht. */
+.test-run-flag {
+  display: inline-block; margin: 0 0 14px; padding: 6px 14px 7px;
+  border: var(--line); background: var(--red); color: var(--paper);
+  font: 800 12px/1.1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+  transform: rotate(-1.5deg);
+}
+.test-run-note {
+  margin: 0 0 20px; padding: 14px; border: 2px dashed var(--red);
+  background: rgba(236, 66, 76, .12); font-size: 14px; line-height: 1.45;
+}
+.test-run-note.is-tight { margin: 12px 0; }
+
 /* --- Buttons: Gelb ist die Primaerfarbe -------------------- */
 .button-primary { background: var(--yellow); color: var(--ink); }
 .button-primary:hover { background-color: var(--ink); color: var(--yellow); }
@@ -424,6 +446,8 @@ nav a:hover, .header-link:hover { text-decoration: underline; text-decoration-th
 .status-chip.is-rejected { background: var(--red-deep); color: var(--paper); }
 /* Liegt gerade in einer anderen Schnellpruefung - Hinweis gegen Doppelarbeit. */
 .status-chip.is-claimed { margin-left: 6px; background: var(--ink); color: var(--paper); }
+/* Eingegangen waehrend eines Testlaufs (Issue #102) - gehoert abgelehnt. */
+.status-chip.is-test-run { margin-left: 6px; border-style: dashed; background: var(--red); color: var(--paper); }
 
 /* Approve links, Reject rechts in klar abgesetzter Danger-Area. */
 .review-actions .button-primary { background: var(--green-soft); color: var(--ink); }
@@ -572,8 +596,17 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .repair-form .repair-form .lottery-fields { background: rgba(149, 212, 187, .28); }
 .repair-form .lottery-fields .consent { background: var(--paper); }
 .repair-form .upload-field { border: var(--line); background: var(--bg); padding: 14px; }
-.repair-form .upload-field input[type="file"] { display: block; width: 100%; margin: 12px 0 8px; font-size: 14px; }
+/* Zwei Knoepfe und eine Ablagefläche statt eines nativen Dateifeldes (Issue #103).
+   Aufgebaut wie die Standortzeile darunter, damit beide Gruppen im Formular
+   gleich aussehen. Die Dateifelder selbst sind verborgen und werden von den
+   Knoepfen ausgeloest. */
+.repair-form .upload-field.is-drop-target { border-style: dashed; border-color: var(--green-soft); background: rgba(149, 212, 187, .3); }
+.repair-form .upload-input { display: none; }
+.repair-form .upload-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.repair-form .upload-actions .button { margin: 0; }
 .repair-form .upload-field small { display: block; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .01em; text-transform: none; }
+.repair-form .upload-field-label { margin: 0 0 10px; font-family: var(--sans); font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.repair-form .upload-field-label small { display: inline-block; margin-left: 6px; font-weight: 600; letter-spacing: .01em; text-transform: none; }
 .repair-form .location-picker { margin: 20px 0; padding: 14px; border: var(--line); background: var(--bg); }
 .repair-form .location-picker-label { margin: 0 0 10px; font-family: var(--sans); font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 .repair-form .location-picker-label small { display: inline-block; margin-left: 6px; font-weight: 600; letter-spacing: .01em; text-transform: none; }
@@ -620,6 +653,33 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .repair-status-story { max-width: 620px; line-height: 1.55; }
 .repair-status-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 28px; }
 .repair-status-actions .button { display: inline-flex; align-items: center; }
+
+/* --- Teilbild einer freigegebenen Reparatur (Issue #100) ----
+   Ein abgesetzter Kasten in Mint: Auf dieser Seite ist er das Angebot, um das
+   es geht, und nicht eine Zeile unter anderen. Die Vorschau bleibt bewusst
+   klein - das Foto steht darueber schon in voller Breite, hier zaehlt nur, wie
+   die fertige Grafik aussieht. */
+.share-visual { margin: 36px 0 0; padding: 24px; border: var(--line); background: rgba(149, 212, 187, .3); }
+.share-visual h2 { margin: 0 0 8px; font-size: 24px; }
+.share-visual-lead { max-width: 560px; margin: 0 0 18px; font-size: 15px; line-height: 1.5; }
+.share-visual-formats { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+.share-visual-format {
+  display: flex; flex-direction: column; gap: 3px; padding: 10px 16px;
+  border: var(--line); background: var(--paper); color: var(--ink);
+  font: 800 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; text-align: left;
+}
+.share-visual-format small { font-size: 11px; font-weight: 600; letter-spacing: .01em; text-transform: none; color: var(--muted); }
+.share-visual-format.is-active { background: var(--ink); color: var(--paper); }
+.share-visual-format.is-active small { color: var(--mint); }
+.share-visual-preview { position: relative; display: flex; align-items: center; justify-content: center; min-height: 140px; padding: 12px; border: var(--hairline); background: var(--paper); }
+.share-visual-preview img { display: block; width: auto; height: auto; max-width: 100%; border: var(--line); }
+.share-visual-preview.is-square img { max-height: 300px; }
+.share-visual-preview.is-story img { max-height: 420px; }
+/* Solange die Grafik entsteht, liegt der Hinweis mittig im leeren Kasten -
+   das Bild ist dann noch 0 Pixel hoch. */
+.share-visual-loading { position: absolute; margin: 0; font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.share-visual-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 18px; }
+.share-visual-actions .button { display: inline-flex; align-items: center; gap: 6px; }
 
 /* --- Aufsteller-Generator (Druckvorlagen, Issue #92) --------- */
 .poster-page { min-height: 100vh; padding: 40px clamp(16px, 5vw, 56px) 72px; background: var(--bg); }
@@ -785,6 +845,11 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 @media (max-width: 720px) {
   .repair-status { padding: 44px 16px; }
   .repair-status-actions .button, .repair-status-actions .text-button { width: 100%; text-align: center; }
+  /* Auf dem Telefon fuehrt der Weg ueber "Bild teilen" - die beiden Knoepfe
+     sollen dort volle Breite und damit Daumengroesse haben. */
+  .share-visual { padding: 18px; }
+  .share-visual-format { flex: 1; }
+  .share-visual-actions .button { width: 100%; justify-content: center; }
   .poster-page { padding: 24px 16px 48px; }
   .poster-choices label, .poster-toggles label { width: 100%; }
 }
@@ -1040,6 +1105,10 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .admin-card-head h3 { margin: 0; font-size: 24px; text-transform: none; }
 .admin-card > p { max-width: 640px; margin: 0 0 18px; line-height: 1.45; }
 .admin-card .campaign-form, .admin-card .partner-form { background: var(--bg); }
+/* Solange der Testlauf laeuft, faellt seine Karte aus der Reihe (Issue #102):
+   Der Schalter greift in den oeffentlichen Auftritt ein, er soll im Backend
+   nicht wie eine Einstellung unter vielen aussehen. */
+.admin-card.is-test-run { border-color: var(--red); box-shadow: 8px 8px 0 var(--red); }
 .campaign-form.is-wide { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .checkbox-label { display: flex; align-items: center; gap: 8px; font: 11px var(--mono); text-transform: uppercase; }
 .checkbox-label input { width: 20px; min-height: 20px; }

@@ -113,6 +113,31 @@ SVG-Pfad, skaliert also in jedem Format und nimmt seine Farben aus dem CSS.
 
 ![Der Aufsteller-Generator zeigt die Druckvorschau: „Repariert? Jetzt eintragen!“, ein großer QR-Code, die Zieladresse, drei Schritte und die Förderlogos.](docs/screenshots/aufsteller.png)
 
+### Teilbild nach der Freigabe
+
+Sobald die Moderation eine Reparatur freigegeben hat, liegt auf ihrer Statusseite
+ein fertig gestaltetes Bild zum Posten — mit dem hochgeladenen Foto darin,
+quadratisch für den Feed und hochkant für Storys und TikTok.
+
+Gebaut wie eine gedruckte Karte, mit denselben Mitteln wie der
+Aufsteller-Generator: Papierrand außen, Karte in einer der vier Grundfarben
+darin, feines Papierraster darüber, Aufkleber mit leichter Drehung, die Kategorie
+als gelber Aufkleber über der unteren linken Ecke des Fotos. **Welche Grundfarbe
+und welchen Spruch eine Karte trägt, entscheidet die Kennung der Einreichung** —
+sechzehn Kombinationen, damit eine Zeitleiste voller geteilter Reparaturen nicht
+nach Vorlage aussieht. Deterministisch, nicht zufällig: Vorschau und
+heruntergeladene Datei zeigen dasselbe Bild, und wer den Link zweimal öffnet,
+sieht nicht zweimal etwas anderes.
+
+„Bild teilen“ öffnet auf dem Smartphone das System-Teilenfenster **mit der
+Bilddatei**, von dort geht es direkt in die Netzwerke; daneben steht ein
+gewöhnlicher Download-Link für alles andere. Gezeichnet wird das Bild bei jeder
+Anfrage aus den Daten der Einreichung (`next/og`), es liegt also nichts
+Zusätzliches im Speicher.
+
+Vor der Freigabe gibt es das Bild nicht — sonst wäre es ein Weg, eine ungeprüfte
+Einreichung samt Foto als fertige Grafik aus dem privaten Bucket zu holen.
+
 ### Und dazu
 
 - **Gewinnspiel** mit öffentlichen Teilnahmebedingungen, gestifteten Preisen aus dem
@@ -137,6 +162,11 @@ SVG-Pfad, skaliert also in jedem Format und nimmt seine Farben aus dem CSS.
 - **Backend für die Kampagne:** Zeitraum, Ziel, Tagesrekord, Gebiet, Logo, Team und
   Rollen, Partner, Preise, plus ein Notschalter, der alle öffentlichen Leseroute
   drosselt, wenn ein Kontingent knapp wird — sofort und ohne Deployment.
+- **Testlauf:** Ein Schalter im Backend öffnet die Einreichung unabhängig vom
+  Zeitraum und lässt Startseite und Formular deutlich sagen, dass geprobt wird.
+  So lässt sich der ganze Weg vor einer Veranstaltung durchspielen, ohne dass die
+  Seite dabei aussieht wie im Ernstfall. Testeinreichungen tragen in der
+  Moderation den Tag `testlauf` und werden dort hinterher aussortiert.
 - **Bilder** liegen in einem privaten Bucket und werden nur über kurzlebige signierte
   URLs ausgeliefert. Freigegebene Reparaturen bekommen ein eigenes
   Open-Graph-Bild.

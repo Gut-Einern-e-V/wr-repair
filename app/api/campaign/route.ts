@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 const CAMPAIGN_LIMIT_PER_MINUTE = 240;
 
 export async function GET(request: Request) {
-  const { submissionWindow: campaign, recordGoal, publicThrottle } = await getAppSettings();
+  const { submissionWindow: campaign, recordGoal, publicThrottle, testRun } = await getAppSettings();
 
   const limit = publicRateLimit(request, "campaign", publicThrottle, CAMPAIGN_LIMIT_PER_MINUTE);
   if (!limit.allowed) {
@@ -43,6 +43,12 @@ export async function GET(request: Request) {
       startAt: campaign.startAt?.toISOString() ?? null,
       endAt: campaign.endAt?.toISOString() ?? null,
       goal: recordGoal,
+      /* Testlauf (Issue #102). Gehoert in dieselbe Antwort wie der Zeitraum,
+         weil er ihn aushebelt: Startseite und Schnell-Eintragung entscheiden
+         aus diesen beiden Angaben zusammen, ob das Formular aufgeht - und die
+         Einreichungsroute entscheidet mit denselben Werten (siehe
+         acceptsSubmissions in lib/app-settings.ts). */
+      testRun,
     },
     { headers: { "Cache-Control": "no-store" } },
   );

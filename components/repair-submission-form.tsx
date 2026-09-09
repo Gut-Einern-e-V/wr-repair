@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useRef, useState } from "react";
+import { ChangeEvent, DragEvent, FormEvent, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { CategoryMotif } from "@/components/category-motif";
 import { FriendlyCaptcha } from "@/components/friendly-captcha";
@@ -88,6 +88,27 @@ async function readAnonymizedOrigin(file: File): Promise<AnonymizedPoint | null>
   }
 }
 
+/**
+ * Zeigegeraet mit grobem Ziel - also ein Finger und damit fast immer eine
+ * Kamera (Issue #103). Steht ausserhalb der Komponente, damit die drei
+ * Funktionen bei jedem Rendern dieselben bleiben; sonst meldete
+ * {@link useSyncExternalStore} bei jedem Durchlauf eine neue Quelle an.
+ */
+function subscribeCoarsePointer(onChange: () => void) {
+  const query = window.matchMedia("(pointer: coarse)");
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+
+function hasCoarsePointer() {
+  return window.matchMedia("(pointer: coarse)").matches;
+}
+
+/** Auf dem Server gibt es kein Zeigegeraet: kein Kameraknopf. */
+function noCameraOnServer() {
+  return false;
+}
+
 function createCompressedImage(file: File): Promise<File> {
   return new Promise((resolve, reject) => {
     const image = new Image();
@@ -148,6 +169,16 @@ type RepairSubmissionFormProps = {
   /** Beschriftung der Aktion, die den Danke-Bildschirm schliesst. */
   doneLabel?: string;
   onDone?: () => void;
+  /**
+   * Testlauf: Diese Einreichung ist eine Probe (Issue #102).
+   *
+   * Das Formular fragt den Zustand nicht selbst ab, sondern bekommt ihn von
+   * der Seite, die es einbaut - Startseite und Schnell-Eintragung holen den
+   * Kampagnenstand ohnehin, und ein zweiter Aufruf derselben Route koennte
+   * eine andere Antwort bringen als die, mit der die Seite gerade
+   * entschieden hat, das Formular ueberhaupt zu zeigen.
+   */
+  isTestRun?: boolean;
 };
 
 /**
@@ -161,6 +192,7 @@ export function RepairSubmissionForm({
   headingId = "submission-title",
   doneLabel = "Fertig",
   onDone,
+  isTestRun = false,
 }: RepairSubmissionFormProps) {
   const [category, setCategory] = useState<RepairCategory>(initialCategory ?? repairCategories[0].value);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -219,6 +251,31 @@ export function RepairSubmissionForm({
   const [locationStatus, setLocationStatus] = useState("");
   const [compressionMessage, setCompressionMessage] = useState("");
   const [isCompressing, setIsCompressing] = useState(false);
+  /**
+   * Zwei Dateifelder statt einem (Issue #103).
+   *
+   * Vorher stand hier ein einziges Feld mit `capture="environment"`. Auf dem
+   * Smartphone heisst das: Kamera auf, und nur Kamera - ein Foto, das schon in
+   * der Galerie liegt, war damit nicht einzureichen. Getrennt gibt jeder Knopf
+   * genau das, was er verspricht; die Felder selbst bleiben unsichtbar, weil
+   * das native Dateifeld auf dem Telefon kaum als Knopf zu erkennen ist.
+   */
+  const pickInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const [isDropTarget, setIsDropTarget] = useState(false);
+  /**
+   * Ob der Kameraknopf ueberhaupt angezeigt wird.
+   *
+   * `pointer: coarse` trifft Touchgeraete, also genau die mit einer brauchbaren
+   * Kamera. Am Schreibtisch wuerde `capture` ohnehin ignoriert - dort stuenden
+   * dann zwei Knoepfe, die dasselbe Fenster oeffnen.
+   *
+   * Ueber {@link useSyncExternalStore} und nicht ueber einen Effekt: Auf dem
+   * Server gibt es keine Zeigegeraete, dort gilt deshalb der Wert aus
+   * {@link noCameraOnServer}. React weiss von dieser Trennung und rendert nach
+   * der Hydration einmal nach, statt einen Unterschied zu melden.
+   */
+  const hasCamera = useSyncExternalStore(subscribeCoarsePointer, hasCoarsePointer, noCameraOnServer);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   /**
    * Wo der Sendevorgang steht. Vorher gab es dazu nur den Fortschritt des
@@ -311,18 +368,26 @@ export function RepairSubmissionForm({
     }
   }
 
-  async function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0];
+  /** Beide Dateifelder leeren, damit dieselbe Datei erneut ein `change` ausloest. */
+  function resetFileInputs() {
+    if (pickInputRef.current) pickInputRef.current.value = "";
+    if (cameraInputRef.current) cameraInputRef.current.value = "";
+  }
+
+  /**
+   * Ein ausgewaehltes Bild uebernehmen - egal woher es kommt (Issue #103).
+   *
+   * Drei Wege fuehren hierher: der Knopf mit dem Dateiwaehler, der Knopf mit
+   * der Kamera und die per Maus hereingezogene Datei. Sie unterscheiden sich
+   * nur darin, wie die Datei entsteht; ab hier ist der Ablauf derselbe.
+   */
+  async function acceptImage(file: File | null | undefined) {
     setFileError("");
     setCompressionMessage("");
     setUploadFile(null);
     setAnonymizedOrigin(null);
     // Das alte Bild ist weg, seine Herkunft damit auch (Issue #87).
     rememberSignal("photo", null);
-
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl);
-    }
 
     if (!file) {
       setPreviewUrl("");
@@ -332,7 +397,7 @@ export function RepairSubmissionForm({
     if (!compressibleImageTypes.has(file.type)) {
       setFileError("Bitte wähle ein JPG, PNG oder WebP. Dieses Format kann nicht datenschutzsicher verarbeitet werden.");
       setPreviewUrl("");
-      event.target.value = "";
+      resetFileInputs();
       return;
     }
 
@@ -367,10 +432,60 @@ export function RepairSubmissionForm({
         : "Bilddaten wurden vor dem Upload bereinigt. EXIF- und Standortdaten wurden entfernt.");
     } catch (error) {
       setFileError(error instanceof Error ? error.message : "Das Bild konnte nicht verarbeitet werden.");
-      event.target.value = "";
     } finally {
       setIsCompressing(false);
+      /* In jedem Fall: Nach einem Fehlschlag soll dieselbe Datei ein zweites
+         Mal ausgewaehlt werden koennen, und nach einem Erfolg liegt das Bild
+         in `uploadFile` - im Dateifeld muss es dann nicht noch einmal
+         stehen. */
+      resetFileInputs();
     }
+  }
+
+  /** Das gewaehlte Bild wieder loswerden. */
+  function removeImage() {
+    setPreviewUrl("");
+    setUploadFile(null);
+    setCompressionMessage("");
+    setFileError("");
+    rememberSignal("photo", null);
+    resetFileInputs();
+
+    /* Kam der Standort aus genau diesem Foto, ist er mit ihm weg. Eine
+       Standortfreigabe oder eine eigene Kreiswahl bleibt dagegen stehen: Sie
+       hat mit dem Bild nichts zu tun (dieselbe Regel wie in `locationSource`). */
+    if (locationSource === "photo") {
+      setAnonymizedOrigin(null);
+      setLocationSource(null);
+      setSelectedKreis("");
+      setLocationStatus("");
+    }
+  }
+
+  /**
+   * Bild per Maus ins Feld ziehen. Nur der Vollstaendigkeit halber ein eigener
+   * Weg: Am Schreibtisch ist es der bequemste, auf dem Smartphone gibt es ihn
+   * gar nicht - deshalb tragen die beiden Knoepfe die Hauptlast.
+   */
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault();
+    setIsDropTarget(false);
+    // Mehrere Dateien auf einmal: Es zaehlt eine, also die erste.
+    void acceptImage(event.dataTransfer.files?.[0]);
+  }
+
+  /**
+   * Die Hervorhebung wieder aus - aber nur, wenn der Zeiger das Feld wirklich
+   * verlassen hat.
+   *
+   * `dragleave` steigt auch aus den Kindelementen auf: Wer ueber die Knoepfe
+   * hinweg ins Feld zieht, loeste sonst bei jedem Elementwechsel ein Verlassen
+   * aus, und der Rahmen flackerte.
+   */
+  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
+    const target = event.relatedTarget;
+    if (target instanceof Node && event.currentTarget.contains(target)) return;
+    setIsDropTarget(false);
   }
 
   /**
@@ -698,9 +813,17 @@ export function RepairSubmissionForm({
         {/* Das Motiv der gewaehlten Kategorie: Der Danke-Bildschirm bestaetigt
             damit nebenbei, was eingereicht wurde. */}
         <CategoryMotif category={category} size={88} />
+        {/* Im Testlauf darf hier nicht "zaehlt zum Rekord" stehen: Genau das
+            hat das Formular eine Zeile vorher ausgeschlossen (Issue #102). */}
+        {isTestRun && <p className="test-run-flag">Testlauf</p>}
         <p className="section-index">Eingereicht</p>
-        <h2 id={headingId}>Danke. Deine Reparatur wird geprüft und zählt dann zum Rekord!</h2>
-        <p>Sobald die Moderation deine Reparatur freigegeben hat, zählt sie zum Rekord und du kannst sie teilen.</p>
+        {isTestRun ? <>
+          <h2 id={headingId}>Danke. Der Testlauf hat funktioniert!</h2>
+          <p>Diese Einreichung war eine Probe und zählt nicht für den Rekord. Sobald der Testlauf beendet ist, wird sie aussortiert.</p>
+        </> : <>
+          <h2 id={headingId}>Danke. Deine Reparatur wird geprüft und zählt dann zum Rekord!</h2>
+          <p>Sobald die Moderation deine Reparatur freigegeben hat, zählt sie zum Rekord und du kannst sie teilen.</p>
+        </>}
         {submittedRepairId && (
           <div className="success-share">
             <p className="success-share-hint">
@@ -720,7 +843,17 @@ export function RepairSubmissionForm({
 
   return (
     <form className="repair-form" onSubmit={submitRepair} onChange={(event) => armCaptchaWhenComplete(event.currentTarget)}>
+      {/* Ganz oben, vor der Ueberschrift: Wer das Formular oeffnet, soll es
+          lesen, bevor er die erste Angabe macht (Issue #102). */}
+      {isTestRun && <p className="test-run-flag">Testlauf</p>}
       <h2 id={headingId}>{heading}</h2>
+      {isTestRun && (
+        <p className="test-run-note">
+          Dieses Formular läuft gerade im Testlauf: Wir proben den Ablauf. Deine Eingaben werden ganz normal gespeichert
+          und geprüft, zählen aber <strong>nicht für den Weltrekord</strong>. Wenn du eine echte Reparatur eintragen
+          möchtest, komm gerne nach dem Testlauf wieder.
+        </p>
+      )}
 
       <RepairCategorySelect category={category} onChange={setCategory} label="Kategorie" />
 
@@ -743,10 +876,60 @@ export function RepairSubmissionForm({
         <label className="choice"><input name="performed_by" type="radio" value="by_someone" /> <span>Hat jemand für mich repariert</span></label>
       </fieldset>
 
-      <label className="upload-field">Foto hinzufügen <small>(optional)</small>
-        <input name="image" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onChange={handleImageChange} />
-        <small>Lade gerne ein Bild von deinem Erfolgserlebnis und gerne auch von dir hoch. Wir zeigen die Fotos so, wie sie ankommen – wir verpixeln keine Gesichter. Sind andere Personen darauf zu erkennen, frag sie bitte vorher. JPG, PNG oder WebP · maximal 200 KB · Bild- und Standortdaten werden vor dem Upload entfernt.</small>
-      </label>
+      {/* Kein <label> mehr um das Ganze: Es gibt kein einzelnes Feld, auf das
+          es zeigen koennte - die Gruppe hat zwei Knoepfe und eine Ablage
+          (Issue #103). Die Bedienelemente traegt deshalb eine Gruppe mit
+          eigener Beschriftung. */}
+      <div
+        className={`upload-field${isDropTarget ? " is-drop-target" : ""}`}
+        role="group"
+        aria-labelledby="upload-field-label"
+        onDragOver={(event) => { event.preventDefault(); setIsDropTarget(true); }}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        <p className="upload-field-label" id="upload-field-label">Foto hinzufügen <small>(optional)</small></p>
+        <div className="upload-actions">
+          <button className="button button-secondary" type="button" disabled={isCompressing} onClick={() => pickInputRef.current?.click()}>
+            {hasCamera ? "Bild aus der Galerie" : "Bild auswählen"}
+          </button>
+          {hasCamera && (
+            <button className="button button-secondary" type="button" disabled={isCompressing} onClick={() => cameraInputRef.current?.click()}>
+              Foto aufnehmen
+            </button>
+          )}
+          {uploadFile && (
+            <button className="text-button" type="button" onClick={removeImage}>Bild entfernen</button>
+          )}
+        </div>
+        {/* Ohne `name`: Die Datei geht ausschliesslich als komprimiertes
+            `uploadFile` mit (siehe buildFormData). Truege ein Feld den Namen
+            `image`, koennte das Originalbild samt EXIF mitgesendet werden -
+            und bei zwei Feldern zusaetzlich ein leeres. */}
+        <input
+          ref={pickInputRef}
+          className="upload-input"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          aria-label="Bilddatei auswählen"
+          onChange={(event) => void acceptImage(event.target.files?.[0])}
+        />
+        <input
+          ref={cameraInputRef}
+          className="upload-input"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          capture="environment"
+          aria-label="Foto mit der Kamera aufnehmen"
+          onChange={(event) => void acceptImage(event.target.files?.[0])}
+        />
+        <small>
+          Lade gerne ein Bild von deinem Erfolgserlebnis und gerne auch von dir hoch. Wir zeigen die Fotos so, wie sie
+          ankommen – wir verpixeln keine Gesichter. Sind andere Personen darauf zu erkennen, frag sie bitte vorher.
+          {!hasCamera && " Du kannst ein Bild auch einfach hierher ziehen."} JPG, PNG oder WebP · maximal 200 KB ·
+          Bild- und Standortdaten werden vor dem Upload entfernt.
+        </small>
+      </div>
       {isCompressing && <p className="form-notice" aria-live="polite">Bild wird komprimiert ...</p>}
       {previewUrl && (
         // A blob URL is local to the browser and cannot use Next.js image optimization.
@@ -844,7 +1027,16 @@ export function RepairSubmissionForm({
           <p className="outside-region-hint">{outsideRegion.hint}</p>
         </div>
       )}
-      <button className="button button-primary form-submit" type="submit" disabled={isSubmitting || isCompressing || Boolean(fileError)}>{isSubmitting ? submitPhase === "processing" ? "Wird gespeichert ..." : "Wird gesendet ..." : "Zur Prüfung einreichen"} <span aria-hidden="true">&#8594;</span></button>
+      {/* Und noch einmal direkt ueber dem Knopf, der die Einreichung
+          abschickt: Der Hinweis von oben ist beim Ausfuellen eines langen
+          Formulars aus dem Blick, und hier faellt die Entscheidung
+          (Issue #102). */}
+      {isTestRun && (
+        <p className="test-run-note is-tight" role="status">
+          Erinnerung: Diese Einreichung gehört zum Testlauf und wird <strong>nicht zum eigentlichen Rekord gezählt</strong>.
+        </p>
+      )}
+      <button className="button button-primary form-submit" type="submit" disabled={isSubmitting || isCompressing || Boolean(fileError)}>{isSubmitting ? submitPhase === "processing" ? "Wird gespeichert ..." : "Wird gesendet ..." : isTestRun ? "Testeinreichung senden" : "Zur Prüfung einreichen"} <span aria-hidden="true">&#8594;</span></button>
     </form>
   );
 }

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { CategoryMotif } from "@/components/category-motif";
 import { ShareButton } from "@/components/share-button";
+import { ShareVisual } from "@/components/share-visual";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { getPublicRepairStatus } from "@/lib/repair-status";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
@@ -67,12 +68,22 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
             Deine Reparatur zählt danach weiter.
           </p>
         )}
+        {/* Das fertige Teilbild mit dem eigenen Foto darin (Issue #100). Es
+            steht vor den Knoepfen, weil es die eigentliche Belohnung ist: Der
+            Link darunter ist der Weg fuer alle, die lieber die Seite selbst
+            teilen. */}
+        <ShareVisual
+          repairId={repair.id}
+          title="Reparaturrekord NRW"
+          text={buildShareText(categoryLabel)}
+        />
         <div className="repair-status-actions">
           <ShareButton
             title="Reparaturrekord NRW"
             text={buildShareText(categoryLabel)}
             path={buildRepairPath(repair.id)}
-            label="Jetzt teilen"
+            label="Stattdessen den Link teilen"
+            className="button button-secondary"
           />
           <Link className="button button-secondary" href="/mitmachen">Noch eine Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
         </div>

@@ -5,6 +5,7 @@ import { extractExif } from "@/lib/exif";
 import { anonymizeCoordinates } from "@/lib/geo-anonymize";
 import { decideOrigin, ipRegionTag } from "@/lib/origin-check";
 import { ipCity, outsideRegionHelp } from "@/lib/outside-region-help";
+import { acceptsSubmissions } from "@/lib/app-settings";
 import { checkSubmissionGate, retryHint, submissionLimit } from "@/lib/submission-gate";
 import { logSubmissionFailure, logSubmissionFailureOnce } from "@/lib/submission-log";
 import { repairCategoryValues } from "@/lib/repair-catalog";
@@ -150,7 +151,9 @@ export async function POST(request: Request) {
   mark("gate", gateStartedAt);
   const settings = gate.settings;
 
-  if (settings.submissionWindow.status !== "open") {
+  /* Zeitraum *oder* Testlauf (Issue #102) - dieselbe Entscheidung wie im
+     Formular, damit ein offenes Formular nie auf eine absagende Route trifft. */
+  if (!acceptsSubmissions(settings)) {
     return withTimings(errorResponse("Einreichungen sind derzeit nicht geoeffnet.", 403));
   }
 
@@ -414,6 +417,19 @@ export async function POST(request: Request) {
     performed_by: performedBy,
     story: typeof story === "string" && story.trim() ? story.trim() : null,
     repair_succeeded: repairSucceeded,
+    /* Einreichungen aus einem Testlauf bekommen einen Tag (Issue #102).
+       Der Schalter selbst haelt nichts aus dem Rekord heraus - das tut die
+       Moderation. Damit sie es kann, muss eine Testeinreichung aber als solche
+       erkennbar sein: Ohne Merkmal waere sie hinterher nicht von einer echten
+       zu unterscheiden, und das Versprechen im Formular ("zaehlt nicht fuer
+       den Rekord") haette niemand einloesen koennen.
+
+       Bewusst das vorhandene `tags` und keine neue Spalte: Es gibt es seit der
+       ersten Migration, steht in der Moderationsansicht und laesst sich dort
+       auch aendern. Eine neue Spalte waere zwischen Deployment und Migration
+       ein Insert auf ein Feld, das es noch nicht gibt - und damit jede
+       Einreichung abgewiesen. */
+    ...(settings.testRun ? { tags: ["testlauf"] } : {}),
     image_path: null,
     consent_publication: true,
     location_region: origin.regionLabel,

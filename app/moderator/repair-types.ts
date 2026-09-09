@@ -71,6 +71,21 @@ export function performedByLabel(value: string | null) {
 }
 
 /**
+ * Tag, den die Einreichungsroute bei aktivem Testlauf setzt (Issue #102).
+ *
+ * Der Testlauf haelt Einreichungen nicht selbst aus dem Rekord heraus - das
+ * tut die Moderation, indem sie sie ablehnt. Damit das moeglich ist, muessen
+ * Testeinreichungen erkennbar sein; der Tag ist das Merkmal, und diese
+ * Konstante haelt seine Schreibweise an einem Ort (dieselbe steht in
+ * app/api/repairs/route.ts).
+ */
+export const TEST_RUN_TAG = "testlauf";
+
+export function isTestRunRepair(repair: ModerationRepair) {
+  return repair.tags.includes(TEST_RUN_TAG);
+}
+
+/**
  * Wie die Ortsangabe zustande kam - absteigend nach Beweiskraft.
  *
  * Bewusst als Angabe formuliert und nicht als Tatsache: Der Wert kommt aus
