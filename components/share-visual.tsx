@@ -77,8 +77,8 @@ export function ShareVisual({ repairId, text, title }: ShareVisualProps) {
   return <section className="share-visual" aria-labelledby="share-visual-title">
     <h2 id="share-visual-title">Dein Bild zum Teilen</h2>
     <p className="share-visual-lead">
-      Fertig gestaltet, mit deinem Foto darin. Format wählen, dann teilen oder herunterladen &ndash; und in deine Story
-      oder deinen Beitrag stellen.
+      Fertig gestaltet, mit deinem Foto darin &ndash; Farbe und Spruch gehören zu deiner Reparatur und bleiben so.
+      Format wählen, dann teilen oder herunterladen und in deine Story oder deinen Beitrag stellen.
     </p>
 
     <div className="share-visual-formats" role="group" aria-label="Format des Teilbildes">

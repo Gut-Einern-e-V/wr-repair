@@ -116,8 +116,19 @@ SVG-Pfad, skaliert also in jedem Format und nimmt seine Farben aus dem CSS.
 ### Teilbild nach der Freigabe
 
 Sobald die Moderation eine Reparatur freigegeben hat, liegt auf ihrer Statusseite
-ein fertig gestaltetes Bild zum Posten — mit dem hochgeladenen Foto darin, im
-Projekt-CI, quadratisch für den Feed und hochkant für Storys und TikTok.
+ein fertig gestaltetes Bild zum Posten — mit dem hochgeladenen Foto darin,
+quadratisch für den Feed und hochkant für Storys und TikTok.
+
+Gebaut wie eine gedruckte Karte, mit denselben Mitteln wie der
+Aufsteller-Generator: Papierrand außen, Karte in einer der vier Grundfarben
+darin, feines Papierraster darüber, Aufkleber mit leichter Drehung, die Kategorie
+als gelber Aufkleber über der unteren linken Ecke des Fotos. **Welche Grundfarbe
+und welchen Spruch eine Karte trägt, entscheidet die Kennung der Einreichung** —
+sechzehn Kombinationen, damit eine Zeitleiste voller geteilter Reparaturen nicht
+nach Vorlage aussieht. Deterministisch, nicht zufällig: Vorschau und
+heruntergeladene Datei zeigen dasselbe Bild, und wer den Link zweimal öffnet,
+sieht nicht zweimal etwas anderes.
+
 „Bild teilen“ öffnet auf dem Smartphone das System-Teilenfenster **mit der
 Bilddatei**, von dort geht es direkt in die Netzwerke; daneben steht ein
 gewöhnlicher Download-Link für alles andere. Gezeichnet wird das Bild bei jeder

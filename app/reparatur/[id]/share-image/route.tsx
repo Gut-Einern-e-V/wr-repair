@@ -3,7 +3,13 @@ import { categoryPictogramSvg } from "@/components/category-pictogram";
 import { getPublicRepairStatus } from "@/lib/repair-status";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { getSiteUrl } from "@/lib/share";
-import { parseShareVisualFormat, shareVisualFormats, type ShareVisualFormat } from "@/lib/share-visual";
+import {
+  parseShareVisualFormat,
+  shareVisualFormats,
+  shareVisualHeadlineSize,
+  shareVisualLook,
+  type ShareVisualFormat,
+} from "@/lib/share-visual";
 
 export const runtime = "nodejs";
 
@@ -14,6 +20,15 @@ export const runtime = "nodejs";
  * koennen - und zwar mit dem eigenen Foto darin, nicht mit einer allgemeinen
  * Kampagnengrafik. Diese Route zeichnet genau das, in den beiden Formaten, die
  * die sozialen Netzwerke brauchen (siehe lib/share-visual.ts).
+ *
+ * Gebaut wie eine gedruckte Karte, mit denselben Mitteln wie der
+ * Aufsteller-Generator: Papierrand aussen, Karte in einer der vier
+ * Grundfarben darin, feines Papierraster darueber, Aufkleber mit leichter
+ * Drehung, und das Kategorie-Label als gelber Aufkleber ueber der unteren
+ * linken Ecke des Fotos (Styleguide 7.1 und 7.2). Welche Grundfarbe und
+ * welchen Spruch eine Karte traegt, entscheidet die Kennung der Einreichung:
+ * Jede Reparatur bekommt ihr eigenes Bild, und jedes Bild bleibt sich selbst
+ * gleich (siehe {@link shareVisualLook}).
  *
  * Abgegrenzt vom Vorschaubild eine Ebene hoeher
  * (app/reparatur/[id]/opengraph-image.tsx): Das erscheint, wenn *irgendwer* den
@@ -35,45 +50,47 @@ const mint = "#95d4bb";
 const red = "#ec424c";
 
 /**
- * Masse je Format. Das Bildfeld hat feste Pixelwerte statt `flex: 1`: Satori
- * braucht fuer ein `<img>` mit `objectFit: cover` bekannte Kanten, sonst
- * verzerrt es das Foto. Der Rest verteilt sich ueber `space-between`.
+ * Dasselbe feine Papierraster wie auf der Website und auf dem Aufsteller
+ * (Designprinzip 9: keine glatte Vollfarbe auf grossen Flaechen). Die Periode
+ * ist doppelt so grob wie im CSS - das Bild ist 1080 Pixel breit und wird in
+ * einer Zeitleiste auf ungefaehr die Haelfte gerechnet.
+ */
+const paperGrain = "repeating-linear-gradient(0deg, transparent 0 6px, rgba(16, 22, 38, .04) 6px 8px)";
+
+/**
+ * Masse je Format. Die Hoehe des Bildfeldes steht bewusst *nicht* hier: Sie
+ * ergibt sich aus dem, was Kopfzeile und Aufkleber uebriglassen (siehe
+ * `photoHeight` unten). Ein fester Wert liess bei einzeiligen Spruechen eine
+ * grosse Luecke stehen, weil `space-between` den Rest verteilt - so bekommt
+ * stattdessen das Foto den Platz.
  */
 const layouts: Record<ShareVisualFormat, {
+  /** Breite des Papierrands um die Karte - das Passepartout. */
+  frame: number;
   padding: number;
   markSize: number;
   brandSize: number;
-  photoHeight: number;
-  /**
-   * Eine Zeile je Aufkleber, wie in den `.sticker-head`-Ueberschriften der
-   * Website: Ein Aufkleber umschliesst seinen Text und laeuft nie ueber zwei
-   * Zeilen - sonst wird aus dem Aufkleber ein Farbblock. Der Umbruch steht
-   * deshalb hier und wird nicht dem Textfluss ueberlassen.
-   */
-  headline: string[];
   headlineSize: number;
   categorySize: number;
   footerSize: number;
 }> = {
   square: {
-    padding: 56,
-    markSize: 64,
-    brandSize: 28,
-    photoHeight: 580,
-    headline: ["Repariert statt weggeworfen"],
-    headlineSize: 58,
-    categorySize: 44,
-    footerSize: 27,
+    frame: 26,
+    padding: 44,
+    markSize: 60,
+    brandSize: 26,
+    headlineSize: 56,
+    categorySize: 32,
+    footerSize: 25,
   },
   story: {
-    padding: 64,
-    markSize: 84,
-    brandSize: 36,
-    photoHeight: 1180,
-    headline: ["Repariert statt", "weggeworfen"],
-    headlineSize: 76,
-    categorySize: 56,
-    footerSize: 34,
+    frame: 32,
+    padding: 56,
+    markSize: 80,
+    brandSize: 34,
+    headlineSize: 74,
+    categorySize: 42,
+    footerSize: 31,
   },
 };
 
@@ -135,54 +152,124 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const format = parseShareVisualFormat(new URL(request.url).searchParams.get("format"));
   const size = shareVisualFormats[format];
   const layout = layouts[format];
+  const look = shareVisualLook(repair.id);
+  const { groundSpec } = look;
   const categoryLabel = repairCategoryLabel(repair.category);
   const photo = repair.imageUrl ? await loadPhoto(repair.imageUrl) : null;
-  const photoWidth = size.width - layout.padding * 2;
+  const cardWidth = size.width - layout.frame * 2;
+  const photoWidth = cardWidth - layout.padding * 2 - 8;
+  const headlineSize = shareVisualHeadlineSize(look.claim, layout.headlineSize, photoWidth - 44);
   const domain = readableSiteUrl(request);
+
+  /* Wie hoch das Foto sein darf: alles, was Kopfzeile, Aufkleber und
+     Fusszeilen uebriglassen. Die drei Kastenhoehen sind gerechnet und nicht
+     gemessen - Satori misst erst beim Zeichnen. Sie sind deshalb eine Spur
+     groszuegig geschaetzt, und `space-between` faengt die letzten Pixel
+     Abweichung auf, statt das Bild ueberlaufen zu lassen. */
+  const gap = Math.round(layout.padding * 0.6);
+  const stickerBox = Math.round(headlineSize * 1.25) + 14;
+  const footerBox = 10 + Math.round(layout.footerSize * 1.35) * 2;
+  const claimBox = look.claim.length * stickerBox + (look.claim.length - 1) * 10 + footerBox;
+  const innerHeight = size.height - layout.frame * 2 - 8 - layout.padding * 2;
+  const photoHeight = Math.max(240, innerHeight - layout.markSize - claimBox - gap * 2);
 
   return new ImageResponse(
     (
+      /* Aussen der Papierrand: Er macht aus dem Bild eine gestaltete Karte und
+         nicht einen randabfallenden Screenshot - in einer Zeitleiste ist genau
+         das der Unterschied. */
       <div
         style={{
           width: "100%",
           height: "100%",
           display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-          padding: layout.padding,
+          padding: layout.frame,
           background: bg,
-          color: ink,
+          backgroundImage: paperGrain,
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 20, fontSize: layout.brandSize, fontWeight: 700, letterSpacing: 2 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: layout.markSize, height: layout.markSize, background: red, color: paper, fontSize: layout.markSize * 0.68 }}>R</div>
-          REPARATURREKORD NRW
-        </div>
-
-        {/* Das Foto, randabfallend im Rahmen. Ohne Foto steht das Zeichen der
-            Kategorie auf Mint: eine Flaeche in Markenfarbe ist ein besseres
-            Bild als ein leerer Kasten. */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: photoWidth, height: layout.photoHeight, border: `5px solid ${ink}`, background: photo ? ink : mint, overflow: "hidden" }}>
-          {photo
-            // eslint-disable-next-line @next/next/no-img-element -- Satori kennt nur <img>; next/image gibt es in einer ImageResponse nicht.
-            ? <img src={photo} width={photoWidth} height={layout.photoHeight} style={{ objectFit: "cover" }} alt="" />
-            // eslint-disable-next-line @next/next/no-img-element -- dito.
-            : <img src={pictogramDataUri(repair.category)} width={Math.round(layout.photoHeight * 0.42)} height={Math.round(layout.photoHeight * 0.42)} alt="" />}
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {layout.headline.map((line) => (
-            <div key={line} style={{ display: "flex" }}>
-              <div style={{ padding: "8px 22px", background: mint, fontSize: layout.headlineSize, fontWeight: 800 }}>{line}</div>
-            </div>
-          ))}
-          <div style={{ display: "flex" }}>
-            <div style={{ padding: "8px 22px", background: yellow, fontSize: layout.categorySize, fontWeight: 800 }}>{categoryLabel}</div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            width: "100%",
+            height: "100%",
+            padding: layout.padding,
+            border: `4px solid ${ink}`,
+            background: groundSpec.ground,
+            backgroundImage: paperGrain,
+            color: groundSpec.text,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 18, fontSize: layout.brandSize, fontWeight: 700, letterSpacing: 2 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "center", width: layout.markSize, height: layout.markSize, background: red, color: paper, fontSize: layout.markSize * 0.68 }}>R</div>
+            REPARATURREKORD NRW
           </div>
-          <div style={{ display: "flex", flexDirection: "column", fontSize: layout.footerSize, fontWeight: 600 }}>
-            <div style={{ display: "flex" }}>Ich war beim Reparaturrekord in NRW dabei.</div>
-            {domain && <div style={{ display: "flex", color: red, fontWeight: 800 }}>Mach mit: {domain}</div>}
+
+          {/* Das Foto, randabfallend im Rahmen, mit dem Kategorie-Aufkleber
+              ueber der unteren linken Ecke (Styleguide 7.2). Ohne Foto steht
+              das Zeichen der Kategorie auf Mint: eine Flaeche in Markenfarbe
+              ist ein besseres Bild als ein leerer Kasten. */}
+          <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", width: photoWidth, height: photoHeight, border: `4px solid ${ink}`, background: photo ? ink : mint, overflow: "hidden" }}>
+            {photo
+              // eslint-disable-next-line @next/next/no-img-element -- Satori kennt nur <img>; next/image gibt es in einer ImageResponse nicht.
+              ? <img src={photo} width={photoWidth} height={photoHeight} style={{ objectFit: "cover" }} alt="" />
+              // eslint-disable-next-line @next/next/no-img-element -- dito.
+              : <img src={pictogramDataUri(repair.category)} width={Math.round(photoHeight * 0.4)} height={Math.round(photoHeight * 0.4)} alt="" />}
+            <div
+              style={{
+                position: "absolute",
+                left: 24,
+                bottom: 24,
+                display: "flex",
+                padding: "5px 18px 8px",
+                border: `4px solid ${ink}`,
+                background: yellow,
+                color: ink,
+                fontSize: layout.categorySize,
+                fontWeight: 800,
+                transform: "rotate(-1.2deg)",
+              }}
+            >
+              {categoryLabel}
+            </div>
+          </div>
+
+          {/* Die Aufkleber-Ueberschrift: eine Zeile je Aufkleber, leicht
+              gedreht, jede zweite eingerueckt - dasselbe Bauteil wie die
+              `.sticker-head`-Ueberschriften der Website. */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 10 }}>
+            {look.claim.map((line, index) => (
+              <div key={line} style={{ display: "flex", marginLeft: index % 2 === 1 ? Math.round(headlineSize * 0.4) : 0 }}>
+                <div
+                  style={{
+                    display: "flex",
+                    padding: "4px 22px 10px",
+                    background: groundSpec.sticker,
+                    color: groundSpec.stickerText,
+                    fontSize: headlineSize,
+                    fontWeight: 800,
+                    transform: `rotate(${look.rotations[index]}deg)`,
+                  }}
+                >
+                  {line}
+                </div>
+              </div>
+            ))}
+            {/* `nowrap`, weil `footerBox` weiter oben mit genau zwei Zeilen
+                rechnet: Ein Umbruch waere dort nicht eingeplant und wuerde das
+                Foto ueber die Karte hinausschieben.
+
+                Und "Reparaturrekord" steht am Zeilenende, weil Satori hinter
+                dem laengsten Wort einer Zeile zusaetzlichen Vorschub setzt -
+                mitten im Satz sah das aus wie ein doppeltes Leerzeichen, am
+                Zeilenende faellt es niemandem auf. */}
+            <div style={{ display: "flex", flexDirection: "column", marginTop: 10, fontSize: layout.footerSize, fontWeight: 600, whiteSpace: "nowrap" }}>
+              <div style={{ display: "flex" }}>Ich war dabei beim Reparaturrekord.</div>
+              {domain && <div style={{ display: "flex", fontWeight: 800, color: groundSpec.muted }}>Mach mit: {domain}</div>}
+            </div>
           </div>
         </div>
       </div>
