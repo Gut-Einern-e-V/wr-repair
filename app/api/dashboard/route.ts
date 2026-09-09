@@ -1,6 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { publicRateLimit } from "@/lib/rate-limit";
-import { getAppSettings } from "@/lib/app-settings";
+import { acceptsSubmissions, getAppSettings } from "@/lib/app-settings";
 import { MAX_HIGHLIGHTS, readCells, type DashboardDelta, type DashboardHighlight, type DashboardKreisDay, type DashboardSnapshot } from "@/lib/dashboard";
 
 /**
@@ -266,7 +266,10 @@ async function loadDelta(supabase: SupabaseAdmin, since: string, withImages: boo
 export async function GET(request: Request) {
   const settings = await getAppSettings();
   const campaign = settings.submissionWindow;
-  if (campaign.status !== "open") {
+  /* Im Testlauf ebenfalls offen (Issue #102): Die Buehne ist der letzte
+     Abschnitt des geprobten Weges - ohne sie endet der Testlauf bei der
+     Moderation. */
+  if (!acceptsSubmissions(settings)) {
     return Response.json(
       { error: "Das Live-Dashboard ist nur waehrend des Weltrekordversuchs verfuegbar.", code: "outside-campaign-window" },
       { status: 403, headers: { "Cache-Control": "no-store" } },

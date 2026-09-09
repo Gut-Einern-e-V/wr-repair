@@ -49,6 +49,8 @@ export type AdminSettings = {
   recordGoal: number;
   /** Bisher hoechster Tagesstand *an einem Ort*; null heisst: nicht hinterlegt. */
   dayRecord: number | null;
+  /** Testlauf aktiv: Einreichung offen ohne Zeitraum, Hinweis auf allen Seiten (Issue #102). */
+  testRun: boolean;
   rateLimit: RateLimitSettings;
   /**
    * Die Adresse, mit der das Backend gerade aufgerufen wird. Nur fuer den
@@ -59,7 +61,7 @@ export type AdminSettings = {
   logoUrl: string | null;
   lotteryOrganizer: LotteryOrganizerSettings;
   persisted: boolean;
-  stored: { window: boolean; recordGoal: boolean; dayRecord: boolean; rateLimit: boolean; region: boolean; logo: boolean; lotteryOrganizer: boolean };
+  stored: { window: boolean; recordGoal: boolean; dayRecord: boolean; testRun: boolean; rateLimit: boolean; region: boolean; logo: boolean; lotteryOrganizer: boolean };
 };
 
 const windowStatusLabels = { before: "Noch nicht gestartet", open: "Laeuft", after: "Beendet", invalid: "Nicht konfiguriert" } as const;
@@ -177,6 +179,26 @@ export default function CampaignPanel({
 
     const ok = await save("dayRecord", { dayRecord: parsed }, `Der Tagesrekord steht bei ${parsed.toLocaleString("de-DE")} Reparaturen an einem Ort.`);
     if (ok) onSaved({ dayRecord: parsed, stored: { ...settings.stored, dayRecord: true } });
+  }
+
+  /**
+   * Testlauf umschalten (Issue #102).
+   *
+   * Ein Knopf und kein Haeckchen mit Speichern-Schritt: Der Schalter wird
+   * gebraucht, wenn eine Veranstaltung gleich anfaengt - dann zaehlt ein
+   * Handgriff, nicht zwei. Er wirkt sofort auf allen oeffentlichen Seiten,
+   * deshalb sagt die Rueckmeldung ausdruecklich, was jetzt gilt.
+   */
+  async function toggleTestRun() {
+    const next = !settings.testRun;
+    const ok = await save(
+      "testRun",
+      { testRun: next },
+      next
+        ? "Testlauf laeuft. Die Einreichung ist unabhaengig vom Zeitraum offen und alle oeffentlichen Seiten weisen darauf hin."
+        : "Testlauf beendet. Es gilt wieder allein der Teilnahmezeitraum.",
+    );
+    if (ok) onSaved({ testRun: next, stored: { ...settings.stored, testRun: true } });
   }
 
   /**
@@ -307,6 +329,24 @@ export default function CampaignPanel({
           <button className="button button-primary" type="submit" disabled={isSaving === "window"}>{isSaving === "window" ? "Speichert ..." : "Zeitrahmen speichern"}</button>
         </form>
         {!settings.stored.window && <p className="quota-note">Aktuell gelten die Werte aus <code>SUBMISSION_START_AT</code> und <code>SUBMISSION_END_AT</code>.</p>}
+      </section>
+
+      {/* Direkt unter dem Zeitrahmen, weil der Testlauf ihn aushebelt: Wer
+          hier schaltet, soll oben sehen, was sonst gelten wuerde (Issue #102). */}
+      <section className={`admin-card${settings.testRun ? " is-test-run" : ""}`} aria-labelledby="test-run-heading">
+        <div className="admin-card-head"><h3 id="test-run-heading">Testlauf</h3><span className={`status-chip is-${settings.testRun ? "pending" : "approved"}`}>{settings.testRun ? "Testlauf laeuft" : "Normalbetrieb"}</span></div>
+        <p>Fuer die Probe vor einer Veranstaltung: Die Einreichung ist offen, auch wenn der Zeitrahmen oben noch nicht laeuft oder schon beendet ist. Startseite und Formular tragen dann einen deutlichen Hinweis, und beim Absenden steht, dass die Einreichung nicht fuer den Rekord zaehlt.</p>
+        <p className="quota-note"><b>Wichtig:</b> Der Schalter haelt Einreichungen nicht selbst aus dem Rekord heraus. Sie landen wie immer in der Moderation, tragen dort aber den Tag <code>testlauf</code> &ndash; nach dem Testlauf gehoeren sie abgelehnt, sonst zaehlen sie mit. Solange der Testlauf laeuft, ist die Einreichung fuer alle offen, nicht nur fuer euer Team.</p>
+        <div className="campaign-form">
+          <button
+            className={`button ${settings.testRun ? "button-secondary" : "button-primary"}`}
+            type="button"
+            disabled={isSaving === "testRun"}
+            onClick={() => void toggleTestRun()}
+          >
+            {isSaving === "testRun" ? "Speichert ..." : settings.testRun ? "Testlauf beenden" : "Testlauf starten"}
+          </button>
+        </div>
       </section>
 
       <section className="admin-card" aria-labelledby="goal-heading">

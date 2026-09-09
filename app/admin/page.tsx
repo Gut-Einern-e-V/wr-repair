@@ -43,6 +43,7 @@ export default async function AdminPage() {
     windowStatus: settings.submissionWindow.status,
     recordGoal: settings.recordGoal,
     dayRecord: settings.dayRecord,
+    testRun: settings.testRun,
     rateLimit: settings.publicThrottle,
     clientIp,
     region: {
@@ -62,6 +63,7 @@ export default async function AdminPage() {
       window: Boolean(row?.submission_start_at && row?.submission_end_at),
       recordGoal: row?.record_goal != null,
       dayRecord: row?.day_record != null,
+      testRun: row?.test_run_enabled != null,
       rateLimit: row?.rate_limit_enabled != null,
       region: row?.region_label != null,
       logo: Boolean(row?.logo_path),

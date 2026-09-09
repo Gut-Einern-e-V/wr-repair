@@ -8,6 +8,7 @@ import { decideRepair, deleteRepair, deleteRepairImage, saveRepairMetadata } fro
 import RepairDetail from "./repair-detail";
 import {
   buildQuery,
+  isTestRunRepair,
   isUnderReview,
   missingImageNote,
   repairStatusLabels,
@@ -207,6 +208,10 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
                     <td>
                       <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span>
                       {isUnderReview(repair) && <span className="status-chip is-claimed">In Prüfung</span>}
+                      {/* Eingegangen waehrend eines Testlaufs (Issue #102):
+                          Diese Einreichung gehoert abgelehnt, sonst zaehlt eine
+                          Probe zum Rekord. */}
+                      {isTestRunRepair(repair) && <span className="status-chip is-test-run">Testlauf</span>}
                     </td>
                     <td className="table-actions">
                       {repair.status === "pending" && (

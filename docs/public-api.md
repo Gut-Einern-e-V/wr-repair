@@ -16,7 +16,7 @@ Dieselbe Übersicht steht auch als Seite auf der Website unter `/api-doku`.
 | `GET /api/stats` | Alle Zahlen der Aktion: Stand, Ziel, Tageswerte, Kategorien, Kreise, Zeitachse des ganzen Zeitraums | 5 Minuten (`s-maxage=300`) | 120/min je IP |
 | `GET /api/dashboard` | Zahlen **und** die jüngsten 24 Einzeleinträge, Herkunftszellen der Karte | 20 Sekunden | 240/min je IP |
 | `GET /api/dashboard?since=<ISO>` | nur die seither freigegebenen Einträge | 5 Sekunden | 240/min je IP |
-| `GET /api/campaign` | Zeitraum und Zielzahl — die einzige Route, die **vor** dem Start antwortet | ohne Cache | 240/min je IP |
+| `GET /api/campaign` | Zeitraum, Zielzahl und Testlauf — die einzige Route, die **vor** dem Start antwortet | ohne Cache | 240/min je IP |
 | `GET /api/partners` | Logos und Links der unterstützenden Organisationen | 5 Minuten | 120/min je IP |
 | `GET /api/gallery` | die sechs jüngsten freigegebenen Reparaturen mit Bild-URL | 1 Minute | 120/min je IP |
 | `GET /api/mosaic` | die Bilderwand der Startseite: die 40 jüngsten freigegebenen Fotos samt Gesamtzahl | 10 Minuten | 120/min je IP |
@@ -39,6 +39,20 @@ Drei Arten von Zustand tauchen in den Antworten auf. Sie werden regelmäßig ver
 | `open` | Einreichungen sind offen, es wird gezählt. | Alle Routen antworten. |
 | `after` | Der Zeitraum ist beendet. | `/api/stats` antwortet weiter (der Endstand bleibt stehen), `/api/dashboard` antwortet `403`. |
 | `invalid` | Es ist kein gültiger Zeitraum hinterlegt. | Wie `before`. |
+
+### Testlauf
+
+`/api/campaign` liefert daneben `testRun`. Ist es `true`, wird die Aktion gerade
+geprobt: Einreichungen sind offen und `/api/stats` und `/api/dashboard`
+antworten, **auch wenn `status` nicht `open` ist**. Ein Gerät, das die Phase
+selbst aus `startAt` und `endAt` ausrechnet, muss diesen Fall mitnehmen, sonst
+zeigt es während eines Testlaufs „Zählung startet bald" an, während die Zahlen
+längst laufen.
+
+Die Zahlen eines Testlaufs sind keine echten: Die Einreichungen werden von der
+Moderation hinterher aussortiert, der Stand fällt danach also wieder. Wer eine
+feste Anzeige betreibt, sollte einen Testlauf deshalb sichtbar machen — ein
+Wort genügt.
 
 ### Zustand einer Einreichung
 

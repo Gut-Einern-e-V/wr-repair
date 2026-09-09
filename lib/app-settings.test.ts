@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { buildAppSettings, mergeRegion, mergeThrottle, parseWindow, publicLogoUrl, type SettingsRow } from "./app-settings";
+import { acceptsSubmissions, buildAppSettings, mergeRegion, mergeThrottle, parseWindow, publicLogoUrl, type SettingsRow } from "./app-settings";
 import { defaultLotteryOrganizer } from "./organisation";
 import { DEFAULT_THROTTLE_PER_MINUTE } from "./rate-limit";
 import { getRegionConfig } from "./region-config";
@@ -22,6 +22,7 @@ function row(overrides: Partial<SettingsRow> = {}): SettingsRow {
     rate_limit_enabled: null,
     rate_limit_per_minute: null,
     rate_limit_allowlist: null,
+    test_run_enabled: null,
     ...overrides,
   };
 }
@@ -116,6 +117,39 @@ describe("mergeThrottle", () => {
     // insgesamt ausfallen lassen (Issue #80).
     const throttle = mergeThrottle(row({ rate_limit_allowlist: ["203.0.113.4", "kaputt", "2001:db8::/32"] }));
     expect(throttle.allowlist).toEqual(["203.0.113.4", "2001:db8::/32"]);
+  });
+});
+
+describe("Testlauf", () => {
+  it("ist aus, solange nichts gespeichert ist", () => {
+    expect(buildAppSettings(null).testRun).toBe(false);
+    expect(buildAppSettings(row()).testRun).toBe(false);
+  });
+
+  it("bleibt aus, solange die Spalte fehlt", () => {
+    // Zwischen Deployment und Migration 202609090001 gibt es das Feld nicht -
+    // "nicht vorhanden" muss dasselbe heissen wie "kein Testlauf".
+    const withoutColumn = row();
+    delete withoutColumn.test_run_enabled;
+    expect(buildAppSettings(withoutColumn).testRun).toBe(false);
+  });
+
+  it("liest den gespeicherten Schalter", () => {
+    expect(buildAppSettings(row({ test_run_enabled: true })).testRun).toBe(true);
+    expect(buildAppSettings(row({ test_run_enabled: false })).testRun).toBe(false);
+  });
+
+  it("oeffnet die Einreichung auch ausserhalb des Zeitraums", () => {
+    // Genau der Zweck des Schalters: vor dem Start proben (Issue #102).
+    const future = { submission_start_at: "2999-01-01T00:00:00Z", submission_end_at: "2999-02-01T00:00:00Z" };
+
+    expect(acceptsSubmissions(buildAppSettings(row(future)))).toBe(false);
+    expect(acceptsSubmissions(buildAppSettings(row({ ...future, test_run_enabled: true })))).toBe(true);
+  });
+
+  it("laesst den laufenden Zeitraum ohne Testlauf offen", () => {
+    const open = row({ submission_start_at: "2020-01-01T00:00:00Z", submission_end_at: "2999-01-01T00:00:00Z" });
+    expect(acceptsSubmissions(buildAppSettings(open))).toBe(true);
   });
 });
 

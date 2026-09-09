@@ -8,6 +8,8 @@ import { RepairSubmissionForm } from "@/components/repair-submission-form";
 type CampaignStatus = {
   status: "open" | "before" | "after" | "invalid";
   startAt: string | null;
+  /** Testlauf: Die Einreichung ist offen, auch wenn der Zeitraum es nicht ist (Issue #102). */
+  testRun?: boolean;
 };
 
 export function QuickSubmission() {
@@ -31,12 +33,15 @@ export function QuickSubmission() {
     return <p className="form-notice" role="status">Einreichung wird geladen ...</p>;
   }
 
-  if (campaign.status !== "open") {
+  /* Der Testlauf hebt den Zeitraum auf (Issue #102) - dieselbe Entscheidung
+     wie in der Einreichungsroute, siehe acceptsSubmissions in
+     lib/app-settings.ts. */
+  if (campaign.status !== "open" && !campaign.testRun) {
     return <>
       <CampaignWindowNotice status={campaign.status} startAt={campaign.startAt} />
       <p className="quick-submit-back"><Link className="text-button" href="/">Zur Startseite <span aria-hidden="true">&#8594;</span></Link></p>
     </>;
   }
 
-  return <RepairSubmissionForm heading="Reparatur einreichen" />;
+  return <RepairSubmissionForm heading="Reparatur einreichen" isTestRun={Boolean(campaign.testRun)} />;
 }

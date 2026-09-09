@@ -9,6 +9,7 @@ type Body = {
   endAt?: unknown;
   recordGoal?: unknown;
   dayRecord?: unknown;
+  testRun?: unknown;
   rateLimit?: {
     enabled?: unknown;
     perMinute?: unknown;
@@ -57,6 +58,7 @@ export async function GET(request: Request) {
     windowStatus: settings.submissionWindow.status,
     recordGoal: settings.recordGoal,
     dayRecord: settings.dayRecord,
+    testRun: settings.testRun,
     rateLimit: settings.publicThrottle,
     region: {
       enabled: settings.region.enabled,
@@ -84,6 +86,7 @@ export async function GET(request: Request) {
       window: Boolean(row?.submission_start_at && row?.submission_end_at),
       recordGoal: row?.record_goal != null,
       dayRecord: row?.day_record != null,
+      testRun: row?.test_run_enabled != null,
       rateLimit: row?.rate_limit_enabled != null,
       region: row?.region_label != null,
       logo: Boolean(row?.logo_path),
@@ -130,6 +133,18 @@ export async function PUT(request: Request) {
       }
       update.day_record = record;
     }
+  }
+
+  /* Testlauf an oder aus (Issue #102). Ein einzelner Schalter mit sofortiger
+     Wirkung: Er entscheidet, ob die Einreichung unabhaengig vom Zeitraum offen
+     ist und ob die oeffentlichen Seiten den Hinweis tragen. Nur ein echter
+     Wahrheitswert wird angenommen - ein "an" aus einem halb gefuellten
+     Formular waere hier der teuerste denkbare Tippfehler. */
+  if (body.testRun !== undefined) {
+    if (typeof body.testRun !== "boolean") {
+      return Response.json({ error: "Bitte gib an, ob der Testlauf aktiv ist." }, { status: 400 });
+    }
+    update.test_run_enabled = body.testRun;
   }
 
   /* Drosselung der oeffentlichen Leseroute (Issue #80). Schalter und Zahl

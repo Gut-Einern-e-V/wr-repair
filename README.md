@@ -137,6 +137,11 @@ SVG-Pfad, skaliert also in jedem Format und nimmt seine Farben aus dem CSS.
 - **Backend für die Kampagne:** Zeitraum, Ziel, Tagesrekord, Gebiet, Logo, Team und
   Rollen, Partner, Preise, plus ein Notschalter, der alle öffentlichen Leseroute
   drosselt, wenn ein Kontingent knapp wird — sofort und ohne Deployment.
+- **Testlauf:** Ein Schalter im Backend öffnet die Einreichung unabhängig vom
+  Zeitraum und lässt Startseite und Formular deutlich sagen, dass geprobt wird.
+  So lässt sich der ganze Weg vor einer Veranstaltung durchspielen, ohne dass die
+  Seite dabei aussieht wie im Ernstfall. Testeinreichungen tragen in der
+  Moderation den Tag `testlauf` und werden dort hinterher aussortiert.
 - **Bilder** liegen in einem privaten Bucket und werden nur über kurzlebige signierte
   URLs ausgeliefert. Freigegebene Reparaturen bekommen ein eigenes
   Open-Graph-Bild.

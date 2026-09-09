@@ -26,8 +26,9 @@ export async function GET(request: Request) {
   /* Waehrend und nach dem Zeitraum. Vorher gibt es nichts zu zeigen, und die
      Zahl null als "Live-Stand" waere irrefuehrend; danach ist die Zahl das
      Ergebnis und bleibt offen - die Startseite und der Rueckblick unter /stats
-     leben davon (Issue #66). */
-  if (campaign.status !== "open" && campaign.status !== "after") {
+     leben davon (Issue #66). Im Testlauf ebenfalls offen: Zum geprobten Weg
+     gehoert, dass der Zaehler auf der Startseite sich bewegt (Issue #102). */
+  if (campaign.status !== "open" && campaign.status !== "after" && !settings.testRun) {
     return Response.json(
       { error: "Die oeffentliche Statistik ist ab dem Start des Weltrekordversuchs verfuegbar.", code: "outside-campaign-window" },
       { status: 403, headers: { "Cache-Control": "no-store" } },

@@ -1,5 +1,5 @@
 import { requireModerator } from "@/lib/admin-auth";
-import { getConfiguredSubmissionWindow } from "@/lib/campaign-settings";
+import { acceptsSubmissions, getAppSettings } from "@/lib/app-settings";
 import { hasOriginMismatch, type OriginSignal, type OriginSource } from "@/lib/origin-check";
 import { projectToUnitSquare } from "@/lib/nrw-map";
 import type { RegionConfig } from "@/lib/region-config";
@@ -211,7 +211,10 @@ export async function requireModerationAccess() {
   }
 
   const isAdmin = authorization.currentAdmin.roles.some((role) => ["admin", "superadmin"].includes(role));
-  if (!isAdmin && (await getConfiguredSubmissionWindow()).status !== "open") {
+  /* Waehrend eines Testlaufs auch ausserhalb des Zeitraums (Issue #102): Zum
+     Testlauf gehoert die Pruefung dazu, sonst bleibt jede Testeinreichung in
+     der Warteschlange liegen und der geprobte Weg endet auf halbem Wege. */
+  if (!isAdmin && !acceptsSubmissions(await getAppSettings())) {
     return {
       ok: false as const,
       response: Response.json({ error: "Moderation ist nur waehrend des Einreichungszeitraums moeglich." }, { status: 403 }),

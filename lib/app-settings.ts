@@ -43,6 +43,20 @@ export type AppSettings = {
    * nicht "leer lassen": Ein Gewinnspiel ohne Veranstalter gibt es nicht.
    */
   lotteryOrganizer: LotteryOrganizer;
+  /**
+   * Testlauf: Die Aktion wird geprobt, nicht gezaehlt (Issue #102).
+   *
+   * Zwei Wirkungen, und beide gehoeren zusammen: Die Einreichung ist
+   * unabhaengig vom Zeitraum offen - sonst waere ein Testlauf vor dem Start
+   * gar nicht durchzuspielen -, und jede oeffentliche Seite sagt, dass gerade
+   * geprobt wird. Ein offenes Formular ohne diesen Hinweis waere eine Falle
+   * fuer alle, die zufaellig vorbeikommen.
+   *
+   * Ob eine Einreichung fuer den Rekord zaehlt, entscheidet der Schalter
+   * nicht: Das tut weiter die Moderation. Einreichungen aus einem Testlauf
+   * tragen dafuer den Tag `testlauf` (siehe app/api/repairs/route.ts).
+   */
+  testRun: boolean;
   /** False when the settings row could not be read, e.g. before the migration ran. */
   persisted: boolean;
   /** The stored overrides themselves, so callers can tell stored from inherited. */
@@ -76,6 +90,8 @@ export type SettingsRow = {
   lottery_organizer_name?: string | null;
   lottery_organizer_address?: string | null;
   lottery_organizer_email?: string | null;
+  /* Fehlt, solange Migration 202609090001 nicht gelaufen ist. */
+  test_run_enabled?: boolean | null;
 };
 
 /**
@@ -199,9 +215,26 @@ export function buildAppSettings(row: SettingsRow | null): AppSettings {
       address: row?.lottery_organizer_address?.trim() || defaultLotteryOrganizer.address,
       email: row?.lottery_organizer_email?.trim() || defaultLotteryOrganizer.email,
     },
+    /* Bewusst `=== true` und nicht `?? false`: Die Spalte fehlt, solange
+       Migration 202609090001 nicht ausgerollt ist, und "nicht vorhanden" muss
+       dasselbe heissen wie "kein Testlauf". Ein `undefined` waere sonst als
+       Wahrheitswert unbrauchbar. */
+    testRun: row?.test_run_enabled === true,
     persisted: row !== null,
     row,
   };
+}
+
+/**
+ * Ob die Aktion gerade Einreichungen annimmt (Issue #102).
+ *
+ * Zwei Gruende, warum das offen sein kann: Der Teilnahmezeitraum laeuft, oder
+ * es ist Testlauf. An einer Stelle zusammengefasst, damit Einreichungsroute,
+ * Moderation, Buehne und Startseite nicht jede fuer sich entscheiden - liefen
+ * sie auseinander, koennte das Formular offen sein, waehrend die Route absagt.
+ */
+export function acceptsSubmissions(settings: AppSettings) {
+  return settings.submissionWindow.status === "open" || settings.testRun;
 }
 
 /**

@@ -6,6 +6,7 @@ import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
 import { claimNextRepair, decideRepair, deleteRepairImage, releaseRepairClaim, saveRepairMetadata } from "./moderation-api";
 import { draftFromRepair, missingImageNote, performedByLabel, type MetadataDraft, type ModerationRepair,
+  isTestRunRepair,
   originWarning,
 } from "./repair-types";
 
@@ -109,6 +110,9 @@ function QuickCard({
                 Meinung sind - dann steht er auf der Karte, statt still
                 durchzulaufen. */}
             {originWarning(repair) && <span className="status-chip is-pending">{originWarning(repair)}</span>}
+            {/* Eingegangen waehrend eines Testlaufs (Issue #102): gehoert
+                abgelehnt, sonst zaehlt eine Probe zum Rekord. */}
+            {isTestRunRepair(repair) && <span className="status-chip is-test-run">Testlauf</span>}
           </p>
           <h3>{repair.brand_model || "Marke/Modell unbekannt"}</h3>
           {repair.story && <p className="quick-story">{repair.story}</p>}

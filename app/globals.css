@@ -257,6 +257,23 @@ h1 span:not(.sticker):not(.easy-dot), h2 span:not(.sticker):not(.easy-dot), h3 s
   letter-spacing: .11em; text-transform: uppercase; color: var(--yellow-soft);
 }
 
+/* --- Testlauf (Issue #102) ---------------------------------
+   Der Aufkleber sitzt ueber der Ueberschrift im Hero und oben im Formular. Rot
+   und schief: Er soll nach Markenwelt aussehen und trotzdem sofort auffallen -
+   ein Hinweis, den man uebersieht, waere gefaehrlicher als keiner, weil das
+   Formular waehrend eines Testlaufs fuer alle offensteht. */
+.test-run-flag {
+  display: inline-block; margin: 0 0 14px; padding: 6px 14px 7px;
+  border: var(--line); background: var(--red); color: var(--paper);
+  font: 800 12px/1.1 var(--mono); letter-spacing: .1em; text-transform: uppercase;
+  transform: rotate(-1.5deg);
+}
+.test-run-note {
+  margin: 0 0 20px; padding: 14px; border: 2px dashed var(--red);
+  background: rgba(236, 66, 76, .12); font-size: 14px; line-height: 1.45;
+}
+.test-run-note.is-tight { margin: 12px 0; }
+
 /* --- Buttons: Gelb ist die Primaerfarbe -------------------- */
 .button-primary { background: var(--yellow); color: var(--ink); }
 .button-primary:hover { background-color: var(--ink); color: var(--yellow); }
@@ -424,6 +441,8 @@ nav a:hover, .header-link:hover { text-decoration: underline; text-decoration-th
 .status-chip.is-rejected { background: var(--red-deep); color: var(--paper); }
 /* Liegt gerade in einer anderen Schnellpruefung - Hinweis gegen Doppelarbeit. */
 .status-chip.is-claimed { margin-left: 6px; background: var(--ink); color: var(--paper); }
+/* Eingegangen waehrend eines Testlaufs (Issue #102) - gehoert abgelehnt. */
+.status-chip.is-test-run { margin-left: 6px; border-style: dashed; background: var(--red); color: var(--paper); }
 
 /* Approve links, Reject rechts in klar abgesetzter Danger-Area. */
 .review-actions .button-primary { background: var(--green-soft); color: var(--ink); }
@@ -1049,6 +1068,10 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .admin-card-head h3 { margin: 0; font-size: 24px; text-transform: none; }
 .admin-card > p { max-width: 640px; margin: 0 0 18px; line-height: 1.45; }
 .admin-card .campaign-form, .admin-card .partner-form { background: var(--bg); }
+/* Solange der Testlauf laeuft, faellt seine Karte aus der Reihe (Issue #102):
+   Der Schalter greift in den oeffentlichen Auftritt ein, er soll im Backend
+   nicht wie eine Einstellung unter vielen aussehen. */
+.admin-card.is-test-run { border-color: var(--red); box-shadow: 8px 8px 0 var(--red); }
 .campaign-form.is-wide { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .checkbox-label { display: flex; align-items: center; gap: 8px; font: 11px var(--mono); text-transform: uppercase; }
 .checkbox-label input { width: 20px; min-height: 20px; }
