@@ -475,6 +475,20 @@ export function RepairSubmissionForm({
   }
 
   /**
+   * Die Hervorhebung wieder aus - aber nur, wenn der Zeiger das Feld wirklich
+   * verlassen hat.
+   *
+   * `dragleave` steigt auch aus den Kindelementen auf: Wer ueber die Knoepfe
+   * hinweg ins Feld zieht, loeste sonst bei jedem Elementwechsel ein Verlassen
+   * aus, und der Rahmen flackerte.
+   */
+  function handleDragLeave(event: DragEvent<HTMLDivElement>) {
+    const target = event.relatedTarget;
+    if (target instanceof Node && event.currentTarget.contains(target)) return;
+    setIsDropTarget(false);
+  }
+
+  /**
    * Standort per Browser-Geolocation-API. Deutlich praeziser als der IP-Fallback
    * und unabhaengig davon, ob ueberhaupt ein Foto mit GPS-Daten existiert. Wird
    * genau wie die Foto-Herkunft direkt im Browser gerastert, bevor irgendetwas
@@ -871,7 +885,7 @@ export function RepairSubmissionForm({
         role="group"
         aria-labelledby="upload-field-label"
         onDragOver={(event) => { event.preventDefault(); setIsDropTarget(true); }}
-        onDragLeave={() => setIsDropTarget(false)}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
         <p className="upload-field-label" id="upload-field-label">Foto hinzufügen <small>(optional)</small></p>
