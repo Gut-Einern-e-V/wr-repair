@@ -572,8 +572,17 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .repair-form .repair-form .lottery-fields { background: rgba(149, 212, 187, .28); }
 .repair-form .lottery-fields .consent { background: var(--paper); }
 .repair-form .upload-field { border: var(--line); background: var(--bg); padding: 14px; }
-.repair-form .upload-field input[type="file"] { display: block; width: 100%; margin: 12px 0 8px; font-size: 14px; }
+/* Zwei Knoepfe und eine Ablagefläche statt eines nativen Dateifeldes (Issue #103).
+   Aufgebaut wie die Standortzeile darunter, damit beide Gruppen im Formular
+   gleich aussehen. Die Dateifelder selbst sind verborgen und werden von den
+   Knoepfen ausgeloest. */
+.repair-form .upload-field.is-drop-target { border-style: dashed; border-color: var(--green-soft); background: rgba(149, 212, 187, .3); }
+.repair-form .upload-input { display: none; }
+.repair-form .upload-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 10px; }
+.repair-form .upload-actions .button { margin: 0; }
 .repair-form .upload-field small { display: block; color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: .01em; text-transform: none; }
+.repair-form .upload-field-label { margin: 0 0 10px; font-family: var(--sans); font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
+.repair-form .upload-field-label small { display: inline-block; margin-left: 6px; font-weight: 600; letter-spacing: .01em; text-transform: none; }
 .repair-form .location-picker { margin: 20px 0; padding: 14px; border: var(--line); background: var(--bg); }
 .repair-form .location-picker-label { margin: 0 0 10px; font-family: var(--sans); font-size: 12px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; }
 .repair-form .location-picker-label small { display: inline-block; margin-left: 6px; font-weight: 600; letter-spacing: .01em; text-transform: none; }
