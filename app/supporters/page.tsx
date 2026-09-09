@@ -1,18 +1,19 @@
 import NextImage from "next/image";
+import { FundingAbbinder } from "@/components/funding-abbinder";
 import { PartnerLogoGrid } from "@/components/partner-logo-grid";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { circularWeek, projectCredits } from "@/lib/organisation";
 
 export const metadata = { title: "Unterstützung" };
 
-/* Die Foerderlogos liegen als dunkle Variante in public/funding/ und stammen aus
-   dem offiziellen Abbinder der FAB Region. Weil sie hier gross im Inhalt stehen,
-   laesst diese Seite die Foerderleiste im Footer weg. */
-const fundingLogos = [
-  { src: "/funding/fab-region-dark.png", width: 1355, height: 381, name: "FAB Region Bergisches Städtedreieck", role: "Projektträger", href: "https://www.fab-bergisch.org/" },
-  { src: "/funding/eu-dark.png", width: 1405, height: 293, name: "Kofinanziert von der Europäischen Union", role: "Europäischer Fonds für regionale Entwicklung (EFRE)", href: "https://www.efre.nrw/" },
-  { src: "/funding/nrw-dark.png", width: 1359, height: 294, name: "Ministerium für Umwelt, Naturschutz und Verkehr des Landes Nordrhein-Westfalen", role: "Land Nordrhein-Westfalen", href: "https://www.umwelt.nrw.de/" },
-];
+/* Weil die Foerderlogos hier gross im Inhalt stehen, laesst diese Seite die
+   Foerderleiste im Footer weg.
+
+   EU-Emblem, Ministerium und efre-Wortmarke standen bis Issue #97 als drei
+   Karten mit eigener Rollenzeile nebeneinander. Der EFRE-Leitfaden erlaubt das
+   nicht: Die drei sind eine gebundene Logo-Kombination und duerfen nicht
+   zerlegt werden. Sie stehen jetzt als ein Abbinder unter der Karte des
+   Projekttraegers, die Rollen nennt die Zeile darunter. */
 
 export default function SupportersPage() {
   return <main className="page-shell content-page">
@@ -53,12 +54,14 @@ export default function SupportersPage() {
           gehoert zur Circular Week. */}
       <p>Diese Website ist im Projekt &bdquo;FAB.Region Bergisches Städtedreieck &ndash; Transformation hin zu einer co-kreativen Kreislaufwirtschaftsregion&ldquo; entstanden. Es wird aus Mitteln des Europäischen Fonds für regionale Entwicklung (EFRE) und des Landes Nordrhein-Westfalen gefördert.</p>
       <div className="funding-cards">
-        {fundingLogos.map((logo) => (
-          <a className="funding-card" href={logo.href} target="_blank" rel="noreferrer" key={logo.src}>
-            <NextImage src={logo.src} alt={logo.name} width={logo.width} height={logo.height} sizes="260px" />
-            <span>{logo.role}</span>
-          </a>
-        ))}
+        <a className="funding-card" href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">
+          <NextImage src="/funding/fab-region-dark.png" alt="FAB Region Bergisches Städtedreieck" width={1355} height={381} sizes="200px" />
+          <span>Projektträger</span>
+        </a>
+        <a className="funding-card is-abbinder" href="https://www.efre.nrw/" target="_blank" rel="noreferrer">
+          <FundingAbbinder />
+          <span>Europäischer Fonds für regionale Entwicklung (EFRE) und Land Nordrhein-Westfalen</span>
+        </a>
       </div>
       <a className="text-button" href="https://www.fab-bergisch.org/ueber-uns/projektpartner-unterstutzende" target="_blank" rel="noreferrer">Alle Projektbeteiligten ansehen <span aria-hidden="true">&#8599;</span></a>
     </section>

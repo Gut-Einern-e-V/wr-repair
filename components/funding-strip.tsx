@@ -1,16 +1,14 @@
 import NextImage from "next/image";
+import { FundingAbbinder } from "@/components/funding-abbinder";
 
-/* Offizieller Foerderabbinder der FAB Region (app/assets/logos/fab_region_abbinder_v6.png).
-   Die Logos liegen als dunkle Variante vor und brauchen deshalb eine helle Flaeche:
-   die frueher genutzten SVGs in public/funding/ sind Negativversionen mit weisser
-   Schrift und waren auf dem weissen Kasten unlesbar. */
-const fundingLogos = [
-  { src: "/funding/fab-region-dark.png", width: 1355, height: 381, className: "is-fab", href: "https://www.fab-bergisch.org/", alt: "FAB Region Bergisches Städtedreieck" },
-  { src: "/funding/eu-dark.png", width: 1405, height: 293, className: "is-eu", href: null, alt: "Kofinanziert von der Europäischen Union" },
-  { src: "/funding/nrw-dark.png", width: 1359, height: 294, className: "is-nrw", href: null, alt: "Ministerium für Umwelt, Naturschutz und Verkehr des Landes Nordrhein-Westfalen" },
-  { src: "/funding/efre-dark.png", width: 724, height: 98, className: "is-efre", href: "https://www.efre.nrw/", alt: "www.efre.nrw" },
-];
+/* Foerderleiste im Footer. Der Abbinder steckt in
+   components/funding-abbinder.tsx - dort steht auch, warum er als ein Bild
+   eingebunden ist und nicht mehr als vier Einzellogos (Issue #97).
 
+   Das Logo der Zuwendungsempfangenden darf daneben stehen, aber nur kleiner
+   als das EU-Emblem im Abbinder. Beide Breiten stehen deshalb im Stylesheet
+   als Rasteranteile statt als Pixelhoehen - so haelt das Verhaeltnis in jeder
+   Fenstergroesse. */
 export function FundingStrip() {
   return <section className="funding-strip" aria-label="Förderhinweis">
     <p>
@@ -19,12 +17,12 @@ export function FundingStrip() {
       und des Landes Nordrhein-Westfalen gefördert.
     </p>
     <div className="funding-logos">
-      {fundingLogos.map((logo) => {
-        const image = <NextImage className={logo.className} src={logo.src} alt={logo.alt} width={logo.width} height={logo.height} sizes="(max-width: 720px) 170px, 230px" />;
-        return logo.href
-          ? <a key={logo.src} href={logo.href} target="_blank" rel="noreferrer">{image}</a>
-          : <span key={logo.src}>{image}</span>;
-      })}
+      <a className="funding-logo is-fab" href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">
+        <NextImage src="/funding/fab-region-dark.png" alt="FAB Region Bergisches Städtedreieck" width={1355} height={381} sizes="180px" />
+      </a>
+      <a className="funding-logo is-abbinder" href="https://www.efre.nrw/" target="_blank" rel="noreferrer">
+        <FundingAbbinder />
+      </a>
     </div>
   </section>;
 }
