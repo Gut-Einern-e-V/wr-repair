@@ -113,6 +113,20 @@ SVG-Pfad, skaliert also in jedem Format und nimmt seine Farben aus dem CSS.
 
 ![Der Aufsteller-Generator zeigt die Druckvorschau: „Repariert? Jetzt eintragen!“, ein großer QR-Code, die Zieladresse, drei Schritte und die Förderlogos.](docs/screenshots/aufsteller.png)
 
+### Teilbild nach der Freigabe
+
+Sobald die Moderation eine Reparatur freigegeben hat, liegt auf ihrer Statusseite
+ein fertig gestaltetes Bild zum Posten — mit dem hochgeladenen Foto darin, im
+Projekt-CI, quadratisch für den Feed und hochkant für Storys und TikTok.
+„Bild teilen“ öffnet auf dem Smartphone das System-Teilenfenster **mit der
+Bilddatei**, von dort geht es direkt in die Netzwerke; daneben steht ein
+gewöhnlicher Download-Link für alles andere. Gezeichnet wird das Bild bei jeder
+Anfrage aus den Daten der Einreichung (`next/og`), es liegt also nichts
+Zusätzliches im Speicher.
+
+Vor der Freigabe gibt es das Bild nicht — sonst wäre es ein Weg, eine ungeprüfte
+Einreichung samt Foto als fertige Grafik aus dem privaten Bucket zu holen.
+
 ### Und dazu
 
 - **Gewinnspiel** mit öffentlichen Teilnahmebedingungen, gestifteten Preisen aus dem
