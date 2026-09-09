@@ -1,4 +1,4 @@
-import { requireSuperadmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-auth";
 import { normalizeEmail } from "@/lib/lottery";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -11,6 +11,9 @@ export const runtime = "nodejs";
  * gewinnen - so steht es in den Teilnahmebedingungen. Ohne eine Liste muesste
  * das bei jeder Ziehung jemand im Kopf haben; mit ihr faellt es vor dem Zug
  * auf und nicht danach.
+ *
+ * Gepflegt von Admins (Issue #99). Die Liste muss stehen, bevor gezogen wird,
+ * und nicht erst dann, wenn ein Superadmin-Konto zur Hand ist.
  */
 
 /**
@@ -24,7 +27,7 @@ function validPattern(value: string) {
 }
 
 export async function POST(request: Request) {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
   }
@@ -58,7 +61,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
   }

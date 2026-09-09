@@ -46,7 +46,7 @@ export async function requireAdmin() {
   }
 
   if (!currentAdmin.roles.some((role) => ["admin", "superadmin"].includes(role))) {
-    return { authorized: false as const, error: "Nur Admins duerfen Daten exportieren.", status: 403 };
+    return { authorized: false as const, error: "Dieses Konto hat keine Verwaltungsberechtigung.", status: 403 };
   }
 
   return { authorized: true as const, currentAdmin };

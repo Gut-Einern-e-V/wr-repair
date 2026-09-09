@@ -20,7 +20,18 @@ export async function GET() {
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.from("partners").select("id, name, website_url, logo_path, sort_order").order("sort_order").order("created_at");
   if (error) return Response.json({ error: "Partner konnten nicht geladen werden. Wurde die Migration ausgefuehrt?" }, { status: 502 });
-  return Response.json({ partners: data ?? [] });
+
+  /* Mit Logo, damit die Liste im Backend dieselbe Reihenfolge zeigt wie die
+     Seite - beim Sortieren erkennt man ein Logo schneller als einen Namen
+     (Issue #98). */
+  return Response.json({
+    partners: (data ?? []).map((partner) => ({
+      ...partner,
+      logoUrl: partner.logo_path
+        ? supabase.storage.from("partner-logos").getPublicUrl(partner.logo_path).data.publicUrl
+        : null,
+    })),
+  });
 }
 
 export async function POST(request: Request) {

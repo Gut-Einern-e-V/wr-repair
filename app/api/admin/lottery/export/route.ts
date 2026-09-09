@@ -1,4 +1,4 @@
-import { requireSuperadmin } from "@/lib/admin-auth";
+import { requireAdmin } from "@/lib/admin-auth";
 import { readLotteryOverview } from "@/lib/lottery-store";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -14,7 +14,10 @@ export const runtime = "nodejs";
  * jede dieser Mails wie ein Serienbrief.
  *
  * Die Datei enthaelt Namen und E-Mail-Adressen und ist damit das Sensibelste,
- * was dieses Projekt herausgibt: kein Zwischenspeicher, nur Superadmins.
+ * was dieses Projekt herausgibt: kein Zwischenspeicher, nur Verwaltungskonten.
+ * Seit Issue #99 sind das Admins und nicht mehr nur Superadmins - dieselben
+ * Angaben stehen fuer sie ohnehin im Backend, und die Benachrichtigungen
+ * schreibt nicht die Person, die zieht.
  */
 
 function escapeCsv(value: unknown) {
@@ -25,7 +28,7 @@ function escapeCsv(value: unknown) {
 }
 
 export async function GET() {
-  const authorization = await requireSuperadmin();
+  const authorization = await requireAdmin();
   if (!authorization.authorized) {
     return Response.json({ error: authorization.error }, { status: authorization.status });
   }

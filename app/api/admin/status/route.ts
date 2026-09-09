@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin-auth";
+import { readPrizes } from "@/lib/lottery-store";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +52,7 @@ export async function GET() {
     return Response.json({ error: "Die Supabase-Zugangsdaten sind nicht konfiguriert." }, { status: 503 });
   }
 
-  const [database, storage, auth, usageProbe, failureProbe] = await Promise.all([
+  const [database, storage, auth, lottery, usageProbe, failureProbe] = await Promise.all([
     timed(async () => {
       const { error } = await supabase.from("campaign_settings").select("id").limit(1);
       if (error) throw new Error(error.message);
@@ -66,6 +67,16 @@ export async function GET() {
       const { error } = await supabase.auth.admin.listUsers({ page: 1, perPage: 1 });
       if (error) throw new Error(error.message);
       return true;
+    }),
+    /* Die Preistabelle, genau wie die Gewinnspielseite sie liest (Issue #99).
+       Faellt diese Abfrage aus - eine fehlende Migration etwa -, zeigt
+       /gewinnspiel stillschweigend den Platzhalter, und von aussen sieht das
+       aus wie "es sind eben noch keine Preise eingetragen". Hier steht dann
+       der Grund. */
+    timed(async () => {
+      const { rows, error } = await readPrizes(supabase);
+      if (error) throw new Error(error.message);
+      return rows?.length ?? 0;
     }),
     timed(async () => {
       const { data, error } = await supabase.rpc("system_usage");
@@ -97,6 +108,17 @@ export async function GET() {
       { id: "database", label: "Datenbank", ok: database.ok, ms: database.ms, detail: database.ok ? null : database.error },
       { id: "storage", label: "Datei-Speicher", ok: storage.ok, ms: storage.ms, detail: storage.ok ? null : storage.error },
       { id: "auth", label: "Anmeldung", ok: auth.ok, ms: auth.ms, detail: auth.ok ? null : auth.error },
+      {
+        id: "lottery",
+        label: "Verlosung",
+        ok: lottery.ok,
+        ms: lottery.ms,
+        detail: lottery.ok
+          ? (lottery.value === 0
+              ? "Kein Preis eingetragen - die Gewinnspielseite zeigt den Platzhalter."
+              : `${lottery.value} ${lottery.value === 1 ? "Preis" : "Preise"} eingetragen`)
+          : `Die Preise sind nicht lesbar, /gewinnspiel zeigt deshalb den Platzhalter: ${lottery.error}`,
+      },
       /* Der Spam-Schutz gilt nur als in Ordnung, wenn er auch eingeschaltet ist
          (Issue #59). Vorher genuegten die beiden Schluessel in der Umgebung:
          Stand `NEXT_PUBLIC_CAPTCHA_ENABLED` auf "false" - der ausdruecklich

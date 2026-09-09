@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildPrizeViews, type EntryRow, type PrizeRow } from "./lottery-store";
+import { buildPrizeViews, readPrizes, type EntryRow, type PrizeRow } from "./lottery-store";
 
 function prize(overrides: Partial<PrizeRow> & { id: string; title: string }): PrizeRow {
   return {
@@ -8,6 +8,7 @@ function prize(overrides: Partial<PrizeRow> & { id: string; title: string }): Pr
     sponsor_kind: "organisation",
     sponsor_website: null,
     logo_path: null,
+    image_path: null,
     quantity: 1,
     is_main: false,
     sort_order: 0,
@@ -103,5 +104,65 @@ describe("Preise mit ihren Gewinner*innen", () => {
 
     expect(view.winners).toHaveLength(1);
     expect(view.winners[0].repair).toBeNull();
+  });
+});
+
+/**
+ * Der Ausfall, den Issue #99 beschreibt: Die Preise erscheinen nicht - weil
+ * die Abfrage stillschweigend scheitert und nicht, weil keine eingetragen
+ * sind. Zwischen Deployment und Migration fehlt die Spalte `image_path`; das
+ * darf die ganze Liste nicht kosten.
+ */
+function fakeSupabase(responses: { data: unknown; error: { code?: string; message: string } | null }[]) {
+  const asked: string[] = [];
+  const client = {
+    from() {
+      return {
+        select(columns: string) {
+          asked.push(columns);
+          const chain = {
+            order: () => chain,
+            then: (resolve: (value: unknown) => unknown) => Promise.resolve(responses.shift()).then(resolve),
+          };
+          return chain;
+        },
+      };
+    },
+  };
+  return { client: client as never, asked };
+}
+
+describe("readPrizes", () => {
+  it("liest die Preise samt Foto", async () => {
+    const { client, asked } = fakeSupabase([{ data: [{ id: "p1", image_path: "p1.jpg" }], error: null }]);
+    const { rows, error } = await readPrizes(client);
+
+    expect(error).toBeNull();
+    expect(rows).toEqual([{ id: "p1", image_path: "p1.jpg" }]);
+    expect(asked[0]).toContain("image_path");
+  });
+
+  it("liest die Preise ohne Foto weiter, wenn die Spalte noch fehlt", async () => {
+    const { client, asked } = fakeSupabase([
+      { data: null, error: { code: "42703", message: "column lottery_prizes.image_path does not exist" } },
+      { data: [{ id: "p1", title: "Preis" }], error: null },
+    ]);
+    const { rows, error } = await readPrizes(client);
+
+    expect(error).toBeNull();
+    expect(rows).toEqual([{ id: "p1", title: "Preis", image_path: null }]);
+    expect(asked).toHaveLength(2);
+    expect(asked[1]).not.toContain("image_path");
+  });
+
+  it("gibt jeden anderen Fehler weiter", async () => {
+    const { client, asked } = fakeSupabase([
+      { data: null, error: { code: "42P01", message: "relation lottery_prizes does not exist" } },
+    ]);
+    const { rows, error } = await readPrizes(client);
+
+    expect(rows).toBeNull();
+    expect(error?.message).toContain("does not exist");
+    expect(asked).toHaveLength(1);
   });
 });

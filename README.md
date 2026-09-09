@@ -233,7 +233,7 @@ ein Sprachmodell mitlaufen lässt. Ohne Vorkenntnisse eher das Doppelte.
 
 | Schritt | Aufwand | Wovon es abhängt |
 | --- | --- | --- |
-| Supabase-Projekt, 29 Migrationen, Bucket, erste Superadmin-Rolle | **1–2 h** | Läuft nach Anleitung durch |
+| Supabase-Projekt, 31 Migrationen, Bucket, erste Superadmin-Rolle | **1–2 h** | Läuft nach Anleitung durch |
 | Vercel-Deployment, Variablen, Friendly-Captcha-Domains, Testeinreichung | **2–3 h** | Die Captcha-Domains sind die üblichen Stolperfallen |
 | Region konfigurieren (Variablen und Backend) | **< 1 h** | Nur Eintragen |
 | Kartenumriss und Referenzpunkte für das neue Gebiet, mit Test | **1–2 Tage** | Wie viele Teilgebiete es gibt; mit KI vor allem Prüfarbeit, nicht Schreibarbeit |
@@ -263,7 +263,7 @@ Die Schritt-für-Schritt-Anleitung dazu steht in
 | Schriften | Nunito und Playfair Display, selbst gehostet über `next/font` |
 
 Umfang: 24 Seiten, 25 API-Routen, 24 Komponenten, 47 Bibliotheksmodule,
-29 Migrationen, rund 21.500 Zeilen TypeScript und 2.500 Zeilen SQL.
+31 Migrationen, rund 21.500 Zeilen TypeScript und 2.500 Zeilen SQL.
 
 ```
 app/                Seiten und API-Routen
