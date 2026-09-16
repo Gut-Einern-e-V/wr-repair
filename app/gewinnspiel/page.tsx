@@ -5,6 +5,7 @@ import { brandPhotos } from "@/lib/brand-photos";
 import { getAppSettings } from "@/lib/app-settings";
 import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { readPrizes, type PrizeRow } from "@/lib/lottery-store";
+import { isPrizeListBinding, prizeListLead, totalPrizeCount } from "@/lib/prize-list";
 import { publicPrizeLogoUrl, publicPrizePhotoUrl } from "@/lib/prize-logo";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -22,6 +23,12 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
  * erfinden. Der Veranstalter kommt aus derselben Quelle, hat seit Issue #78
  * aber eine Vorgabe im Quelltext - das CSCP, das den Rekordversuch im Rahmen
  * der Circular Week 2026 ausrichtet.
+ *
+ * Mit dem Start der Teilnahme wechselt die Seite den Ton (Issue #110): Bis
+ * dahin waechst die Preisliste, danach ist sie die Zusage, auf die sich
+ * Teilnehmende verlassen. Der Wortlaut der Bedingungen stammt seither aus
+ * einer rechtlichen Pruefung; wer ihn aendert, sollte im Issue nachlesen,
+ * warum ein Satz so und nicht anders steht.
  *
  * Die Teilnahmebedingungen stehen hier als geltende Bedingungen, nicht als
  * Entwurf (Issue #94): Der frueher angehaengte Abschnitt "Rechtlicher
@@ -42,6 +49,8 @@ export const metadata = {
 export const revalidate = 300;
 
 const dateFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Berlin" });
+/* Fuer den Stichtag der Preisliste: Der Tag entscheidet, die Minute nicht. */
+const dayFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeZone: "Europe/Berlin" });
 
 /** Ein Satz zum Zeitraum, der auch ohne hinterlegte Daten stimmt. */
 function periodLine(startAt: Date | null, endAt: Date | null) {
@@ -129,6 +138,21 @@ function ContributeNote() {
   </p>;
 }
 
+/**
+ * Was statt der Liste steht, wenn die Teilnahme laeuft und trotzdem kein Preis
+ * lesbar ist (Issue #110).
+ *
+ * Der Platzhalter mit den drei Beispielen darf hier nicht stehen: Ab dem Start
+ * liest ihn jemand als die Preise, um die es geht. Stattdessen der Weg, auf dem
+ * die Frage wahrheitsgemaess beantwortet wird.
+ */
+function PrizesUnavailableNote() {
+  return <p className="prize-contribute">
+    Du willst wissen, was verlost wird?{" "}
+    <a href={mailto(CONTACT_EMAIL, "Preise im Gewinnspiel")}>Schreib uns</a>, wir sagen es dir.
+  </p>;
+}
+
 export default async function LotteryPage() {
   /* Zeitraum, Gebiet und Veranstalter kommen aus den Einstellungen, damit hier
      dasselbe steht wie im Formular - auch wenn das Backend sie waehrend der
@@ -138,6 +162,9 @@ export default async function LotteryPage() {
     loadPrizes(),
   ]);
   const regionLabel = region.label || "Nordrhein-Westfalen";
+  /* Ab dem Start der Teilnahme ist die Preisliste verbindlich (Issue #110).
+     Dieselbe Regel gilt im Backend, wo sie das Entfernen verhindert. */
+  const prizesAreBinding = isPrizeListBinding(submissionWindow);
 
   return <main className="page-shell content-page">
     <SiteHeader />
@@ -148,7 +175,11 @@ export default async function LotteryPage() {
         <span className="sticker">Reparieren</span>
         <span className="sticker">und gewinnen</span>
       </h1>
-      <p>Jede Reparatur, die du einreichst, kann am Gewinnspiel teilnehmen. Die Teilnahme ist kostenlos, freiwillig und hat keinen Einfluss darauf, ob dein Beitrag für den Rekord zählt.</p>
+      {/* Der Verweis auf die Erlaeuterungen zum Rekord (Issue #110): Wer
+          ueber einen geteilten Link hier einsteigt, hat die Startseite nie
+          gesehen - dann steht "Rekord" ohne alles da und kann alles
+          Moegliche heissen. */}
+      <p>Jede Reparatur, die du einreichst, kann am Gewinnspiel teilnehmen. Die Teilnahme ist kostenlos, freiwillig und hat keinen Einfluss darauf, ob dein Beitrag für den Rekord zählt. Was es mit dem Rekordversuch auf sich hat, steht unter <Link href="/#zahlen-und-fakten">Zahlen und Fakten</Link> und auf der Seite <Link href="/about">Über das Projekt</Link>.</p>
     </section>
 
     <section className="content-section" aria-labelledby="lottery-how-title">
@@ -190,12 +221,14 @@ export default async function LotteryPage() {
         <div>
           <p className="section-index">Die Preise</p>
           <h2 id="lottery-prizes-title">Was es zu gewinnen gibt.</h2>
-          <p className="section-lead">Die Preise werden von Unternehmen und Initiativen aus der Region gestiftet. Die Liste wächst bis zum Start – schau also gerne noch einmal vorbei.</p>
+          <p className="section-lead">{prizeListLead(prizesAreBinding, submissionWindow.startAt ? dayFormat.format(submissionWindow.startAt) : null, totalPrizeCount(prizes))}</p>
         </div>
       </div>
       {prizes.length > 0
         ? <><ul className="prize-list">{prizes.map((prize) => <PrizeCard key={prize.id} prize={prize} />)}</ul>
             <ContributeNote /></>
+        : prizesAreBinding
+        ? <PrizesUnavailableNote />
         : <><ul className="prize-placeholder">
             <li>
               <strong>Werkzeug und Material</strong>
@@ -237,7 +270,14 @@ export default async function LotteryPage() {
         </section>
         <section>
           <h3>Wer darf teilnehmen?</h3>
-          <p>Alle Personen ab 18 Jahren mit Wohnsitz in {regionLabel}, die eine Reparatur aus {regionLabel} einreichen. Jüngere Personen dürfen mit Einverständnis einer erziehungsberechtigten Person teilnehmen. Gewinnen kann nur, wem der reparierte Gegenstand gehört. Ausgeschlossen sind Personen, die am Projekt oder an der Durchführung des Gewinnspiels mitwirken, sowie deren Angehörige.</p>
+          {/* Wortlaut aus der rechtlichen Pruefung (Issue #110). Vorher stand
+              hier "ab 18 Jahren", und im naechsten Satz durften Juengere doch
+              mit Einverstaendnis teilnehmen - zwei Saetze, die sich
+              widersprachen. Und aus "Gewinnen kann nur, wem der Gegenstand
+              gehoert" wird "Teilnehmen kann nur": Eine Voraussetzung, die
+              erst bei der Ziehung geprueft wird, waere fuer alle anderen eine
+              Teilnahme ohne Chance. */}
+          <p>Teilnahmeberechtigt sind natürliche Personen mit Wohnsitz in {regionLabel}. Minderjährige dürfen nur mit vorheriger Zustimmung ihrer gesetzlichen Vertreter teilnehmen. Ausgeschlossen sind Personen, die am Projekt „Reparaturrekord NRW“ oder an der Durchführung des Gewinnspiels mitwirken, sowie deren Angehörige. Teilnehmen kann nur, wem der Gegenstand gehört, der repariert wurde oder dessen Reparatur versucht wurde. Die eingereichte Reparatur muss in {regionLabel} durchgeführt worden sein.</p>
         </section>
         <section>
           <h3>Wie funktioniert die Teilnahme?</h3>
@@ -245,23 +285,45 @@ export default async function LotteryPage() {
         </section>
         <section>
           <h3>Zählt jede Einreichung einzeln?</h3>
-          <p>Ja, jede eingereichte Reparatur kann angemeldet werden. Gewinnen kann jede Person aber nur einen Preis – nach einem Gewinn scheidet sie aus den weiteren Ziehungen aus. Mehrfach eingereichte oder offensichtlich erfundene Beiträge werden von der Teilnahme ausgeschlossen.</p>
+          <p>Ja, jede eingereichte Reparatur kann angemeldet werden. Gewinnen kann jede Person aber nur einen Preis: Personen, für die bereits ein Preis gezogen wurde, scheiden aus den weiteren Ziehungen aus. Mehrfach eingereichte oder offensichtlich erfundene Beiträge werden von der Teilnahme ausgeschlossen.</p>
         </section>
         <section>
           <h3>Wann und wie wird gezogen?</h3>
           <p>Die Ziehung erfolgt nach dem Ende des Einreichungszeitraums unter allen angemeldeten und von der Moderation freigegebenen Einreichungen. Gezogen wird nach dem Zufallsprinzip, und zwar für jeden Preis einzeln; einzelne Preise können im Rahmen einer öffentlichen Veranstaltung gezogen werden. Wer gewinnt, wird an die angegebene E-Mail-Adresse benachrichtigt und hat vier Wochen Zeit zu antworten; danach kann der Preis neu vergeben werden.</p>
+          {/* Woran die Moderation gebunden ist (Issue #110). Die Ziehung lief
+              schon vorher nur unter freigegebenen Einreichungen - was aber
+              nirgends stand, war, dass die Freigabe kein freies Ermessen ist.
+              Ohne diesen Satz haengt jede Gewinnchance an einer Entscheidung,
+              deren Massstab niemand kennt. */}
+          <p>Die Moderation prüft ausschließlich, ob die in diesen Teilnahmebedingungen genannten Teilnahmevoraussetzungen erfüllt sind. Eine Einreichung wird insbesondere nicht zugelassen, wenn sie offensichtlich erfunden ist oder dieselbe Reparatur bereits eingereicht wurde. Personen, für die bereits ein Preis gezogen wurde, scheiden von weiteren Ziehungen aus.</p>
         </section>
         <section>
           <h3>Was passiert mit den Preisen?</h3>
+          {/* Die Preisliste ist Teil der Bedingungen (Issue #110): Wer zur
+              Teilnahme aufgefordert wird, soll erkennen koennen, was er
+              gewinnen kann - und sich darauf verlassen duerfen. */}
+          <p>Verlost werden die oben auf dieser Seite aufgeführten Preise; spätestens zum Beginn der Teilnahme steht dort die vollständige Liste mit Anzahl und Beschreibung. Danach können weitere Preise hinzukommen; ein aufgeführter Preis wird weder gestrichen noch in seiner Anzahl verringert.</p>
           <p>Die Preise werden zugeschickt oder in Wuppertal zur Abholung bereitgestellt. Eine Barauszahlung, ein Umtausch oder eine Übertragung auf andere Personen sind nicht möglich.</p>
         </section>
         <section>
           <h3>Was passiert mit deinen Daten?</h3>
-          <p>Name und E-Mail-Adresse werden ausschließlich für die Durchführung der Verlosung verarbeitet und nicht veröffentlicht. Sie stehen getrennt von der Reparatur selbst und werden nach Abschluss der Verlosung gelöscht. Alles Weitere steht in der <Link href="/privacy">Datenschutzerklärung</Link>.</p>
+          {/* Zweck und Rechtsgrundlage gehoeren nach Artikel 13 Absatz 1
+              Buchstabe c DSGVO zusammen (Issue #110). Und die Anschrift der
+              Gewinnerinnen und Gewinner steht jetzt hier: Ohne sie laesst
+              sich kein Paket verschicken - erhoben wurde sie also ohnehin,
+              nur genannt wurde sie nicht. */}
+          <p>Wenn du am Gewinnspiel teilnimmst, verarbeiten wir deinen Namen und deine E-Mail-Adresse zur Durchführung des Gewinnspiels, insbesondere zur Ermittlung und Benachrichtigung der Gewinnerinnen und Gewinner. Rechtsgrundlage ist Art. 6 Abs. 1 lit. b DSGVO. Die für das Gewinnspiel angegebenen Daten stehen getrennt von der Reparatur selbst, werden nicht veröffentlicht und nach Abschluss der Verlosung gelöscht. Von Gewinnerinnen und Gewinnern erheben wir, soweit dies für den Versand eines Gewinns erforderlich ist, zusätzlich die Versandanschrift. Diese wird ausschließlich zur Versendung des Gewinns verarbeitet und anschließend gelöscht, soweit keine gesetzlichen Aufbewahrungspflichten entgegenstehen. Alles Weitere steht in der <Link href="/privacy">Datenschutzerklärung</Link>.</p>
         </section>
         <section>
           <h3>Sonstiges</h3>
-          <p>Der Rechtsweg ist ausgeschlossen. Das Gewinnspiel kann aus wichtigem Grund – etwa bei technischen Störungen oder Manipulationsversuchen – geändert oder beendet werden. Es steht in keiner Verbindung zu einem sozialen Netzwerk oder einer Plattform.</p>
+          {/* Enger gefasst nach der rechtlichen Pruefung (Issue #110). Ein
+              pauschal ausgeschlossener Rechtsweg haelt vor Gericht nicht
+              zuverlaessig und erweckt den Eindruck, der Veranstalter koenne
+              angekuendigte Preise auch gar nicht vergeben. Ausgeschlossen ist
+              deshalb nur, was sich sinnvoll ausschliessen laesst: die
+              Ziehung selbst. Dasselbe beim Abbruch - "aendern" ohne Grenze
+              waere das Recht, die Bedingungen nachtraeglich umzuschreiben. */}
+          <p>Der Rechtsweg ist hinsichtlich der Ziehung der Gewinne ausgeschlossen. Gesetzliche Ansprüche der Teilnehmerinnen und Teilnehmer, insbesondere wegen einer nicht ordnungsgemäßen Durchführung des Gewinnspiels, bleiben hiervon unberührt. Der Veranstalter ist berechtigt, das Gewinnspiel aus wichtigem Grund vorzeitig zu beenden, vorübergehend auszusetzen oder seine Durchführung anzupassen, soweit eine ordnungsgemäße Durchführung andernfalls nicht gewährleistet werden kann. Ein wichtiger Grund liegt insbesondere bei erheblichen technischen Störungen, Manipulationsversuchen oder sonstigen Umständen vor, die außerhalb des zumutbaren Einflussbereichs des Veranstalters liegen. Bereits entstandene Ansprüche von Gewinnern bleiben unberührt. Das Gewinnspiel steht in keiner Verbindung zu einem sozialen Netzwerk oder einer Plattform.</p>
         </section>
       </div>
     </section>
