@@ -43,9 +43,14 @@ export default function ImprintPage() {
         <a href={credit.url} target="_blank" rel="noreferrer">{credit.name} <span aria-hidden="true">&#8599;</span></a>
       </p>)}
     </section>
+    {/* Der Hinweis auf die EU-Plattform zur Online-Streitbeilegung ist hier
+        nicht mehr zu finden (Issue #110): Die Verordnung dahinter wurde im
+        Juli 2025 aufgehoben, die Plattform ist eingestellt, und der Link
+        fuehrte ins Leere. Ein Pflichthinweis, den es nicht mehr gibt, wird
+        durch Stehenbleiben nicht richtiger - er schickt nur Leute auf eine
+        tote Seite, die dort ein Recht suchen. */}
     <section>
       <h2>Streitbeilegung</h2>
-      <p>Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung bereit: <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noreferrer">ec.europa.eu/consumers/odr <span aria-hidden="true">&#8599;</span></a>. Unsere E-Mail-Adresse steht oben in dieser Anbieterkennzeichnung.</p>
       <p>Zur Teilnahme an einem Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle sind wir nicht verpflichtet und nicht bereit.</p>
     </section>
     <section>

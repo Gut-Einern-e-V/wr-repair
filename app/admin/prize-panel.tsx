@@ -15,6 +15,12 @@ import OrderControls from "./order-controls";
  * zwanzig Preisen scrollte man minutenlang (Issue #99). Jetzt eine Zeile je
  * Preis - Bild, Titel, das Wichtigste daneben - und das Formular erst, wenn
  * jemand "Bearbeiten" drueckt.
+ *
+ * Ab dem Start der Teilnahme fehlt das "Entfernen" und die Anzahl geht nur
+ * noch nach oben (Issue #110). Das entscheidet die Route und nicht dieses
+ * Formular - hier steht nur, warum der Knopf weg ist. Ein Knopf, der erst
+ * nach dem Klick sagt, dass er nicht darf, waere eine Falle; einer, der
+ * kommentarlos fehlt, ein Raetsel.
  */
 
 export type ManagedPrize = {
@@ -41,10 +47,13 @@ export type ManagedPrize = {
  */
 function PrizeForm({
   prize,
+  binding,
   onSubmit,
   submitLabel,
 }: {
   prize?: ManagedPrize;
+  /** Laeuft die Teilnahme schon? Dann ist die eingetragene Anzahl die Untergrenze. */
+  binding: boolean;
   onSubmit: (form: HTMLFormElement) => Promise<boolean>;
   submitLabel: string;
 }) {
@@ -107,8 +116,8 @@ function PrizeForm({
           )}
         </>
       )}
-      <label>Anzahl<input name="quantity" type="number" min={1} max={999} step={1} defaultValue={prize?.quantity ?? 1} />
-        <small>So oft wird für diesen Preis gezogen.</small>
+      <label>Anzahl<input name="quantity" type="number" min={binding && prize ? prize.quantity : 1} max={999} step={1} defaultValue={prize?.quantity ?? 1} />
+        <small>So oft wird für diesen Preis gezogen.{binding && prize ? " Die Teilnahme läuft – erhöhen geht, verringern nicht mehr." : ""}</small>
       </label>
       <label className="choice">
         <input name="isMain" type="checkbox" value="true" defaultChecked={prize?.is_main ?? false} />
@@ -138,10 +147,13 @@ export default function PrizePanel({
   /** Die Ziehung darunter zeigt dieselben Preise und muss mitbekommen, dass sie sich geaendert haben. */
   onChanged: () => void;
 }) {
-  const { data, error, isLoading, reload } = useJsonResource<{ prizes: ManagedPrize[] }>("/api/admin/prizes", "Die Preise konnten nicht geladen werden.");
+  const { data, error, isLoading, reload } = useJsonResource<{ prizes: ManagedPrize[]; binding: boolean }>("/api/admin/prizes", "Die Preise konnten nicht geladen werden.");
   const [editing, setEditing] = useState("");
   const [busy, setBusy] = useState("");
   const prizes = data?.prizes ?? [];
+  /* Im Zweifel gebunden: Solange die Antwort fehlt, ist der sichere Zustand
+     der, in dem nichts verschwindet. Die Route entscheidet ohnehin selbst. */
+  const binding = data?.binding ?? true;
 
   /* Zwei Listen, weil die Gewinnspielseite die Hauptpreise vor die kleinen
      stellt (`is_main desc, sort_order`). Ein Pfeil verschiebt deshalb nur
@@ -214,6 +226,11 @@ export default function PrizePanel({
     <section className="admin-card" aria-labelledby="prize-heading">
       <div className="admin-card-head"><h3 id="prize-heading">Preise</h3><span className="section-index">{prizes.length} eingetragen</span></div>
       <p>Was hier steht, erscheint auf der öffentlichen Gewinnspielseite – mit Foto und mit dem Logo der stiftenden Organisation, wenn eines hinterlegt ist. Die Reihenfolge auf der Seite ist die hier; die Ziehung weiter unten zieht für jeden Preis so oft, wie seine Anzahl sagt.</p>
+      {/* Beide Saetze sagen dasselbe von zwei Seiten - vorher als Auftrag,
+          nachher als Erklaerung fuer den fehlenden Knopf (Issue #110). */}
+      {binding
+        ? <p>Die Teilnahme läuft: Die Preisliste ist damit verbindlich. Preise lassen sich weiter hinzufügen, beschreiben und bebildern, auch die Anzahl darf steigen – entfernen oder verkleinern lässt sich keiner mehr. So steht es in den Teilnahmebedingungen.</p>
+        : <p>Bis zum Start der Teilnahme muss jeder Preis hier stehen, mit Anzahl und einer Beschreibung, die erkennen lässt, was es ist. Ab dem Start ist die Liste verbindlich: Dann kommen nur noch Preise dazu, entfernt wird keiner mehr.</p>}
 
       {error && <p className="form-error" role="alert">{error}</p>}
 
@@ -252,11 +269,11 @@ export default function PrizePanel({
                       <button className="text-button" type="button" aria-expanded={editing === prize.id} onClick={() => setEditing(editing === prize.id ? "" : prize.id)}>
                         {editing === prize.id ? "Schließen" : "Bearbeiten"}
                       </button>
-                      <button className="text-button" type="button" disabled={busy !== ""} onClick={() => void removePrize(prize)}>Entfernen</button>
+                      {!binding && <button className="text-button" type="button" disabled={busy !== ""} onClick={() => void removePrize(prize)}>Entfernen</button>}
                     </span>
                   </div>
                   {editing === prize.id && (
-                    <PrizeForm prize={prize} onSubmit={(form) => send("PATCH", form, "Der Preis wurde gespeichert.")} submitLabel="Änderungen speichern" />
+                    <PrizeForm prize={prize} binding={binding} onSubmit={(form) => send("PATCH", form, "Der Preis wurde gespeichert.")} submitLabel="Änderungen speichern" />
                   )}
                 </div>
               ))}
@@ -270,7 +287,7 @@ export default function PrizePanel({
           druecken wuerde, um die es hier geht. */}
       <details className="metadata-editor">
         <summary>Preis hinzufügen</summary>
-        <PrizeForm onSubmit={(form) => send("POST", form, "Der Preis wurde hinzugefügt.")} submitLabel="Preis hinzufügen" />
+        <PrizeForm binding={binding} onSubmit={(form) => send("POST", form, "Der Preis wurde hinzugefügt.")} submitLabel="Preis hinzufügen" />
       </details>
     </section>
   );

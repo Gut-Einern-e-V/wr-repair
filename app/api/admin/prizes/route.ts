@@ -1,6 +1,8 @@
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
+import { getAppSettings } from "@/lib/app-settings";
 import { readPrizes } from "@/lib/lottery-store";
+import { isPrizeListBinding, prizeQuantityRefusal, prizeRemovalRefusal } from "@/lib/prize-list";
 import { publicPrizeLogoUrl, publicPrizePhotoUrl } from "@/lib/prize-logo";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -19,6 +21,14 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
  * Pfeilen je Preis (siehe order/route.ts). Ein neuer Preis stellt sich hinten
  * an: Wer einen eintraegt, will nicht, dass er die schon sortierte Liste
  * durcheinanderbringt.
+ *
+ * In eine Richtung ist die Pflege seit Issue #110 zu: Ab dem Start der
+ * Teilnahme laesst sich ein Preis nicht mehr entfernen und seine Anzahl nicht
+ * mehr verringern. Die Teilnahmebedingungen sagen das zu, und eine Zusage,
+ * die nur auf der oeffentlichen Seite steht und im Backend von der Sorgfalt
+ * der pflegenden Person abhaengt, ist im Zweifel keine. Hinzufuegen,
+ * beschreiben, bebildern und die Anzahl erhoehen bleibt jederzeit moeglich -
+ * das ist fuer Teilnehmende nie ein Nachteil.
  */
 
 const logoTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"]);
@@ -141,6 +151,18 @@ async function nextSortOrder(supabase: ReturnType<typeof createSupabaseAdminClie
   return Number.isFinite(highest) ? highest + 1 : 0;
 }
 
+/**
+ * Bindet die veroeffentlichte Preisliste bereits?
+ *
+ * Der Zeitraum kommt aus den Einstellungen und nicht aus der Umgebung: Wer
+ * ihn im Backend verschiebt, verschiebt damit auch den Tag, ab dem die Liste
+ * steht - beides muss dieselbe Angabe sein.
+ */
+async function prizeListBinds() {
+  const { submissionWindow } = await getAppSettings();
+  return isPrizeListBinding(submissionWindow);
+}
+
 /* Die Gewinnspielseite liegt fuenf Minuten im Zwischenspeicher (siehe
    app/gewinnspiel/page.tsx). Wer einen Preis eintraegt, schaut aber sofort
    nach, ob er dort steht - und hielt den alten Stand fuer einen Fehler
@@ -161,6 +183,9 @@ export async function GET() {
   }
 
   return Response.json({
+    /* Damit das Formular den Zustand zeigen kann, statt ihn erst beim
+       abgelehnten Klick zu verraten (Issue #110). */
+    binding: await prizeListBinds(),
     prizes: rows.map((prize) => ({
       ...prize,
       logoUrl: publicPrizeLogoUrl(prize.logo_path),
@@ -229,12 +254,19 @@ export async function PATCH(request: Request) {
   const supabase = createSupabaseAdminClient();
   const { data: existing, error: readError } = await supabase
     .from("lottery_prizes")
-    .select("id, logo_path, image_path")
+    .select("id, logo_path, image_path, quantity")
     .eq("id", prizeId)
     .maybeSingle();
 
   if (readError) return Response.json({ error: "Der Preis konnte nicht gelesen werden." }, { status: 502 });
   if (!existing) return Response.json({ error: "Diesen Preis gibt es nicht (mehr)." }, { status: 404 });
+
+  /* Titel, Beschreibung und Bilder bleiben aenderbar - ein Tippfehler muss
+     sich korrigieren lassen. Die Anzahl ist etwas anderes: Sie zu verringern
+     nimmt Gewinne aus einer Liste, auf die sich schon jemand verlassen hat
+     (Issue #110). */
+  const quantityRefusal = prizeQuantityRefusal(await prizeListBinds(), Number(existing.quantity ?? 0), parsed.fields.quantity);
+  if (quantityRefusal) return Response.json({ error: quantityRefusal }, { status: 409 });
 
   const paths: Partial<Record<Slot["column"], string | null>> = {};
   /* Dateien, die nach dem Speichern weg koennen: die ersetzten und die
@@ -286,6 +318,9 @@ export async function DELETE(request: Request) {
 
   const prizeId = new URL(request.url).searchParams.get("id");
   if (!prizeId) return Response.json({ error: "Es fehlt, welcher Preis gemeint ist." }, { status: 400 });
+
+  const removalRefusal = prizeRemovalRefusal(await prizeListBinds());
+  if (removalRefusal) return Response.json({ error: removalRefusal }, { status: 409 });
 
   const supabase = createSupabaseAdminClient();
 

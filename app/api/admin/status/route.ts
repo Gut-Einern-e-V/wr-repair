@@ -69,10 +69,9 @@ export async function GET() {
       return true;
     }),
     /* Die Preistabelle, genau wie die Gewinnspielseite sie liest (Issue #99).
-       Faellt diese Abfrage aus - eine fehlende Migration etwa -, zeigt
-       /gewinnspiel stillschweigend den Platzhalter, und von aussen sieht das
-       aus wie "es sind eben noch keine Preise eingetragen". Hier steht dann
-       der Grund. */
+       Faellt diese Abfrage aus - eine fehlende Migration etwa -, steht auf
+       /gewinnspiel keine Preisliste, und von aussen sieht das aus wie "es
+       sind eben noch keine Preise eingetragen". Hier steht dann der Grund. */
     timed(async () => {
       const { rows, error } = await readPrizes(supabase);
       if (error) throw new Error(error.message);
@@ -115,9 +114,13 @@ export async function GET() {
         ms: lottery.ms,
         detail: lottery.ok
           ? (lottery.value === 0
-              ? "Kein Preis eingetragen - die Gewinnspielseite zeigt den Platzhalter."
+              /* Was "kein Preis" bedeutet, haengt seit Issue #110 vom
+                 Zeitpunkt ab: Vor dem Start zeigt die Seite Beispiele, ab
+                 dem Start ist eine leere Liste ein Versaeumnis - dann muss
+                 jeder Preis dort stehen. */
+              ? "Kein Preis eingetragen - vor dem Start zeigt die Gewinnspielseite Beispiele, ab dem Start fehlt dort die zugesagte Preisliste."
               : `${lottery.value} ${lottery.value === 1 ? "Preis" : "Preise"} eingetragen`)
-          : `Die Preise sind nicht lesbar, /gewinnspiel zeigt deshalb den Platzhalter: ${lottery.error}`,
+          : `Die Preise sind nicht lesbar, /gewinnspiel zeigt deshalb keine Preisliste: ${lottery.error}`,
       },
       /* Der Spam-Schutz gilt nur als in Ordnung, wenn er auch eingeschaltet ist
          (Issue #59). Vorher genuegten die beiden Schluessel in der Umgebung:
