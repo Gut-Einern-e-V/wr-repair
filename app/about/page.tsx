@@ -83,20 +83,45 @@ export default async function AboutPage() {
     <section className="content-section contribution-grid" aria-labelledby="contribute-title">
       <div>
         <p className="section-index">Mitmachen</p>
-        <h2 id="contribute-title">Ein Rekord ist Gemeinschaftsarbeit.</h2>
+        {/* Hier stand "Ein Rekord ist Gemeinschaftsarbeit." (Issue #114). Das
+            Wort ist 20 Zeichen lang, die Ueberschriftenspalte dieses Rasters
+            aber auch auf dem grossen Bildschirm nur knapp 500 Pixel breit -
+            also griff `overflow-wrap: break-word` und trennte irgendwo:
+            "GEMEINSCHAFTSAR / BEIT". Ein weicher Trennstrich half nicht, weil
+            `break-word` an jeder Stelle brechen darf und deshalb noch einen
+            Buchstaben mehr in die Zeile zwingt, und `hyphens: auto` haette
+            auch Ueberschriften getrennt, die von allein gepasst haetten. Die
+            Zeile sagt jetzt dasselbe mit kuerzeren Woertern - das haelt in
+            jeder Spaltenbreite. */}
+        <h2 id="contribute-title">Ein Rekord entsteht gemeinsam.</h2>
       </div>
-      <ol>
-        <li><p>Eine Reparatur dokumentieren und während des Zeitraums <Link href="/mitmachen">eintragen</Link>.</p></li>
-        <li><p>Reparaturwissen in Werkstatt, Schule oder Nachbarschaft teilen – Einrichtungen bekommen Plakate und Material über den <a href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">Verteiler</a>.</p></li>
-        <li><p>Diese Website weiterentwickeln oder für die eigene Region nachnutzen – der Quelltext ist <Link href="/open-source">offen</Link>.</p></li>
-      </ol>
+      <div>
+        <ol>
+          <li><p>Eine Reparatur dokumentieren und während des Zeitraums <Link href="/mitmachen">eintragen</Link>.</p></li>
+          <li><p>Reparaturwissen in Werkstatt, Schule oder Nachbarschaft teilen – Einrichtungen bekommen Plakate und Material über den <a href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">Verteiler</a>.</p></li>
+          <li><p>Diese Website weiterentwickeln oder für die eigene Region nachnutzen – der Quelltext ist <Link href="/open-source">offen</Link>.</p></li>
+        </ol>
+        {/* Betriebe stehen nicht in der Dreierliste, weil sie nichts anderes
+            tun als der erste Punkt - sie tun es nur fuer viele Menschen auf
+            einmal. Ihr Weg dorthin steht deshalb daneben (Issue #114). */}
+        <p className="link-row">
+          <Link className="text-button" href="/reparaturbetriebe">Für Reparaturbetriebe <span aria-hidden="true">&#8594;</span></Link>
+        </p>
+      </div>
     </section>
 
+    {/* Hier stand bis Issue #114 eine Bedienungsanleitung fuer die Logowand
+        ("Die Logos fuehren direkt zu den Organisationen ..."). Dass ein Logo
+        anklickbar ist, sieht man; was hier fehlte, war der Dank und die
+        Einladung an alle, die noch dazukommen moechten. Der Knopf dafuer steht
+        gleich darunter im Abbinder - zweimal dieselbe Adresse waere eine zu
+        viel. */}
     <section className="content-section project-supporters" aria-labelledby="supporters-title">
       <div>
         <p className="section-index">Unterstützt von</p>
         <h2 id="supporters-title">Ein Projekt mit vielen Verbündeten.</h2>
-        <p>Die Logos führen direkt zu den Organisationen, die das Projekt mittragen.</p>
+        <p>Werkstätten, Hochschulen, Vereine und Unternehmen stellen Räume, Werkzeug, Reichweite und Preise fürs Gewinnspiel. Dafür ein großes Dankeschön – ohne sie wäre der Rekordversuch eine Idee geblieben.</p>
+        <p>Ihr möchtet auch mithelfen? Schreibt uns, wir finden gemeinsam heraus, was passt.</p>
       </div>
       <PartnerLogoGrid />
     </section>

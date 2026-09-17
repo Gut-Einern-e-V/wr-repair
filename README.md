@@ -113,6 +113,12 @@ SVG-Pfad, skaliert also in jedem Format und nimmt seine Farben aus dem CSS.
 
 ![Der Aufsteller-Generator zeigt die Druckvorschau: „Repariert? Jetzt eintragen!“, ein großer QR-Code, die Zieladresse, drei Schritte und die Förderlogos.](docs/screenshots/aufsteller.png)
 
+Wofür die Vorlage gedacht ist, steht auf `/reparaturbetriebe`: eine Anleitung für
+Werkstätten und Fachbetriebe, die ihre Kundschaft auf den Rekord hinweisen wollen,
+statt selbst einzutragen. Der Unterschied ist nicht bloß höflich — am Gewinnspiel
+teilnehmen kann laut Teilnahmebedingungen nur, wem der reparierte Gegenstand
+gehört.
+
 ### Teilbild nach der Freigabe
 
 Sobald die Moderation eine Reparatur freigegeben hat, liegt auf ihrer Statusseite
@@ -262,7 +268,7 @@ Die Schritt-für-Schritt-Anleitung dazu steht in
 | Tests | Vitest |
 | Schriften | Nunito und Playfair Display, selbst gehostet über `next/font` |
 
-Umfang: 24 Seiten, 25 API-Routen, 24 Komponenten, 47 Bibliotheksmodule,
+Umfang: 25 Seiten, 25 API-Routen, 24 Komponenten, 47 Bibliotheksmodule,
 31 Migrationen, rund 21.500 Zeilen TypeScript und 2.500 Zeilen SQL.
 
 ```

@@ -23,6 +23,10 @@ const staticPages: StaticEntry[] = [
   { path: "/stats", changeFrequency: "hourly", priority: 0.8 },
   { path: "/stories", changeFrequency: "weekly", priority: 0.8 },
   { path: "/repair-cafes", changeFrequency: "weekly", priority: 0.7 },
+  /* Die Seite fuer Betriebe (Issue #114). Sie steht in keiner Kopfnavigation
+     und wird deshalb gesucht, nicht gefunden - ohne Eintrag im Index findet
+     sie niemand. */
+  { path: "/reparaturbetriebe", changeFrequency: "monthly", priority: 0.6 },
   /* Der Abschlusstermin des Rekordmonats - danach wird gesucht, sobald das
      Programm steht (Issue #33). Die Unterseiten stehen mit im Index: Wer
      "Anreise" oder "Initiativen" sucht, soll direkt dort landen. */
