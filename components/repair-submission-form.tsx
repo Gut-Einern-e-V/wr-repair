@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CategoryMotif } from "@/components/category-motif";
 import { FriendlyCaptcha } from "@/components/friendly-captcha";
 import { RepairCategorySelect } from "@/components/repair-form-fields";
+import { isCaptchaSolution, needsCaptchaReset } from "@/lib/captcha-token";
 import { repairCategories, type RepairCategory } from "@/lib/repair-catalog";
 import { anonymizeCoordinates, coarsenCoordinates, type AnonymizedPoint } from "@/lib/geo-anonymize";
 import type { OutsideRegionHelp } from "@/lib/outside-region-help";
@@ -33,6 +34,8 @@ const RETRY_DELAYS_MS = [1_200, 3_000];
 const REQUEST_TIMEOUT_MS = 45_000;
 /** Ab hier wird der Hinweis eingeblendet, dass es dauert, aber noch laeuft. */
 const SLOW_NOTICE_AFTER_MS = 8_000;
+/** Wie lange auf ein Loesungswort des Spam-Schutzes gewartet wird (Issue #107). */
+const CAPTCHA_WAIT_MS = 15_000;
 
 function delay(ms: number) {
   return new Promise((resolve) => { window.setTimeout(resolve, ms); });
@@ -55,8 +58,13 @@ function createSubmissionKey() {
 type AttemptResult =
   | { kind: "success"; id: string }
   | { kind: "outside"; help: OutsideRegionHelp }
-  /** Endgueltig: Der Server hat inhaltlich entschieden, ein zweiter Versuch aendert nichts. */
-  | { kind: "rejected"; message: string }
+  /**
+   * Endgueltig: Der Server hat inhaltlich entschieden, ein zweiter Versuch
+   * aendert nichts. `captchaStale` ist die eine Ausnahme - dann war es der
+   * Spam-Schutz, und mit einem frischen Loesungswort hat ein zweiter Versuch
+   * sehr wohl Aussicht (Issue #107).
+   */
+  | { kind: "rejected"; message: string; captchaStale?: boolean }
   /** Ein zweiter Versuch kann helfen. `reachedServer` sagt, ob das Captcha-Token verbraucht ist. */
   | { kind: "retryable"; message: string; reachedServer: boolean };
 
@@ -283,7 +291,7 @@ export function RepairSubmissionForm({
    * obwohl der Server noch Herkunft, Spam-Schutz und Speicherung vor sich
    * hatte. Genau diese Luecke war das "hat sehr lange gedauert" aus Issue #64.
    */
-  const [submitPhase, setSubmitPhase] = useState<"sending" | "processing" | null>(null);
+  const [submitPhase, setSubmitPhase] = useState<"captcha" | "sending" | "processing" | null>(null);
   const [attemptNumber, setAttemptNumber] = useState(0);
   const [isSlow, setIsSlow] = useState(false);
   const [captchaError, setCaptchaError] = useState("");
@@ -586,10 +594,26 @@ export function RepairSubmissionForm({
     return true;
   }
 
-  /** Aktuelles Captcha-Token aus dem versteckten Feld, das das Widget setzt. */
-  function currentCaptchaToken(form: HTMLFormElement) {
+  /** Roher Inhalt des versteckten Feldes: Loesungswort *oder* Zustand. */
+  function captchaFieldValue(form: HTMLFormElement) {
     const field = form.elements.namedItem("frc-captcha-response");
     return field instanceof HTMLInputElement ? field.value : "";
+  }
+
+  /** Aktuelles Captcha-Token, oder "", solange keines geloest ist. */
+  function currentCaptchaToken(form: HTMLFormElement) {
+    const value = captchaFieldValue(form);
+    return isCaptchaSolution(value) ? value : "";
+  }
+
+  /** Wartet, bis ein Loesungswort im Feld steht, das nicht `usedToken` ist. */
+  async function waitForCaptchaToken(form: HTMLFormElement, usedToken: string) {
+    for (let waited = 0; waited < CAPTCHA_WAIT_MS; waited += 250) {
+      const token = currentCaptchaToken(form);
+      if (token && token !== usedToken) return token;
+      await delay(250);
+    }
+    return "";
   }
 
   /**
@@ -602,14 +626,33 @@ export function RepairSubmissionForm({
    */
   async function refreshCaptcha(form: HTMLFormElement, usedToken: string) {
     const reset = resetCaptchaRef.current;
-    if (!reset) return;
+    if (!reset) return "";
 
     reset();
-    for (let waited = 0; waited < 10_000; waited += 250) {
-      await delay(250);
-      const token = currentCaptchaToken(form);
-      if (token && token !== usedToken) return;
+    return waitForCaptchaToken(form, usedToken);
+  }
+
+  /**
+   * Sorgt dafuer, dass ein unverbrauchtes Loesungswort im Formular steht -
+   * und wartet notfalls darauf (Issue #107).
+   *
+   * Vorher stand hier nur die Frage, ob im Feld irgendetwas steht. Das war
+   * immer der Fall (siehe isCaptchaSolution), und drei Faelle endeten deshalb
+   * damit, dass die Einreichung an Friendly Captcha scheiterte statt zu
+   * warten: das noch rechnende Widget, das abgelaufene Ergebnis und das
+   * bereits eingeloeste Loesungswort eines vorigen Versuchs.
+   */
+  async function ensureCaptchaToken(form: HTMLFormElement, usedToken = "") {
+    const ready = currentCaptchaToken(form);
+    if (ready && ready !== usedToken) return ready;
+
+    // Verbraucht, abgelaufen oder abgestuerzt: Von allein kommt da nichts mehr.
+    if (usedToken || needsCaptchaReset(captchaFieldValue(form))) {
+      return refreshCaptcha(form, usedToken);
     }
+
+    // Das Widget rechnet noch. Bleibt es stecken, hilft ein Neustart.
+    return (await waitForCaptchaToken(form, usedToken)) || refreshCaptcha(form, usedToken);
   }
 
   /**
@@ -678,7 +721,7 @@ export function RepairSubmissionForm({
 
       request.onload = () => {
         const status = request.status;
-        const body = request.response as { id?: unknown; error?: unknown; outsideRegion?: unknown; retry?: unknown } | null;
+        const body = request.response as { id?: unknown; error?: unknown; outsideRegion?: unknown; retry?: unknown; captchaStale?: unknown } | null;
 
         if (status >= 200 && status < 300) {
           resolve({ kind: "success", id: typeof body?.id === "string" ? body.id : "" });
@@ -705,7 +748,7 @@ export function RepairSubmissionForm({
         const retryable = (status >= 500 || status === 0) && body?.retry !== false;
         resolve(retryable
           ? { kind: "retryable", message, reachedServer: status >= 500 }
-          : { kind: "rejected", message });
+          : { kind: "rejected", message, captchaStale: body?.captchaStale === true });
       };
 
       request.onerror = () => {
@@ -745,16 +788,11 @@ export function RepairSubmissionForm({
       return;
     }
 
-    if (captchaEnabled && !currentCaptchaToken(form)) {
-      setCaptchaError("Der Spam-Schutz wird noch vorbereitet. Bitte versuche es gleich erneut.");
-      return;
-    }
-
     setIsSubmitting(true);
     setSubmissionError("");
+    setCaptchaError("");
     setOutsideRegion(null);
     setUploadProgress(0);
-    setSubmitPhase("sending");
     setIsSlow(false);
 
     const slowTimer = window.setTimeout(() => setIsSlow(true), SLOW_NOTICE_AFTER_MS);
@@ -762,6 +800,22 @@ export function RepairSubmissionForm({
     const submissionKey = submissionKeyRef.current;
 
     try {
+      /* Erst das Loesungswort, dann senden. Ein Klick auf "Absenden", waehrend
+         das Widget noch rechnet, ist der Normalfall und kein Fehler: Die
+         Aufgabe startet erst, wenn das Formular vollstaendig ist, und wer
+         zuegig ausfuellt, ist vor ihr fertig. Frueher ging genau diese
+         Einreichung verloren (Issue #107); jetzt wartet das Formular. */
+      if (captchaEnabled) {
+        setSubmitPhase("captcha");
+        const token = await ensureCaptchaToken(form);
+        if (!token) {
+          setCaptchaError("Der Spam-Schutz ist nicht durchgelaufen. Bitte lade die Seite neu - deine Angaben musst du dann leider noch einmal eintragen.");
+          return;
+        }
+      }
+
+      setSubmitPhase("sending");
+
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
         setAttemptNumber(attempt);
         const usedToken = currentCaptchaToken(form);
@@ -782,6 +836,15 @@ export function RepairSubmissionForm({
 
         if (result.kind === "rejected") {
           setSubmissionError(result.message);
+          /* Eine Absage des Spam-Schutzes verbraucht das Loesungswort. Ohne
+             ein frisches bekaeme der naechste Knopfdruck von Friendly Captcha
+             `response_duplicate` - und zwar jedes Mal wieder, eine Sackgasse
+             ohne Ausweg ausser Neuladen (Issue #107). Im Hintergrund, damit
+             das Formular sofort wieder bedienbar ist: Der naechste Versuch
+             wartet in ensureCaptchaToken ohnehin, falls es dann noch rechnet. */
+          if (result.captchaStale && captchaEnabled) {
+            void refreshCaptcha(form, usedToken);
+          }
           return;
         }
 
@@ -1005,7 +1068,13 @@ export function RepairSubmissionForm({
           Formular aus (Issue #64). */}
       {submitPhase && (
         <div className="upload-progress" aria-live="polite">
-          {submitPhase === "sending" && uploadProgress !== null && uploadProgress < 100 ? <>
+          {submitPhase === "captcha" ? <>
+            {/* Der Spam-Schutz rechnet noch. Beim Abschicken darauf zu warten
+                ist die eine Sekunde wert: Vorher war die Einreichung an
+                dieser Stelle verloren (Issue #107). */}
+            <span>Spam-Schutz wird abgeschlossen …</span>
+            <progress />
+          </> : submitPhase === "sending" && uploadProgress !== null && uploadProgress < 100 ? <>
             <span>Bild wird hochgeladen: {uploadProgress} %</span>
             <progress value={uploadProgress} max="100" />
           </> : <>
