@@ -1,17 +1,43 @@
 "use client";
 
 import { useJsonResource } from "@/lib/use-json-resource";
+import { performedByLabel } from "@/app/moderator/repair-types";
+import { repairCategoryLabel } from "@/lib/repair-catalog";
 
 type Service = { id: string; label: string; ok: boolean; ms: number | null; detail: string | null };
 type SubmissionFailure = {
   id: string;
   at: string;
+  /** Letztes Auftreten desselben Grundes. Mit `at` zusammen ein Zeitraum. */
+  lastAt: string;
+  /** Wie oft gezaehlt. Erst ab Migration 202609170002 groesser als 1. */
+  hits: number;
   stage: string;
   reason: string;
   detail: string | null;
   ipRegion: string | null;
   /** Die Einreichung kam zustande, aber unvollstaendig - etwa ohne ihr Foto. */
   incomplete: boolean;
+};
+/** Eine Einreichung, die unterwegs verlorenging (Issue #107). */
+type AbandonedSubmission = {
+  id: string;
+  at: string;
+  lastAt: string;
+  attempts: number;
+  stage: string;
+  reason: string;
+  ipRegion: string | null;
+  kreis: string | null;
+  originSource: string | null;
+  category: string | null;
+  brandModel: string | null;
+  durationMinutes: number | null;
+  itemValueEuros: number | null;
+  performedBy: string | null;
+  story: string | null;
+  hasImage: boolean;
+  wantsLottery: boolean;
 };
 type Quota = { usedBytes: number; quotaBytes: number };
 type StatusResponse = {
@@ -26,6 +52,8 @@ type StatusResponse = {
   usageError: string | null;
   submissionFailures: SubmissionFailure[];
   submissionFailuresError: string | null;
+  abandonedSubmissions: AbandonedSubmission[];
+  abandonedSubmissionsError: string | null;
   checkedAt: string;
 };
 
@@ -44,6 +72,10 @@ const stageLabels: Record<string, string> = {
 
 const reasonLabels: Record<string, string> = {
   captcha_unavailable: "Friendly Captcha hat nicht geantwortet; die Einreichung wurde trotzdem angenommen.",
+  captcha_invalid: "Friendly Captcha hat das Loesungswort abgelehnt. Steht dahinter response_duplicate, war es ein zweiter Versuch mit demselben Wort.",
+  captcha_unfinished: "Abgeschickt, bevor der Spam-Schutz fertig gerechnet hatte. Das Formular wartet seit Issue #107 darauf.",
+  captcha_unconfigured: "FRIENDLY_CAPTCHA_API_KEY oder der Sitekey fehlt in der Umgebung. Bis dahin kommt niemand durch.",
+  token_missing: "Einreichung ohne Loesungswort - das Widget hat nicht geladen, oder es war ein Skript.",
   insert_failed: "Der Datenbankschreibvorgang ist fehlgeschlagen.",
   upload_failed: "Das Foto konnte nicht gespeichert werden; die Einreichung blieb ohne Bild.",
   link_failed: "Das Foto liegt im Speicher, liess sich aber nicht mit der Einreichung verknuepfen.",
@@ -118,10 +150,14 @@ export default function SystemStatus() {
           <ul className="failure-list">
             {data.submissionFailures.map((failure) => (
               <li key={failure.id} className={failure.incomplete ? "is-partial" : "is-lost"}>
-                <strong>{stageLabels[failure.stage] ?? failure.stage}</strong>
+                <strong>{stageLabels[failure.stage] ?? failure.stage}{failure.hits > 1 ? ` · ${failure.hits}\u00d7` : ""}</strong>
                 <span>{reasonLabels[failure.reason] ?? failure.reason}</span>
                 <p className="quota-note">
+                  {/* Bei mehreren Vorfaellen ein Zeitraum statt eines
+                      Zeitpunkts: Ohne das zweite Datum saehe eine Stoerung
+                      von gestern aus wie eine von heute (Issue #107). */}
                   {new Date(failure.at).toLocaleString("de-DE")}
+                  {failure.hits > 1 ? ` bis ${new Date(failure.lastAt).toLocaleString("de-DE")}` : ""}
                   {failure.ipRegion ? ` · ${failure.ipRegion}` : ""}
                   {` · ${failure.incomplete ? "Einreichung angekommen" : "Einreichung verloren"}`}
                   {failure.detail ? ` · ${failure.detail}` : ""}
@@ -130,6 +166,46 @@ export default function SystemStatus() {
             ))}
           </ul>
         )}
+      </div>
+
+      {/* Und was dabei verlorenging (Issue #107). Das Protokoll darueber sagt,
+          woran es lag; hier steht, was weg ist - vollstaendig genug, um es von
+          Hand in die Moderation einzutragen. Ohne Foto, ohne Name und Mail:
+          siehe Migration 202609170002. */}
+      <div className="admin-stack">
+        <p className="section-index">Abgebrochene Einreichungen</p>
+        {data.abandonedSubmissionsError ? (
+          <p className="form-error" role="alert">{data.abandonedSubmissionsError}</p>
+        ) : data.abandonedSubmissions.length === 0 ? (
+          <p className="queue-empty">Keine abgebrochene Einreichung aufgezeichnet.</p>
+        ) : (
+          <ul className="failure-list">
+            {data.abandonedSubmissions.map((entry) => (
+              <li className="is-lost" key={entry.id}>
+                <strong>
+                  {entry.category ? repairCategoryLabel(entry.category) : "Ohne Kategorie"}
+                  {entry.kreis ? ` · ${entry.kreis}` : entry.ipRegion ? ` · ${entry.ipRegion}` : ""}
+                  {entry.attempts > 1 ? ` · ${entry.attempts} Versuche` : ""}
+                </strong>
+                <span>{reasonLabels[entry.reason] ?? entry.reason}</span>
+                <dl className="admin-facts">
+                  <div><dt>Geraet</dt><dd>{entry.brandModel ?? "–"}</dd></div>
+                  <div><dt>Reparatur</dt><dd>{performedByLabel(entry.performedBy)}</dd></div>
+                  <div><dt>Dauer</dt><dd>{entry.durationMinutes ? `${entry.durationMinutes} Minuten` : "–"}</dd></div>
+                  <div><dt>Wert</dt><dd>{entry.itemValueEuros === null ? "–" : `${entry.itemValueEuros.toLocaleString("de-DE")} Euro`}</dd></div>
+                </dl>
+                {entry.story && <p className="quota-note">„{entry.story}“</p>}
+                <p className="quota-note">
+                  {new Date(entry.lastAt).toLocaleString("de-DE")}
+                  {entry.originSource ? ` · Herkunft aus ${entry.originSource}` : ""}
+                  {entry.hasImage ? " · mit Foto (nicht gespeichert)" : ""}
+                  {entry.wantsLottery ? " · wollte am Gewinnspiel teilnehmen (Name und Mail sind nicht gespeichert)" : ""}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <p className="quota-note">Aufgehoben wird nur, was eine Reparatur beschreibt - kein Foto, kein Name, keine Mail-Adresse, keine IP. Die Zeilen loeschen sich nach 30 Tagen selbst.</p>
       </div>
 
       <p className="quota-note">Geprueft am {new Date(data.checkedAt).toLocaleString("de-DE")}. Die Grenzwerte stammen aus <code>SUPABASE_STORAGE_QUOTA_MB</code> und <code>SUPABASE_DB_QUOTA_MB</code>; ohne Angabe gelten die Free-Tier-Werte.</p>

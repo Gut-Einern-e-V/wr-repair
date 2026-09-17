@@ -308,7 +308,6 @@ export default function LiveDashboard() {
             <span className="brand-mark" aria-hidden="true">R</span>
             <span>Reparaturrekord<br />NRW</span>
           </Link>
-          <p className="dashboard-live"><i aria-hidden="true" />Live aus Nordrhein-Westfalen</p>
           <div className="dashboard-tools">
             <p className="dashboard-clock">{clock} Uhr</p>
             <FullscreenButton />

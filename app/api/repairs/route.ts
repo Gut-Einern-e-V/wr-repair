@@ -7,8 +7,9 @@ import { decideOrigin, ipRegionTag } from "@/lib/origin-check";
 import { ipCity, outsideRegionHelp } from "@/lib/outside-region-help";
 import { acceptsSubmissions } from "@/lib/app-settings";
 import { checkSubmissionGate, retryHint, submissionLimit } from "@/lib/submission-gate";
-import { logSubmissionFailure, logSubmissionFailureOnce } from "@/lib/submission-log";
+import { logAbandonedSubmission, logSubmissionFailure, logSubmissionFailureOnce, type AbandonedSubmission, type FailureStage } from "@/lib/submission-log";
 import { repairCategoryValues } from "@/lib/repair-catalog";
+import { isCaptchaSolution } from "@/lib/captcha-token";
 
 export const runtime = "nodejs";
 
@@ -40,6 +41,21 @@ const validPerformedBy = new Set(["alone", "with_support", "by_someone"]);
  */
 function errorResponse(message: string, status: number, retry = true) {
   return Response.json(retry ? { error: message } : { error: message, retry: false }, { status });
+}
+
+/**
+ * Absage des Spam-Schutzes, die den Browser zum Nachloesen auffordert
+ * (Issue #107).
+ *
+ * `captchaStale` ist keine Kosmetik: Ein Loesungswort von Friendly Captcha ist
+ * einmalig, und mit dem Absagen ist es verbraucht. Ohne dieses Signal schickt
+ * der naechste Knopfdruck dasselbe Wort noch einmal, Friendly Captcha
+ * antwortet `response_duplicate`, und die Einreichung steckt in einer
+ * Sackgasse, aus der nur ein Neuladen herausfuehrt - samt Verlust aller
+ * Eingaben. Das Formular holt daraufhin ein frisches Wort.
+ */
+function captchaResponse(message: string) {
+  return Response.json({ error: message, captchaStale: true }, { status: 403 });
 }
 
 /**
@@ -268,6 +284,38 @@ export async function POST(request: Request) {
     }
   }
 
+  /* Was bis hierher im Formular stand, fuer die Liste der abgebrochenen
+     Einreichungen (Issue #107).
+
+     Bewusst erst ab hier: Die Pruefungen davor beanstanden fehlende
+     Pflichtangaben, und die kann das Formular selbst gar nicht abschicken -
+     eine Zeile daraus waere immer ein Skript. Ab dem Spam-Schutz dagegen
+     steht eine vollstaendige Reparatur da, und genau die ging verloren. */
+  function abandoned(stage: FailureStage, reason: string, detail?: unknown): AbandonedSubmission {
+    // decideOrigin rechnet nur, fragt nichts - der Aufruf kostet hier nichts
+    // und liefert dieselbe Kreisangabe wie bei einer angenommenen Reparatur.
+    const guessedOrigin = decideOrigin(request, formData, settings.region);
+    const duration = durationMinutes ? parseInt(String(durationMinutes), 10) : null;
+    const value = itemValueEuros ? parseFloat(String(itemValueEuros)) : null;
+
+    return {
+      stage,
+      reason,
+      detail,
+      clientKey,
+      kreis: guessedOrigin.kreis,
+      originSource: guessedOrigin.source,
+      category: typeof category === "string" ? category : null,
+      brandModel: typeof brandModel === "string" && brandModel.trim() ? brandModel.trim() : null,
+      durationMinutes: duration && duration > 0 ? duration : null,
+      itemValueEuros: value !== null && !Number.isNaN(value) && value >= 0 ? value : null,
+      performedBy: typeof performedBy === "string" ? performedBy : null,
+      story: typeof story === "string" && story.trim() ? story.trim() : null,
+      hasImage: image instanceof File && image.size > 0,
+      wantsLottery,
+    };
+  }
+
   /* Ergebnis der Captcha-Pruefung, das an die Moderation weitergegeben wird:
      Eine Einreichung, die nur durchkam, weil der Spam-Schutz nicht antwortete,
      soll als solche im Fehlerprotokoll stehen. */
@@ -279,14 +327,31 @@ export async function POST(request: Request) {
          eine Veranstaltung: Laedt das Widget nicht - falscher Sitekey, Domain
          im Friendly-Captcha-Dashboard nicht freigegeben, Ausfall des CDN -,
          dann kommt niemand mehr durch, und ohne diesen Eintrag saehe man es
-         nirgends. Einmal je Instanz, siehe logSubmissionFailureOnce: Ein
-         Eintrag je Anfrage waere fuer ein Skript eine Einladung. */
+         nirgends. Die Tabelle laeuft davon nicht voll: Seit Issue #107 zaehlt
+         eine Zeile je Grund hoch, statt dass jede Anfrage eine neue anlegt. */
       after(() => logSubmissionFailureOnce(supabase, request, {
         stage: "captcha",
         reason: "token_missing",
         detail: "Einreichung ohne Captcha-Token - Widget defekt oder Skript?",
       }));
       return withTimings(errorResponse("Bitte bestaetige zuerst den Spam-Schutz.", 403));
+    }
+
+    /* Das Widget legt in dasselbe Feld auch seinen Zustand ab: ".SOLVING",
+       ".EXPIRED", ".ERROR". Das sind keine Loesungswoerter, und sie an
+       Friendly Captcha weiterzureichen brachte nur ein `response_invalid`
+       zurueck - fuer die Auswertung nicht von Spam zu unterscheiden, obwohl es
+       das genaue Gegenteil war: jemand, der zu schnell auf Absenden geklickt
+       hat. Das Formular wartet inzwischen darauf (siehe ensureCaptchaToken);
+       dieser Zweig bleibt fuer alte Sitzungen und faengt sie mit einer
+       Meldung ab, die sagt, was zu tun ist. */
+    if (!isCaptchaSolution(captchaToken)) {
+      const detail = `Widget-Zustand statt Loesungswort: ${captchaToken.slice(0, 40)}`;
+      after(async () => {
+        await logSubmissionFailureOnce(supabase, request, { stage: "captcha", reason: "captcha_unfinished", detail });
+        await logAbandonedSubmission(supabase, request, abandoned("captcha", "captcha_unfinished", detail));
+      });
+      return withTimings(captchaResponse("Der Spam-Schutz war noch nicht fertig. Bitte sende gleich noch einmal - deine Angaben bleiben stehen."));
     }
 
     const captchaStartedAt = Date.now();
@@ -309,16 +374,17 @@ export async function POST(request: Request) {
 
     if (captcha.outcome === "invalid") {
       /* Ein definitives "ungueltig" von Friendly Captcha - der eigentliche
-         Spam-Fall. Auch hier einmal je Instanz: Kommen die Absagen in Serie,
-         liegt es eher an einem verbrauchten Token oder einem falsch
-         zugeordneten Sitekey als an Spam, und das soll im Admin-Backend
-         auffallen. */
-      after(() => logSubmissionFailureOnce(supabase, request, {
-        stage: "captcha",
-        reason: "captcha_invalid",
-        detail: captcha.detail ?? "siteverify meldet ungueltig",
-      }));
-      return withTimings(errorResponse("Der Spam-Schutz konnte nicht bestaetigt werden. Bitte versuche es erneut.", 403));
+         Spam-Fall. Kommen die Absagen in Serie, liegt es eher an einem
+         verbrauchten Loesungswort oder einem falsch zugeordneten Sitekey als
+         an Spam; genau dafuer steht die Anzahl im Admin-Backend. Und weil
+         hinter so einer Absage eine echte Reparatur stecken kann, wird sie
+         nicht nur gezaehlt, sondern aufgehoben (Issue #107). */
+      const detail = captcha.detail ?? "siteverify meldet ungueltig";
+      after(async () => {
+        await logSubmissionFailureOnce(supabase, request, { stage: "captcha", reason: "captcha_invalid", detail });
+        await logAbandonedSubmission(supabase, request, abandoned("captcha", "captcha_invalid", detail));
+      });
+      return withTimings(captchaResponse("Der Spam-Schutz konnte nicht bestaetigt werden. Bitte sende gleich noch einmal - deine Angaben bleiben stehen."));
     }
 
     /* Zeitueberschreitung oder Stoerung bei Friendly Captcha: annehmen und
@@ -463,6 +529,10 @@ export async function POST(request: Request) {
     }
 
     await logSubmissionFailure(supabase, request, { stage: "insert", reason: "insert_failed", detail: insertError.message });
+    /* Auch hier: Die Reparatur stand vollstaendig da und ist trotzdem nicht
+       gespeichert worden. Ohne diese Zeile waere sie nur noch im Browser des
+       Menschen, der sie eingetragen hat (Issue #107). */
+    after(() => logAbandonedSubmission(supabase, request, abandoned("insert", "insert_failed", insertError.message)));
     return withTimings(errorResponse("Die Einreichung konnte nicht gespeichert werden. Bitte versuche es erneut.", 502));
   }
 

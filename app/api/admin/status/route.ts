@@ -8,11 +8,34 @@ type BucketUsage = { id: string; objects: number; bytes: number };
 type SubmissionFailure = {
   id: string;
   created_at: string;
+  /** Fehlt, solange die Migration 202609170002 nicht ausgerollt ist. */
+  last_at?: string | null;
+  hits?: number | null;
   stage: string;
   reason: string;
   detail: string | null;
   ip_region: string | null;
   repair_id: string | null;
+};
+/** Eine Einreichung, die unterwegs verlorenging (Issue #107). */
+type AbandonedRow = {
+  id: string;
+  created_at: string;
+  last_at: string;
+  attempts: number;
+  stage: string;
+  reason: string;
+  ip_region: string | null;
+  kreis: string | null;
+  origin_source: string | null;
+  category: string | null;
+  brand_model: string | null;
+  duration_minutes: number | null;
+  item_value_euros: number | null;
+  performed_by: string | null;
+  story: string | null;
+  has_image: boolean;
+  wants_lottery: boolean;
 };
 type Usage = {
   databaseBytes: number;
@@ -52,7 +75,7 @@ export async function GET() {
     return Response.json({ error: "Die Supabase-Zugangsdaten sind nicht konfiguriert." }, { status: 503 });
   }
 
-  const [database, storage, auth, lottery, usageProbe, failureProbe] = await Promise.all([
+  const [database, storage, auth, lottery, usageProbe, failureProbe, abandonedProbe] = await Promise.all([
     timed(async () => {
       const { error } = await supabase.from("campaign_settings").select("id").limit(1);
       if (error) throw new Error(error.message);
@@ -89,11 +112,36 @@ export async function GET() {
     timed(async () => {
       const { data, error } = await supabase
         .from("submission_failures")
-        .select("id, created_at, stage, reason, detail, ip_region, repair_id")
+        .select("id, created_at, last_at, hits, stage, reason, detail, ip_region, repair_id")
         .order("created_at", { ascending: false })
         .limit(25);
-      if (error) throw new Error(error.message);
+      if (error) {
+        /* Vor der Migration 202609170002 gibt es die beiden Zaehlspalten noch
+           nicht, und PostgREST beantwortet die Auswahl dann mit einem Fehler.
+           Lieber die Liste ohne Zaehler als eine leere Kachel mit dem Hinweis,
+           irgendeine Migration fehle. */
+        const fallback = await supabase
+          .from("submission_failures")
+          .select("id, created_at, stage, reason, detail, ip_region, repair_id")
+          .order("created_at", { ascending: false })
+          .limit(25);
+        if (fallback.error) throw new Error(fallback.error.message);
+        return (fallback.data ?? []) as SubmissionFailure[];
+      }
       return (data ?? []) as SubmissionFailure[];
+    }),
+    /* Und daneben die Einreichungen selbst, soweit sie bis zum Abbruch
+       eingetragen waren (Issue #107). Das Fehlerprotokoll sagt, woran es lag;
+       diese Liste sagt, was verlorenging - und erlaubt, es von Hand
+       nachzutragen. */
+    timed(async () => {
+      const { data, error } = await supabase
+        .from("abandoned_submissions")
+        .select("id, created_at, last_at, attempts, stage, reason, ip_region, kreis, origin_source, category, brand_model, duration_minutes, item_value_euros, performed_by, story, has_image, wants_lottery")
+        .order("last_at", { ascending: false })
+        .limit(25);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as AbandonedRow[];
     }),
   ]);
 
@@ -153,6 +201,8 @@ export async function GET() {
       ? failureProbe.value.map((row) => ({
           id: row.id,
           at: row.created_at,
+          lastAt: row.last_at ?? row.created_at,
+          hits: row.hits ?? 1,
           stage: row.stage,
           reason: row.reason,
           detail: row.detail,
@@ -163,6 +213,28 @@ export async function GET() {
         }))
       : [],
     submissionFailuresError: failureProbe.ok ? null : "Das Einreichungsprotokoll konnte nicht gelesen werden. Wurde die Migration ausgefuehrt?",
+    abandonedSubmissions: abandonedProbe.ok
+      ? abandonedProbe.value.map((row) => ({
+          id: row.id,
+          at: row.created_at,
+          lastAt: row.last_at,
+          attempts: row.attempts,
+          stage: row.stage,
+          reason: row.reason,
+          ipRegion: row.ip_region,
+          kreis: row.kreis,
+          originSource: row.origin_source,
+          category: row.category,
+          brandModel: row.brand_model,
+          durationMinutes: row.duration_minutes,
+          itemValueEuros: row.item_value_euros === null ? null : Number(row.item_value_euros),
+          performedBy: row.performed_by,
+          story: row.story,
+          hasImage: row.has_image,
+          wantsLottery: row.wants_lottery,
+        }))
+      : [],
+    abandonedSubmissionsError: abandonedProbe.ok ? null : "Die abgebrochenen Einreichungen konnten nicht gelesen werden. Wurde die Migration 202609170002 ausgefuehrt?",
     checkedAt: new Date().toISOString(),
   }, { headers: { "Cache-Control": "no-store" } });
 }

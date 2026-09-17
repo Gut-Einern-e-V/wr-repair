@@ -1227,6 +1227,11 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .failure-list strong { display: block; margin-bottom: 4px; font: 10px var(--mono); text-transform: uppercase; }
 .failure-list span { display: block; font-size: 14px; }
 .failure-list .quota-note { margin-top: 6px; word-break: break-word; }
+/* Die Angaben einer abgebrochenen Einreichung (Issue #107) stehen bereits in
+   einer umrandeten Karte - hier deshalb ohne den eigenen Rahmen, sonst waere
+   es eine Kiste in der Kiste. */
+.failure-list .admin-facts { padding: 10px 0 0; border: 0; background: none; gap: 8px 20px; }
+.failure-list .admin-facts dd { font-size: 14px; }
 
 @media (max-width: 720px) {
   .backend-nav { flex-wrap: wrap; gap: 10px; justify-content: flex-end; }

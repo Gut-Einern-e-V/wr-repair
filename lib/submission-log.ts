@@ -13,11 +13,17 @@ import { ipRegionTag } from "./origin-check";
  *
  * Zwei Regeln, die hier nicht verhandelbar sind:
  *
- * - Nichts Personenbezogenes. Kein Inhalt, keine Mail, keine IP - nur Stufe,
- *   Grund und die grobe Gegend der Verbindung, dieselbe Angabe wie in
- *   `blocked_submissions`.
- * - Diese Funktion wirft nie. Ein kaputtes Protokoll darf keine Einreichung
- *   kosten; das waere genau der Fehler, den es aufzeichnen soll.
+ * - Ins *Fehlerprotokoll* nichts Personenbezogenes. Kein Inhalt, keine Mail,
+ *   keine IP - nur Stufe, Grund und die grobe Gegend der Verbindung, dieselbe
+ *   Angabe wie in `blocked_submissions`.
+ * - Keine dieser Funktionen wirft. Ein kaputtes Protokoll darf keine
+ *   Einreichung kosten; das waere genau der Fehler, den es aufzeichnen soll.
+ *
+ * Daneben steht seit Issue #107 {@link logAbandonedSubmission}, und die haelt
+ * sehr wohl Inhalte fest - aber in einer eigenen Tabelle, mit eigener Frist
+ * und ohne Foto, Name und Mail. Die Begruendung dafuer steht in der Migration
+ * 202609170002 und im Datenschutzkonzept; wer hier etwas ergaenzt, aendert
+ * beides mit.
  */
 
 /** Stelle im Ablauf, an der es klemmte. */
@@ -42,27 +48,21 @@ function detailText(detail: unknown): string | null {
 }
 
 /**
- * Gruende, die in dieser Instanz schon protokolliert wurden.
+ * Wie logSubmissionFailure - der Name bleibt aus der Zeit, in der diese
+ * Funktion je Serverless-Instanz nur den ersten Vorfall aufschrieb.
  *
- * Fuer Fehler, die nicht einmal auftreten, sondern bei jeder Anfrage: ein
- * fehlender Captcha-Schluessel in der Umgebung, ein Widget, das keine Token
- * mehr liefert. Ein Eintrag je Anfrage wuerde `submission_failures` mit
- * derselben Zeile fuellen, bis die Datenbank voll ist - genau dann, wenn ein
- * Skript dagegen laeuft. Einmal je Serverless-Instanz genuegt: Das Muster ist
- * im Admin-Backend sichtbar, die Menge bleibt an die Zahl der Instanzen
- * gebunden.
+ * Der Verzicht war gegen eine volllaufende Tabelle gedacht und als Schutz
+ * richtig, als Zaehlung aber wertlos: Drei Zeilen im Admin-Backend konnten
+ * fuer drei Faelle stehen oder fuer dreihundert, und genau das war die Frage
+ * aus Issue #107. Seit der Migration 202609170002 zaehlt die Datenbank selbst
+ * - eine Zeile je Grund, mit `hits` daran -, und die Begrenzung hier ist
+ * damit ueberfluessig geworden.
  */
-const loggedOnce = new Set<string>();
-
-/** Wie logSubmissionFailure, aber hoechstens einmal je Grund und Instanz. */
 export async function logSubmissionFailureOnce(
   supabase: SupabaseClient | null,
   request: Request,
   failure: SubmissionFailure,
 ) {
-  const key = `${failure.stage}/${failure.reason}`;
-  if (loggedOnce.has(key)) return;
-  loggedOnce.add(key);
   await logSubmissionFailure(supabase, request, failure);
 }
 
@@ -72,25 +72,111 @@ export async function logSubmissionFailure(
   failure: SubmissionFailure,
 ) {
   const detail = detailText(failure.detail);
+  const ipRegion = ipRegionTag(request);
 
   // Immer zuerst in die Serverprotokolle: Die laufen auch dann, wenn die
   // Datenbank selbst der Grund fuer den Eintrag ist.
   console.error(
     `[submission] ${failure.stage}/${failure.reason}`,
-    JSON.stringify({ repairId: failure.repairId ?? null, ipRegion: ipRegionTag(request), detail }),
+    JSON.stringify({ repairId: failure.repairId ?? null, ipRegion, detail }),
   );
 
   if (!supabase) return;
 
   try {
-    await supabase.from("submission_failures").insert({
-      stage: failure.stage,
-      reason: failure.reason,
-      detail,
-      ip_region: ipRegionTag(request),
-      repair_id: failure.repairId ?? null,
+    /* Ein Vorfall *mit* Reparatur gehoert zu genau einer Einreichung und
+       bleibt eine eigene Zeile. Alles andere beschreibt ein Muster und wird
+       gezaehlt. */
+    if (failure.repairId) {
+      await supabase.from("submission_failures").insert({
+        stage: failure.stage,
+        reason: failure.reason,
+        detail,
+        ip_region: ipRegion,
+        repair_id: failure.repairId,
+      });
+      return;
+    }
+
+    const { error } = await supabase.rpc("record_submission_failure", {
+      p_stage: failure.stage,
+      p_reason: failure.reason,
+      p_detail: detail,
+      p_ip_region: ipRegion,
     });
+
+    /* Solange die Migration 202609170002 noch nicht ausgerollt ist, gibt es
+       die Funktion nicht. Dann lieber eine Zeile ohne Zaehler als gar kein
+       Protokoll - der Eintrag ist der Sinn der Uebung. */
+    if (error) {
+      await supabase.from("submission_failures").insert({
+        stage: failure.stage,
+        reason: failure.reason,
+        detail,
+        ip_region: ipRegion,
+        repair_id: null,
+      });
+    }
   } catch {
     // Bewusst still, siehe Modulkopf.
+  }
+}
+
+/**
+ * Was bis zum Abbruch im Formular stand (Issue #107).
+ *
+ * Eine verlorene Einreichung war bis hierher wirklich verloren: Die Angaben
+ * blieben allein im Browser stehen, und wer den Tab schloss, hatte sie weg.
+ * Diese Funktion hebt sie auf - ohne Foto, ohne Name und Mail der Verlosung,
+ * ohne IP-Adresse, siehe die Begruendung in der Migration.
+ *
+ * Wie logSubmissionFailure: wirft nie.
+ */
+export type AbandonedSubmission = {
+  stage: FailureStage;
+  reason: string;
+  detail?: unknown;
+  /** Schluessel des Sendevorgangs. Fasst alle Versuche zu einer Zeile zusammen. */
+  clientKey: string | null;
+  kreis?: string | null;
+  originSource?: string | null;
+  category?: string | null;
+  brandModel?: string | null;
+  durationMinutes?: number | null;
+  itemValueEuros?: number | null;
+  performedBy?: string | null;
+  story?: string | null;
+  hasImage: boolean;
+  wantsLottery: boolean;
+};
+
+export async function logAbandonedSubmission(
+  supabase: SupabaseClient | null,
+  request: Request,
+  entry: AbandonedSubmission,
+) {
+  if (!supabase) return;
+
+  try {
+    await supabase.rpc("record_abandoned_submission", {
+      p_client_key: entry.clientKey,
+      p_stage: entry.stage,
+      p_reason: entry.reason,
+      p_detail: detailText(entry.detail),
+      p_ip_region: ipRegionTag(request),
+      p_kreis: entry.kreis ?? null,
+      p_origin_source: entry.originSource ?? null,
+      p_category: entry.category ?? null,
+      p_brand_model: entry.brandModel ?? null,
+      p_duration_minutes: entry.durationMinutes ?? null,
+      p_item_value_euros: entry.itemValueEuros ?? null,
+      p_performed_by: entry.performedBy ?? null,
+      p_story: entry.story ?? null,
+      p_has_image: entry.hasImage,
+      p_wants_lottery: entry.wantsLottery,
+    });
+  } catch {
+    // Bewusst still, siehe Modulkopf. Ohne die Migration 202609170002 gibt es
+    // die Funktion noch nicht; das Fehlerprotokoll steht davon unberuehrt.
   }
 }
