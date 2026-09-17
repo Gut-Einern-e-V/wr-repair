@@ -9,3 +9,4 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - The repository is linked to Supabase project `qzkvxgxxsojidzshixni`.
 - The Supabase CLI is not installed globally. Run every Supabase command through `npx supabase@latest ...`, for example `npx supabase@latest db push`.
 - Versioned schema changes belong in `supabase/migrations/`. Verify local and remote migration history with `npx supabase@latest migration list` after a push.
+- The role checks `is_moderator_or_higher()`, `is_admin_or_higher()` and `is_superadmin()` live in the `private` schema since migration `202609170001`, so PostgREST cannot expose them as RPC endpoints. New RLS policies must call them as `private.is_...()`.
