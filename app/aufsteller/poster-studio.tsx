@@ -91,7 +91,13 @@ export function PosterStudio({ submissionUrl, qrGlyph, arabicFontClassName }: Po
         Format, Sprache und Hintergrund wählen, dann über die Druckfunktion des Browsers ausgeben. Der QR-Code führt
         auf <strong>{readableUrl}</strong> – dort trägt man eine Reparatur in zwei Minuten ein.
       </p>
-      <p><Link className="text-button" href="/mitmachen">Zielseite ansehen <span aria-hidden="true">&#8594;</span></Link></p>
+      {/* Der Weg zurueck zur Anleitung (Issue #114): Wer den Generator ueber
+          einen weitergereichten Link erreicht, sieht sonst nur die Vorlage und
+          nicht, wofuer sie gedacht ist. */}
+      <p className="link-row">
+        <Link className="text-button" href="/mitmachen">Zielseite ansehen <span aria-hidden="true">&#8594;</span></Link>
+        <Link className="text-button" href="/reparaturbetriebe">Für Reparaturbetriebe <span aria-hidden="true">&#8594;</span></Link>
+      </p>
     </section>
 
     <form className="poster-controls no-print" onSubmit={(event) => event.preventDefault()}>

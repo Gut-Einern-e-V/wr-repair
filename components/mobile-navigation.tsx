@@ -23,6 +23,7 @@ const pages = [
   ["/stats", "Live-Stand"],
   ["/stories", "Geschichten"],
   ["/repair-cafes", "Repair Cafés"],
+  ["/reparaturbetriebe", "Für Reparaturbetriebe"],
   ["/festival", "Repair & Share Festival"],
   ["/gewinnspiel", "Gewinnspiel"],
   ["/about", "Projekt"],
