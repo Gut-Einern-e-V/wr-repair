@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { notifyModerators } from "@/lib/push";
 import { extractExif } from "@/lib/exif";
+import { stripImageMetadata, type StrippableImageType } from "@/lib/strip-image-metadata";
 import { anonymizeCoordinates } from "@/lib/geo-anonymize";
 import { decideOrigin, ipRegionTag } from "@/lib/origin-check";
 import { ipCity, outsideRegionHelp } from "@/lib/outside-region-help";
@@ -248,7 +249,7 @@ export async function POST(request: Request) {
   const performedBy = formData.get("performed_by");
   const story = formData.get("story");
   const consent = formData.get("consent");
-  let image = formData.get("image");
+  const image = formData.get("image");
   const captchaToken = formData.get("frc-captcha-response");
   const repairSucceeded = formData.get("repair_succeeded") !== "false";
 
@@ -274,6 +275,18 @@ export async function POST(request: Request) {
     return withTimings(errorResponse("Bitte stimme der Datenschutzerklaerung fuer die Verlosung zu.", 400));
   }
 
+  /* Dieselben Grenzen wie die maxLength-Angaben im Formular. Ohne sie nimmt
+     eine selbst gebaute Anfrage beliebig lange Texte an, und die landen in der
+     Moderation, im Export und bei der Verlosung auch in der Namensliste. */
+  const tooLong = (value: FormDataEntryValue | null, max: number) => typeof value === "string" && value.length > max;
+  if (tooLong(brandModel, 200) || tooLong(story, 2000)) {
+    return withTimings(errorResponse("Ein Textfeld ist zu lang.", 400));
+  }
+
+  if (wantsLottery && (tooLong(lotteryName, 200) || tooLong(lotteryEmail, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(lotteryEmail).trim()))) {
+    return withTimings(errorResponse("Bitte pruefe Name und E-Mail-Adresse fuer die Verlosung.", 400));
+  }
+
   if (image instanceof File && image.size > 0) {
     if (!(image.type in imageExtensions)) {
       return withTimings(errorResponse("Erlaubt sind JPG, PNG und WebP.", 400));
@@ -282,6 +295,22 @@ export async function POST(request: Request) {
     if (image.size > MAX_IMAGE_BYTES) {
       return withTimings(errorResponse("Das Bild darf maximal 200 KB gross sein.", 400));
     }
+  }
+
+  /* Metadaten entfernt der Server selbst (Issue #44). Das Formular verwirft
+     sie zwar schon beim Neurendern im Browser, aber eine selbst gebaute
+     Anfrage kaeme sonst mit dem genauen Aufnahmeort in den Storage. Die
+     Originalbytes bleiben nur im Speicher, fuer den EXIF-Rueckfall der
+     Herkunftspruefung weiter unten, und werden nie hochgeladen. */
+  let originalImageBytes: ArrayBuffer | null = null;
+  let uploadImage: File | null = null;
+  if (image instanceof File && image.size > 0) {
+    originalImageBytes = await image.arrayBuffer();
+    const stripped = stripImageMetadata(new Uint8Array(originalImageBytes), image.type as StrippableImageType);
+    if (!stripped) {
+      return withTimings(errorResponse("Das Bild konnte nicht gelesen werden. Bitte waehle ein anderes Foto.", 400));
+    }
+    uploadImage = new File([stripped as Uint8Array<ArrayBuffer>], image.name, { type: image.type });
   }
 
   /* Was bis hierher im Formular stand, fuer die Liste der abgebrochenen
@@ -414,15 +443,13 @@ export async function POST(request: Request) {
      nur das Ergebnis (siehe components/repair-submission-form.tsx). Schlaegt
      das fehl - alte Browser, blockierte Skripte -, waere eine echte Reparatur
      aus dem Gebiet sonst abgewiesen worden, obwohl der Beleg im Bild steckt.
-     Der Buffer wird ohnehin gebraucht und danach fuer den Upload wiederverwendet. */
-  if (!origin.allowed && image instanceof File && image.size > 0 && image.type === "image/jpeg") {
+     Gelesen wird aus den Originalbytes; hochgeladen wird nur die bereinigte
+     Fassung, die kein GPS mehr enthaelt. */
+  if (!origin.allowed && originalImageBytes && uploadImage?.type === "image/jpeg") {
     const exifStartedAt = Date.now();
-    const buffer = await image.arrayBuffer();
-    const exif = await extractExif(buffer);
+    const exif = await extractExif(originalImageBytes);
     const exifPoint = anonymizeCoordinates(exif.latitude, exif.longitude);
     origin = decideOrigin(request, formData, settings.region, exifPoint);
-    // Aus dem Buffer neu aufgebaut, damit die Originalbytes erhalten bleiben.
-    image = new File([buffer], image.name, { type: image.type });
     mark("exif", exifStartedAt);
   }
 
@@ -454,7 +481,6 @@ export async function POST(request: Request) {
     ));
   }
 
-  const uploadImage = image instanceof File && image.size > 0 ? image : null;
   const imagePath = uploadImage ? `pending/${repairId}.${imageExtensions[uploadImage.type]}` : null;
 
   const parsedDuration = durationMinutes ? parseInt(String(durationMinutes), 10) : null;

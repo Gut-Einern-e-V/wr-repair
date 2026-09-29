@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin-auth";
+import { escapeCsv } from "@/lib/csv";
 import { readLotteryOverview } from "@/lib/lottery-store";
 import { placeLabel } from "@/lib/prize-list";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
@@ -20,13 +21,6 @@ export const runtime = "nodejs";
  * Angaben stehen fuer sie ohnehin im Backend, und die Benachrichtigungen
  * schreibt nicht die Person, die zieht.
  */
-
-function escapeCsv(value: unknown) {
-  const text = value === null || value === undefined ? "" : String(value);
-  // Fuehrende Rechenzeichen macht eine Tabellenkalkulation sonst zur Formel.
-  const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
-  return `"${safeText.replaceAll("\"", "\"\"")}"`;
-}
 
 export async function GET() {
   const authorization = await requireAdmin();

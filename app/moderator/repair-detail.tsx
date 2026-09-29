@@ -5,7 +5,6 @@ import { CategoryMotif } from "@/components/category-motif";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
 import OriginMap from "./origin-map";
-import RepairExif from "./repair-exif";
 import {
   draftFromRepair,
   isUnderReview,
@@ -89,7 +88,6 @@ export default function RepairDetail({
           <div><dt>Erfolg</dt><dd>{repair.repair_succeeded ? "Ja" : "Nein"}</dd></div>
           <div><dt>Veröffentlichung</dt><dd>{repair.consent_publication ? "Zugestimmt" : "Keine Zustimmung"}</dd></div>
           {repair.location_region && <div><dt>Region</dt><dd>{repair.location_region}</dd></div>}
-          {repair.imageUrl && <RepairExif imageUrl={repair.imageUrl} />}
         </dl>
 
         {/* Herkunft als eigener Block statt als weitere Zeile in der Liste:

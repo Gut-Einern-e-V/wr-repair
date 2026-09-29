@@ -284,9 +284,10 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
            jederzeit auf Wunsch geloescht werden (Issue #49). Ein Teilbild, das
            danach noch einen Tag lang aus dem Zwischenspeicher kommt, wuerde
            genau diese Zusage aushebeln. Ohne Foto aendert sich nichts mehr an
-           dem Bild, dann darf es lange liegen bleiben. */
+           dem Bild, dann darf es lange liegen bleiben. Hoechstens sechs
+           Minuten nach einer Loeschung ist das Foto damit auch hier weg. */
         "Cache-Control": photo
-          ? "public, s-maxage=300, stale-while-revalidate=600"
+          ? "public, s-maxage=300, stale-while-revalidate=60"
           : "public, s-maxage=86400, stale-while-revalidate=604800",
       },
     },

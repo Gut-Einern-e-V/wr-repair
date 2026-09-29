@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-/** Nur interne Pfade sind als Ziel erlaubt, damit der Parameter nicht zur Weiterleitung nach aussen taugt. */
+/** Nur interne Pfade sind als Ziel erlaubt, damit der Parameter nicht zur Weiterleitung nach aussen taugt.
+    Ein doppelter Schraegstrich am Anfang waere eine protokollrelative Adresse (`//fremder-host`). */
 function safeNext(value: string | null) {
-  return value && /^\/[A-Za-z0-9\-_/]*$/.test(value) ? value : null;
+  return value && /^\/(?!\/)[A-Za-z0-9\-_/]*$/.test(value) ? value : null;
 }
 
 function LoginForm() {
