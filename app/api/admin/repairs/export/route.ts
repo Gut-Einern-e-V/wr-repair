@@ -1,14 +1,9 @@
 import { requireAdmin } from "@/lib/admin-auth";
+import { escapeCsv } from "@/lib/csv";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const PAGE_SIZE = 1_000;
 const MAX_EXPORT_ROWS = 20_000;
-
-function escapeCsv(value: unknown) {
-  const text = value === null || value === undefined ? "" : String(value);
-  const safeText = /^[=+\-@]/.test(text) ? `'${text}` : text;
-  return `"${safeText.replaceAll("\"", "\"\"")}"`;
-}
 
 export async function GET() {
   const authorization = await requireAdmin();

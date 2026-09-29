@@ -4,14 +4,23 @@ import { publicRateLimit } from "@/lib/rate-limit";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 /**
- * Gueltigkeit der signierten Bildadressen. Muss deutlich laenger sein als
- * {@link CACHE_SECONDS}: Sonst liefert der Zwischenspeicher am Ende seiner
- * Zeit Adressen aus, die schon abgelaufen sind, und die Wand bleibt leer.
+ * Gueltigkeit der signierten Bildadressen. Muss laenger sein als das hoechste
+ * Alter einer ausgelieferten Antwort: Prozess-Zwischenspeicher plus
+ * `s-maxage` plus {@link STALE_SECONDS}, hier 660 Sekunden. Sonst liefert der
+ * Zwischenspeicher am Ende seiner Zeit Adressen aus, die schon abgelaufen sind,
+ * und die Wand bleibt leer.
+ *
+ * Nach oben begrenzt, weil eine Adresse nach dem Zuruecksetzen einer Freigabe
+ * weiter funktioniert, bis sie ablaeuft (Datenschutz-Audit, Issue #44). Bis
+ * September 2026 war es eine Stunde bei zehn Minuten Zwischenspeicher.
  */
-const SIGNED_URL_SECONDS = 3_600;
+const SIGNED_URL_SECONDS = 900;
 
 /** Wie lange dieselbe Antwort wiederverwendet wird - im Prozess und am Rand. */
-const CACHE_SECONDS = 600;
+const CACHE_SECONDS = 300;
+
+/** Wie lange der Rand danach noch die alte Antwort ausliefern darf, waehrend er neu laedt. */
+const STALE_SECONDS = 60;
 
 /**
  * Anfragen je Minute und IP-Adresse. Grosszuegig, weil die teure Arbeit im
@@ -107,6 +116,6 @@ export async function GET(request: Request) {
 
 function respond(payload: MosaicPayload) {
   return Response.json(payload, {
-    headers: { "Cache-Control": `public, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${CACHE_SECONDS * 3}` },
+    headers: { "Cache-Control": `public, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=${STALE_SECONDS}` },
   });
 }
