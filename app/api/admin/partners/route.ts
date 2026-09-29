@@ -61,7 +61,14 @@ export async function POST(request: Request) {
   });
   if (uploadError) return Response.json({ error: "Das Logo konnte nicht gespeichert werden." }, { status: 502 });
 
-  const { error } = await supabase.from("partners").insert({ id: partnerId, name: name.trim(), website_url: websiteUrl, logo_path: logoPath });
+  /* Ein neues Logo stellt sich hinten an (Issue #118). Mit der Voreinstellung
+     0 landete es vor allen, die schon einmal sortiert und dabei ab 0
+     durchnummeriert worden waren - also meist an zweiter Stelle. */
+  const { data: last } = await supabase.from("partners").select("sort_order").order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  const highest = Number(last?.sort_order ?? -1);
+  const sortOrder = Number.isFinite(highest) ? highest + 1 : 0;
+
+  const { error } = await supabase.from("partners").insert({ id: partnerId, name: name.trim(), website_url: websiteUrl, logo_path: logoPath, sort_order: sortOrder });
   if (error) {
     await supabase.storage.from("partner-logos").remove([logoPath]);
     return Response.json({ error: "Der Partner konnte nicht gespeichert werden." }, { status: 502 });
