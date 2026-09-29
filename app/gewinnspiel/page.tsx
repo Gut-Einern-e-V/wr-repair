@@ -77,30 +77,34 @@ function PrizeCard({ prize }: { prize: PrizeRow }) {
   const logoUrl = prize.sponsor_kind === "organisation" ? publicPrizeLogoUrl(prize.logo_path) : null;
   const photoUrl = publicPrizePhotoUrl(prize.image_path);
 
+  const badge = <span className="prize-badge">{placeLabel({ placeFrom: prize.place_from, placeTo: prize.place_to })}{prize.is_main ? " · Hauptpreis" : ""}</span>;
+
   return <li className={prize.is_main ? "prize-card is-main" : "prize-card"}>
-    <span className="prize-badge">{placeLabel({ placeFrom: prize.place_from, placeTo: prize.place_to })}{prize.is_main ? " · Hauptpreis" : ""}</span>
-    {photoUrl && (
-      <span className="prize-photo">
-        {/* eslint-disable-next-line @next/next/no-img-element -- Foto aus dem oeffentlichen Speicher, Groesse steht im CSS. */}
-        <img src={photoUrl} alt="" />
-      </span>
-    )}
-    <strong>{prize.title}{prize.quantity > 1 ? ` (${prize.quantity}×)` : ""}</strong>
-    {prize.description && <p>{prize.description}</p>}
-    {prize.sponsor_name && (
-      <p className="prize-sponsor">
-        {logoUrl && (
-          // eslint-disable-next-line @next/next/no-img-element -- Logo aus dem oeffentlichen Speicher, Groesse steht im CSS.
-          <img src={logoUrl} alt="" />
-        )}
-        <span>
-          Gestiftet von{" "}
-          {prize.sponsor_website && prize.sponsor_kind === "organisation"
-            ? <a href={prize.sponsor_website} target="_blank" rel="noreferrer">{prize.sponsor_name}</a>
-            : prize.sponsor_name}
+    {photoUrl
+      ? <span className="prize-photo">
+          {/* eslint-disable-next-line @next/next/no-img-element -- Foto aus dem oeffentlichen Speicher, Groesse steht im CSS. */}
+          <img src={photoUrl} alt="" />
+          {badge}
         </span>
-      </p>
-    )}
+      : badge}
+    <div className="prize-body">
+      <strong>{prize.title}{prize.quantity > 1 ? ` (${prize.quantity}×)` : ""}</strong>
+      {prize.description && <p>{prize.description}</p>}
+      {prize.sponsor_name && (
+        <p className="prize-sponsor">
+          {logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element -- Logo aus dem oeffentlichen Speicher, Groesse steht im CSS.
+            <img src={logoUrl} alt="" />
+          )}
+          <span>
+            Gestiftet von{" "}
+            {prize.sponsor_website && prize.sponsor_kind === "organisation"
+              ? <a href={prize.sponsor_website} target="_blank" rel="noreferrer">{prize.sponsor_name}</a>
+              : prize.sponsor_name}
+          </span>
+        </p>
+      )}
+    </div>
   </li>;
 }
 
