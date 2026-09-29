@@ -2,13 +2,41 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { brandPhotos } from "@/lib/brand-photos";
-import { FESTIVAL_DATE_ISO, FESTIVAL_DATE_TEXT, FestivalFacts, FestivalNav, FestivalPending } from "./festival-chrome";
+import { FESTIVAL_DATE_ISO, FESTIVAL_DATE_TEXT, FESTIVAL_FAB_URL, FESTIVAL_SIGNUP_URL, FestivalFacts, FestivalNav, FestivalPending } from "./festival-chrome";
 
 export const metadata = {
   title: "Repair & Share Festival",
   description:
-    "Am 31. Oktober 2026 endet der Reparaturrekord mit dem Repair & Share Festival in der Utopiastadt in Wuppertal. Was bisher feststeht, für Besuchende und für Reparaturinitiativen.",
+    "Am 31. Oktober 2026 endet der Reparaturrekord mit dem Repair & Share Festival in Utopiastadt und Wiesenwerken in Wuppertal: 11 bis 17 Uhr, Eintritt frei, mit Reparatur-Café XXL, Secondhand, Workshops und Kinderwerkstatt.",
 };
+
+/* Programm und Fragen wie auf der Festivalseite der FAB Region
+   (FESTIVAL_FAB_URL), dort gepflegt vom Festivalteam. Hier stehen sie als
+   Liste und nicht als Kopie der Seite: ohne Emojis und ohne Anmeldelinks
+   fuer Fragen, die auf dieser Website anders beantwortet werden - etwa das
+   Einreichen von Reparaturen, das hier ueber /mitmachen laeuft. */
+const programme = [
+  ["Reparatur-Café XXL", "Die letzten Reparaturen für den Rekord – mit Hilfe bei Elektro, Kleingeräten, Fahrrädern, Kleidung, Textilien und Möbeln."],
+  ["Reparieren auf der Bühne", "Bekannte DIY-Expert:innen reparieren live, dazu der Countdown zum Rekordversuch."],
+  ["DIY-Reparaturbereiche", "Selbst Hand anlegen an Fahrrad, Elektro, Möbel und Textil – vom Laufrad bis zum Rollator."],
+  ["Secondhand", "Secondhand-Pop-ups, eine Tauschbörse für aussortierte Kleidung und 2nd-use-Brautmoden."],
+  ["Workshops", "Unter anderem „Pimp your Shirt“: Bringt ein altes Shirt mit und macht etwas Neues daraus."],
+  ["Kinder", "Eine Kinderwerkstatt und ein eigenes Bühnenprogramm für Kinder."],
+  ["Impulse", "Ein Future Talk zum Recht auf Reparatur und Beiträge zum zirkulären Bauen, zu Ressourcen, Resilienz und Gemeinwohl."],
+  ["Lernen zum Anfassen", "Vertical Farming, digitale Module zum Zocken, eine virtuelle Lernreise in die Permakultur, Büchertisch und Info-Point."],
+  ["Essen & Trinken", "Für alle, die den ganzen Tag bleiben."],
+] as const;
+
+const questions = [
+  ["Was kann vor Ort repariert werden?", "Ziemlich viel: Elektro- und Haushaltsgeräte, Kleidung und Textilien, Fahrräder, Holzgegenstände und kleine Möbel und alles, was mechanisch ist. Die Faustregel: alles, was ihr allein zum Festival tragen könnt."],
+  ["Muss ich selbst reparieren?", "Nein, aber ihr dürft sehr gerne. Manche reparieren komplett für euch, andere zeigen euch, wie es geht. Sagt einfach, welche Hilfe ihr braucht – vielleicht stellt sich heraus, dass Schrauben richtig Spaß macht."],
+  ["Wer schraubt und näht da eigentlich?", "Reparaturinitiativen aus dem Bergischen Städtedreieck und aus ganz NRW haben schon zugesagt. Dazu kommen vielleicht Handwerker:innen aus der Nachbarschaft, Handy-Reparaturläden und Händler mit eigenem Reparaturservice."],
+  ["Ist das Festival für die ganze Familie?", "Ja. Es gibt Angebote für Kinder, Jugendliche und Erwachsene."],
+  ["Aber da ist doch Halloween …?", "Perfekt. Kommt gerne verkleidet oder bastelt euer Kostüm vor Ort aus gebrauchtem Material. Auch die Halloween-Deko für das Festival entsteht aus Resten."],
+  ["Welchen Rekord wollen wir schlagen?", "2024 wurden in Großbritannien 3.177 erfolgreiche Reparaturen in einem Monat gezählt, 2019 in Exeter 268 an einem einzigen Tag und Ort. Beides nehmen wir uns vor: den Monatsrekord in ganz NRW – und am Festivaltag mindestens 300 erfolgreiche Reparaturen an einem Ort."],
+  ["Ich brauche jetzt Hilfe, nicht erst am Festivaltag.", "Auf unserer Karte stehen die Repair Cafés und Reparaturinitiativen in NRW, mehr findet ihr bei reparatur-initiativen.de. Die Initiativen freuen sich über alle, die vorbeikommen – mit kaputtem Toaster oder mit Werkzeugkoffer."],
+  ["Ich kann gar nicht reparieren, will aber mithelfen.", "Reparaturinitiativen brauchen nicht nur Reparaturprofis: Aufbauen, Organisieren, Registrieren, Kuchen backen und Menschen ins Gespräch bringen gehört genauso dazu. Für das Festival könnt ihr euch über das Anmeldeformular melden, für die Zeit davor bei einer Initiative in eurer Nähe."],
+] as const;
 
 /* Eigener Bereich statt eines Abschnitts auf /repair-cafes (Issue #33).
    Das Festival ist der Schlusspunkt des Rekordmonats und richtet sich an zwei
@@ -16,8 +44,8 @@ export const metadata = {
    Initiativen, die dort selbst etwas anbieten. Beide brauchen andere Angaben,
    deshalb die Unterseiten - hier steht nur, was fuer alle gilt.
 
-   Der groesste Teil des Programms steht im Moment noch nicht fest. Was fehlt,
-   steht als solches auf der Seite: eine Save-the-date-Seite, die so tut, als
+   Uhrzeit, Eintritt und Programmpunkte stehen fest, das Buehnenprogramm mit
+   Uhrzeiten noch nicht. Was fehlt, steht als solches auf der Seite: eine Save-the-date-Seite, die so tut, als
    waere schon alles geplant, muesste spaeter jede Angabe widerrufen. */
 export default function FestivalPage() {
   return <main className="page-shell content-page">
@@ -27,7 +55,7 @@ export default function FestivalPage() {
       <div>
         <p className="brand-kicker">Repair &amp; Share Festival</p>
         <h1 id="festival-title">Am letzten Tag kommt alles zusammen.</h1>
-        <p>Der Rekordmonat endet dort, wo Reparieren im Bergischen ohnehin zu Hause ist: in der Utopiastadt in Wuppertal. Ein Tag mit Werkstätten, Tauschen, Musik und der Zahl, die wir gemeinsam erreicht haben.</p>
+        <p>Der Rekordmonat endet mit einem Festival zum Mitmachen in Utopiastadt und Wiesenwerken in Wuppertal: Reparieren und Secondhand zum Anfassen, Workshops, Impulse – und die letzten Reparaturen für den Rekord. Wer keinen kaputten Gegenstand dabei hat, ist selber schuld.</p>
       </div>
     </section>
 
@@ -40,7 +68,21 @@ export default function FestivalPage() {
         </div>
       </div>
       <FestivalFacts />
-      <FestivalPending>Uhrzeiten, das Programm des Tages und die genaue Adresse auf dem Gelände. Sobald die Planung steht, wird sie hier nachgetragen.</FestivalPending>
+    </section>
+
+    <section className="content-section" aria-labelledby="festival-programme-title">
+      <div className="section-heading">
+        <div>
+          <p className="section-index">Programm &amp; Highlights</p>
+          <h2 id="festival-programme-title">Ein Tag zum Mitmachen.</h2>
+        </div>
+      </div>
+      <dl className="travel-routes">
+        {programme.map(([title, text]) => (
+          <div key={title}><dt>{title}</dt><dd>{text}</dd></div>
+        ))}
+      </dl>
+      <FestivalPending>Das Bühnenprogramm mit Uhrzeiten. Es folgt bald und steht dann hier und auf der <a href={FESTIVAL_FAB_URL} target="_blank" rel="noreferrer">Festivalseite der FAB Region</a>.</FestivalPending>
     </section>
 
     <section className="content-section two-column-copy" aria-labelledby="festival-visit-title">
@@ -63,12 +105,30 @@ export default function FestivalPage() {
         <h2 id="festival-initiatives-title">Ohne die Initiativen gibt es kein Festival.</h2>
       </div>
       <div>
-        <p>Repair Cafés, offene Werkstätten, Nähtreffs, Fahrradselbsthilfen: Wer im Rekordmonat mitgemacht hat, ist am 31. Oktober herzlich eingeladen – mit einem eigenen Stand, einer Werkstatt oder einfach als Gast.</p>
-        <p>Was ihr dafür wissen müsst, was wir stellen und was ihr selbst mitbringt, steht auf der Seite für Initiativen.</p>
+        <p>Engagierte aus Reparaturinitiativen und Secondhand-Fashion sind das Herzstück des Festivals. Ob als Reparateur:in, beim Organisieren, als Unternehmen mit eigenem Angebot oder als Sponsor: Meldet euch über das Anmeldeformular – eine Anmeldung pro Person.</p>
+        <p>Was ihr sonst wissen müsst, steht auf der Seite für Initiativen.</p>
         <p className="link-row">
+          <a className="button button-primary" href={FESTIVAL_SIGNUP_URL} target="_blank" rel="noreferrer">Zum Festival anmelden <span aria-hidden="true">&#8599;</span></a>
           <Link className="text-button" href="/festival/initiativen">Infos für Initiativen <span aria-hidden="true">&#8594;</span></Link>
           <Link className="text-button" href="/repair-cafes">Alle Repair Cafés in NRW <span aria-hidden="true">&#8594;</span></Link>
         </p>
+      </div>
+    </section>
+
+    <section className="content-section" aria-labelledby="festival-faq-title">
+      <div className="section-heading">
+        <div>
+          <p className="section-index">Fragen &amp; Antworten</p>
+          <h2 id="festival-faq-title">Was ihr vorher wissen wollt.</h2>
+        </div>
+      </div>
+      <div className="faq-list">
+        {questions.map(([question, answer]) => (
+          <details key={question}>
+            <summary>{question}<i aria-hidden="true">+</i></summary>
+            <p>{answer}</p>
+          </details>
+        ))}
       </div>
     </section>
 

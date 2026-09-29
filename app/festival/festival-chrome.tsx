@@ -11,6 +11,18 @@ import Link from "next/link";
 /** Maschinenlesbar fuer `<time>`, ausgeschrieben fuer den Text. */
 export const FESTIVAL_DATE_ISO = "2026-10-31";
 export const FESTIVAL_DATE_TEXT = "Samstag, 31. Oktober 2026";
+export const FESTIVAL_TIME_TEXT = "11 bis 17 Uhr";
+
+/**
+ * Anmeldung fuer alle, die am Festival mitwirken wollen.
+ *
+ * Das Formular betreibt das CSCP fuer die FAB Region, nicht diese Anwendung:
+ * Es fragt pro Person Staerken und Einsatzgebiete ab und schickt danach einen
+ * eigenen Link fuer die Details. Quelle ist die Festivalseite der FAB Region,
+ * https://www.fab-bergisch.org/aktuelles/events/repair-share-festival-save-the-date
+ */
+export const FESTIVAL_SIGNUP_URL = "https://survey.cscp.net/index.php/368811?lang=de-easy";
+export const FESTIVAL_FAB_URL = "https://www.fab-bergisch.org/aktuelles/events/repair-share-festival-save-the-date";
 
 /** Der Ort, so genau wie er bisher feststeht. */
 export const FESTIVAL_PLACE = "Utopiastadt und Wiesenwerke, Wuppertal";
@@ -125,11 +137,12 @@ export function FestivalPending({ children }: { children: React.ReactNode }) {
   return <p className="festival-pending"><strong>Steht noch nicht fest:</strong> {children}</p>;
 }
 
-/** Die drei Eckdaten, die auf jeder Festivalseite oben stehen. */
+/** Die Eckdaten, die auf jeder Festivalseite oben stehen. */
 export function FestivalFacts() {
   return <dl className="festival-facts">
-    <div><dt>Wann</dt><dd><time dateTime={FESTIVAL_DATE_ISO}>{FESTIVAL_DATE_TEXT}</time></dd></div>
+    <div><dt>Wann</dt><dd><time dateTime={FESTIVAL_DATE_ISO}>{FESTIVAL_DATE_TEXT}</time>, {FESTIVAL_TIME_TEXT}</dd></div>
     <div><dt>Wo</dt><dd>{FESTIVAL_PLACE}</dd></div>
+    <div><dt>Eintritt</dt><dd>Kostenfrei</dd></div>
     <div><dt>Anreise</dt><dd>Bitte mit Bus, Bahn oder Rad</dd></div>
   </dl>;
 }
