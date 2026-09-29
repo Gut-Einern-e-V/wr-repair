@@ -44,6 +44,8 @@ einer Startseite, die er erst wegscrollen muss.
 Das Bild wird **im Browser** neu gerendert, bevor es hochgeladen wird. Dabei fallen
 EXIF- und GPS-Daten weg und die Datei schrumpft auf höchstens 200 KB. Was den
 Rechner der einreichenden Person verlässt, enthält die Metadaten also gar nicht mehr.
+Für Anfragen, die am Formular vorbeigehen, schneidet der Server sie zusätzlich selbst
+heraus.
 
 <img src="docs/screenshots/einreichen-handy.png" alt="Das Einreichungsformular auf einem Smartphone: Kategorie, Marke und Modell, Dauer, Wert, wer repariert hat, Foto und Standort." width="360">
 
@@ -185,7 +187,7 @@ Arbeit — und genau das liegt hier schon fertig:
 | Das kostet beim Neubau Wochen | Hier |
 | --- | --- |
 | Moderation für tausende Einreichungen, ohne Doppelarbeit | Schnellprüfung mit Anspruchsvergabe in der Datenbank, Tabelle mit Filtern, CSV-Export |
-| Fotos rechtssicher behandeln | EXIF-Entfernung im Browser, privater Bucket, signierte URLs, Löschung einzelner Bilder, Freigabe ohne Foto |
+| Fotos rechtssicher behandeln | EXIF-Entfernung im Browser und auf dem Server, privater Bucket, signierte URLs, Löschung einzelner Bilder, Freigabe ohne Foto |
 | Standort zeigen, ohne den Ort zu verraten | Verschiebung und Rasterung im Browser, serverseitige Plausibilitätsprüfung, Aggregation in einer einzigen SQL-Funktion |
 | Ein Dashboard, das einen Monat durchläuft | Snapshot plus Deltas, CDN-Cache, In-Memory-Cache, Ratenlimits je Route, Drosselschalter |
 | Missbrauchsschutz | Friendly Captcha serverseitig geprüft, Einreichungslimit je Verbindung ohne Adressspeicherung, Origin-Prüfung |

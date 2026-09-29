@@ -157,7 +157,7 @@ Keine Namen, keine E-Mail-Adressen, keine IP-Adressen, keine genauen Standorte. 
 
 - Die Koordinate wird **im Browser** um eine zufällige Strecke von bis zu 1 km verschoben und auf rund 110 m gerundet, bevor sie gesendet wird. Der Server nimmt nur gerundete Werte an.
 - `kreis` ist die gröbste sinnvolle Ortsangabe und aus derselben Zelle abgeleitet.
-- Fotos werden vor dem Upload im Browser neu gerendert; EXIF- und GPS-Metadaten fallen dabei weg.
+- Fotos werden vor dem Upload im Browser neu gerendert, und der Server entfernt EXIF- und GPS-Metadaten noch einmal selbst. Ein ausgeliefertes Foto enthält keinen Aufnahmeort.
 
 Details stehen in [data-protection-concept.md](data-protection-concept.md).
 
@@ -166,6 +166,8 @@ Alles, was hier ausgeliefert wird, ist zur Veröffentlichung freigegeben und ste
 ## Und was nicht öffentlich ist
 
 `/api/admin/*`, `/api/moderation/*`, `/api/repairs` (die Einreichung selbst) und `/api/notifications/*` verlangen eine Anmeldung mit einer Team-Rolle oder nehmen nur `POST` an. Sie sind nicht Teil dieser Zusage und können sich jederzeit ändern. Keine Zugangsdaten dieser Website und keinen Supabase-Schlüssel auf ein Gerät kopieren — die öffentlichen Routen brauchen keine.
+
+Auch die Datenbank selbst ist keine Schnittstelle: Mit dem öffentlichen Supabase-Schlüssel aus dem Seitencode lassen sich keine Tabellen lesen, abgesehen von den Partnern. Alles Öffentliche kommt ausschließlich über die Routen oben.
 
 ## Stabilität
 

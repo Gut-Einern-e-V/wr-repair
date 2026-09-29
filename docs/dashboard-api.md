@@ -145,7 +145,7 @@ Die Antwort enthält keine Namen, keine E-Mail-Adressen, keine IP-Adressen und k
 - Die Koordinate wird **im Browser** um eine zufällige Strecke von bis zu 1 km verschoben und auf rund 110 m gerundet, bevor sie überhaupt gesendet wird. Der echte Ort liegt gleichverteilt irgendwo in einer Fläche von rund 3 km² um den veröffentlichten Punkt. Der Server nimmt nur gerundete Werte an — eine rohe GPS-Koordinate wird verworfen.
 - Eine manuell ausgewählte Kreisangabe wird stattdessen über den Kreis gestreut; sie war nie ein Ort.
 - `kreis` ist die gröbste sinnvolle Ortsangabe und aus derselben Zelle abgeleitet.
-- Fotos werden vor dem Upload im Browser neu gerendert; EXIF- und GPS-Metadaten fallen dabei weg.
+- Fotos werden vor dem Upload im Browser neu gerendert, und der Server entfernt EXIF- und GPS-Metadaten noch einmal selbst. Ein ausgeliefertes Foto enthält keinen Aufnahmeort.
 
 Alles, was hier ausgeliefert wird, ist zur Veröffentlichung freigegeben und steht so auch auf der Bühne unter `/stats`. Wer es weiterverwendet, sollte dieselbe Zurückhaltung walten lassen: Es sind Beiträge von Menschen, die eine Reparatur gezeigt haben, keine Datenbank zum Weiterverkaufen.
 
