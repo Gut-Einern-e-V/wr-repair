@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { FullscreenButton } from "@/app/stats/fullscreen-button";
+import { placeLabel } from "@/lib/prize-list";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { useJsonResource } from "@/lib/use-json-resource";
 import type { PrizeView, WinnerView } from "@/lib/lottery-store";
@@ -169,7 +170,7 @@ export default function TombolaStage() {
 
       {selected && (
         <section className="tombola-stage" aria-live="polite">
-          <p className="tombola-eyebrow">{selected.isMain ? "Hauptpreis" : "Preis"}</p>
+          <p className="tombola-eyebrow">{placeLabel(selected)} · {selected.isMain ? "Hauptpreis" : "Preis"}</p>
           <h1 className="tombola-prize">{selected.title}</h1>
           {selected.description && <p className="tombola-prize-note">{selected.description}</p>}
           {selected.sponsorName && (
@@ -214,7 +215,7 @@ export default function TombolaStage() {
               onClick={() => { setSelectedId(prize.id); setDrawn(null); setNotice(""); }}
             >
               {prize.title}
-              <small>{prize.open > 0 ? `${prize.open} offen` : "vergeben"}</small>
+              <small>{placeLabel(prize)} · {prize.open > 0 ? `${prize.open} offen` : "vergeben"}</small>
             </button>
           ))}
         </nav>

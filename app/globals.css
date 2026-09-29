@@ -1132,6 +1132,9 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .prize-form .choice { display: flex; gap: 10px; align-items: start; font: 14px/1.45 var(--sans); text-transform: none; }
 .prize-form .choice input { width: 20px; min-height: 20px; }
 .prize-form button { justify-self: start; margin: 0; }
+.prize-form .prize-places { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 10rem)); gap: 12px; align-items: end; }
+.prize-form .prize-places label { grid-column: auto; }
+.prize-form .prize-places small { grid-column: 1 / -1; }
 /* Reihenfolge von Hand (Issue #98) - zweimal derselbe Handgriff im Backend,
    bei den Unterstuetzern und bei den Preisen. Eine Zeile je Eintrag mit
    Pfeilen, Bild und Namen: So passen auch zwanzig Preise auf einen Schirm,

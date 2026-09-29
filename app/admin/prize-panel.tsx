@@ -1,8 +1,8 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { nextFreePlace, placeLabel, PRIZE_PLACE_LIMIT } from "@/lib/prize-list";
 import { useJsonResource } from "@/lib/use-json-resource";
-import OrderControls from "./order-controls";
 
 /**
  * Die Preise des Gewinnspiels pflegen (Issues #45, #98, #99).
@@ -15,6 +15,9 @@ import OrderControls from "./order-controls";
  * zwanzig Preisen scrollte man minutenlang (Issue #99). Jetzt eine Zeile je
  * Preis - Bild, Titel, das Wichtigste daneben - und das Formular erst, wenn
  * jemand "Bearbeiten" drueckt.
+ *
+ * Seit Issue #119 hat jeder Preis einen Platz oder einen Bereich ("10.-20.
+ * Platz"); der Bereich ist die Anzahl, und sortiert wird nach dem Platz.
  *
  * Ab dem Start der Teilnahme fehlt das "Entfernen" und die Anzahl geht nur
  * noch nach oben (Issue #110). Das entscheidet die Route und nicht dieses
@@ -36,7 +39,8 @@ export type ManagedPrize = {
   photoUrl: string | null;
   quantity: number;
   is_main: boolean;
-  sort_order: number;
+  place_from: number;
+  place_to: number;
 };
 
 /**
@@ -48,10 +52,13 @@ export type ManagedPrize = {
 function PrizeForm({
   prize,
   binding,
+  suggestedPlace,
   onSubmit,
   submitLabel,
 }: {
   prize?: ManagedPrize;
+  /** Fuer einen neuen Preis: der erste freie Platz hinter allen anderen. */
+  suggestedPlace?: number;
   /** Laeuft die Teilnahme schon? Dann ist die eingetragene Anzahl die Untergrenze. */
   binding: boolean;
   onSubmit: (form: HTMLFormElement) => Promise<boolean>;
@@ -116,9 +123,16 @@ function PrizeForm({
           )}
         </>
       )}
-      <label>Anzahl<input name="quantity" type="number" min={binding && prize ? prize.quantity : 1} max={999} step={1} defaultValue={prize?.quantity ?? 1} />
-        <small>So oft wird für diesen Preis gezogen.{binding && prize ? " Die Teilnahme läuft – erhöhen geht, verringern nicht mehr." : ""}</small>
-      </label>
+      {/* Zwei Felder statt einer Anzahl (Issue #119): "Platz 10 bis 20" sind elf
+          gleiche Gewinne, und so oft wird dafuer auch gezogen. */}
+      <div className="prize-places">
+        <label>Platz<input name="placeFrom" type="number" inputMode="numeric" min={1} max={PRIZE_PLACE_LIMIT} step={1} required defaultValue={prize?.place_from ?? suggestedPlace ?? 1} /></label>
+        <label>bis Platz<input name="placeTo" type="number" inputMode="numeric" min={1} max={PRIZE_PLACE_LIMIT} step={1} placeholder="–" defaultValue={prize && prize.place_to !== prize.place_from ? prize.place_to : ""} /></label>
+        <small>
+          Für einen einzelnen Platz „bis“ leer lassen. Ein Bereich wie 10 bis 20 heißt: elf gleiche Gewinne. Jeder Platz von 1 bis {PRIZE_PLACE_LIMIT} kann nur einem Preis gehören.
+          {binding && prize ? ` Die Teilnahme läuft – der Bereich darf wachsen, aber nicht kleiner werden als ${prize.quantity} ${prize.quantity === 1 ? "Platz" : "Plätze"}.` : ""}
+        </small>
+      </div>
       <label className="choice">
         <input name="isMain" type="checkbox" value="true" defaultChecked={prize?.is_main ?? false} />
         <span><strong>Hauptpreis</strong> – wird auf der Bühne gezogen und nicht mit den kleinen Preisen zusammen.</span>
@@ -130,7 +144,8 @@ function PrizeForm({
 
 /** Was in einer Zeile neben dem Titel steht - alles Kurze, nichts Ganzes. */
 function prizeSummary(prize: ManagedPrize) {
-  const parts = [prize.quantity > 1 ? `${prize.quantity}×` : "1×"];
+  const parts = [`${placeLabel({ placeFrom: prize.place_from, placeTo: prize.place_to })}${prize.quantity > 1 ? ` (${prize.quantity}×)` : ""}`];
+  if (prize.is_main) parts.push("Hauptpreis");
   if (prize.sponsor_name) parts.push(`von ${prize.sponsor_name}${prize.sponsor_kind === "person" ? " (privat)" : ""}`);
   else parts.push("ohne Angabe zur stiftenden Stelle");
   if (!prize.photoUrl) parts.push("kein Foto");
@@ -155,13 +170,7 @@ export default function PrizePanel({
      der, in dem nichts verschwindet. Die Route entscheidet ohnehin selbst. */
   const binding = data?.binding ?? true;
 
-  /* Zwei Listen, weil die Gewinnspielseite die Hauptpreise vor die kleinen
-     stellt (`is_main desc, sort_order`). Ein Pfeil verschiebt deshalb nur
-     innerhalb der eigenen Gruppe. */
-  const groups: { key: string; label: string; prizes: ManagedPrize[] }[] = [
-    { key: "main", label: "Hauptpreise", prizes: prizes.filter((prize) => prize.is_main) },
-    { key: "small", label: "Weitere Preise", prizes: prizes.filter((prize) => !prize.is_main) },
-  ];
+  const suggestedPlace = Math.min(nextFreePlace(prizes.map((prize) => ({ placeFrom: prize.place_from, placeTo: prize.place_to }))), PRIZE_PLACE_LIMIT);
 
   async function send(method: "POST" | "PATCH", form: HTMLFormElement, success: string) {
     const response = await fetch("/api/admin/prizes", { method, body: new FormData(form) });
@@ -177,29 +186,6 @@ export default function PrizePanel({
     reload();
     onChanged();
     return true;
-  }
-
-  async function movePrize(prize: ManagedPrize, direction: "up" | "down") {
-    setBusy(prize.id);
-    try {
-      const response = await fetch("/api/admin/prizes/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: prize.id, direction }),
-      });
-      const payload = await response.json().catch(() => ({})) as { error?: string };
-
-      if (!response.ok) {
-        onError(payload.error ?? "Die Reihenfolge konnte nicht gespeichert werden.");
-        return;
-      }
-
-      onStatus(`„${prize.title}“ wurde verschoben.`);
-      reload();
-      onChanged();
-    } finally {
-      setBusy("");
-    }
   }
 
   async function removePrize(prize: ManagedPrize) {
@@ -225,7 +211,7 @@ export default function PrizePanel({
   return (
     <section className="admin-card" aria-labelledby="prize-heading">
       <div className="admin-card-head"><h3 id="prize-heading">Preise</h3><span className="section-index">{prizes.length} eingetragen</span></div>
-      <p>Was hier steht, erscheint auf der öffentlichen Gewinnspielseite – mit Foto und mit dem Logo der stiftenden Organisation, wenn eines hinterlegt ist. Die Reihenfolge auf der Seite ist die hier; die Ziehung weiter unten zieht für jeden Preis so oft, wie seine Anzahl sagt.</p>
+      <p>Was hier steht, erscheint auf der öffentlichen Gewinnspielseite – mit Foto und mit dem Logo der stiftenden Organisation, wenn eines hinterlegt ist. Sortiert wird nach dem Platz – auf der Seite wie hier. Ein Bereich wie „10.–20. Platz“ steht für elf gleiche Gewinne; die Ziehung weiter unten zieht für jeden Preis so oft, wie er Plätze hat.</p>
       {/* Beide Saetze sagen dasselbe von zwei Seiten - vorher als Auftrag,
           nachher als Erklaerung fuer den fehlenden Knopf (Issue #110). */}
       {binding
@@ -237,49 +223,35 @@ export default function PrizePanel({
       {isLoading ? <p className="queue-empty">Preise werden geladen.</p> : prizes.length === 0 ? (
         <p className="queue-empty">Noch keine Preise eingetragen. Bis dahin steht auf der Gewinnspielseite, dass die Liste noch wächst.</p>
       ) : (
-        groups.filter((group) => group.prizes.length > 0).map((group) => (
-          <div className="sortable-group" key={group.key}>
-            {/* Die Ueberschrift steht nur da, wenn es beide Gruppen gibt -
-                sonst benennt sie eine Trennung, die niemand sieht. */}
-            {groups.every((other) => other.prizes.length > 0) && <p className="section-index">{group.label}</p>}
-            <div className="sortable-list">
-              {group.prizes.map((prize, index) => (
-                <div className="sortable-item" key={prize.id}>
-                  <div className="sortable-row">
-                    <OrderControls
-                      label={prize.title}
-                      isFirst={index === 0}
-                      isLast={index === group.prizes.length - 1}
-                      isBusy={busy !== ""}
-                      onMove={(direction) => void movePrize(prize, direction)}
-                    />
-                    <span className="sortable-thumb">
-                      {/* Erst das Foto des Gewinns, sonst das Logo - beides aus
-                          dem oeffentlichen Speicher, Groesse steht im CSS. */}
-                      {prize.photoUrl || prize.logoUrl
-                        // eslint-disable-next-line @next/next/no-img-element
-                        ? <img src={prize.photoUrl ?? prize.logoUrl ?? ""} alt="" />
-                        : <span className="sortable-thumb-empty" aria-hidden="true">–</span>}
-                    </span>
-                    <span className="sortable-title">
-                      <strong>{prize.title}</strong>
-                      <span className="quota-note">{prizeSummary(prize)}</span>
-                    </span>
-                    <span className="sortable-actions">
-                      <button className="text-button" type="button" aria-expanded={editing === prize.id} onClick={() => setEditing(editing === prize.id ? "" : prize.id)}>
-                        {editing === prize.id ? "Schließen" : "Bearbeiten"}
-                      </button>
-                      {!binding && <button className="text-button" type="button" disabled={busy !== ""} onClick={() => void removePrize(prize)}>Entfernen</button>}
-                    </span>
-                  </div>
-                  {editing === prize.id && (
-                    <PrizeForm prize={prize} binding={binding} onSubmit={(form) => send("PATCH", form, "Der Preis wurde gespeichert.")} submitLabel="Änderungen speichern" />
-                  )}
-                </div>
-              ))}
+        <div className="sortable-list">
+          {prizes.map((prize) => (
+            <div className="sortable-item" key={prize.id}>
+              <div className="sortable-row">
+                <span className="sortable-thumb">
+                  {/* Erst das Foto des Gewinns, sonst das Logo - beides aus
+                      dem oeffentlichen Speicher, Groesse steht im CSS. */}
+                  {prize.photoUrl || prize.logoUrl
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={prize.photoUrl ?? prize.logoUrl ?? ""} alt="" />
+                    : <span className="sortable-thumb-empty" aria-hidden="true">–</span>}
+                </span>
+                <span className="sortable-title">
+                  <strong>{prize.title}</strong>
+                  <span className="quota-note">{prizeSummary(prize)}</span>
+                </span>
+                <span className="sortable-actions">
+                  <button className="text-button" type="button" aria-expanded={editing === prize.id} onClick={() => setEditing(editing === prize.id ? "" : prize.id)}>
+                    {editing === prize.id ? "Schließen" : "Bearbeiten"}
+                  </button>
+                  {!binding && <button className="text-button" type="button" disabled={busy !== ""} onClick={() => void removePrize(prize)}>Entfernen</button>}
+                </span>
+              </div>
+              {editing === prize.id && (
+                <PrizeForm prize={prize} binding={binding} onSubmit={(form) => send("PATCH", form, "Der Preis wurde gespeichert.")} submitLabel="Änderungen speichern" />
+              )}
             </div>
-          </div>
-        ))
+          ))}
+        </div>
       )}
 
       {/* Zusammengefaltet, weil oefter sortiert und geaendert wird als
@@ -287,7 +259,7 @@ export default function PrizePanel({
           druecken wuerde, um die es hier geht. */}
       <details className="metadata-editor">
         <summary>Preis hinzufügen</summary>
-        <PrizeForm binding={binding} onSubmit={(form) => send("POST", form, "Der Preis wurde hinzugefügt.")} submitLabel="Preis hinzufügen" />
+        <PrizeForm key={suggestedPlace} binding={binding} suggestedPlace={suggestedPlace} onSubmit={(form) => send("POST", form, "Der Preis wurde hinzugefügt.")} submitLabel="Preis hinzufügen" />
       </details>
     </section>
   );
