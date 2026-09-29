@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isPrizeListBinding, prizeListLead, prizeQuantityRefusal, prizeRemovalRefusal, totalPrizeCount } from "./prize-list";
+import { derivePlaces, isPrizeListBinding, nextFreePlace, parsePlaces, placeConflict, placeLabel, placesQuantity, prizeListLead, prizeQuantityRefusal, prizeRemovalRefusal, totalPrizeCount, type PrizePlaces } from "./prize-list";
 
 describe("isPrizeListBinding", () => {
   it("bindet noch nicht, solange die Teilnahme nicht begonnen hat", () => {
@@ -106,5 +106,60 @@ describe("prizeListLead", () => {
     const lead = prizeListLead(true, "1. Oktober 2026", 0);
     expect(lead).not.toContain("Beispiele");
     expect(lead).toContain("schreib uns");
+  });
+});
+
+describe("Platzierungen", () => {
+  it("liest einen einzelnen Platz, wenn \"bis\" leer bleibt", () => {
+    expect(parsePlaces("3", "")).toEqual({ placeFrom: 3, placeTo: 3 });
+  });
+
+  it("liest einen Bereich und zaehlt ihn als Anzahl", () => {
+    const places = parsePlaces("10", "20");
+    expect(places).toEqual({ placeFrom: 10, placeTo: 20 });
+    expect(placesQuantity(places as PrizePlaces)).toBe(11);
+  });
+
+  it("lehnt Plaetze ausserhalb von 1 bis 50 ab", () => {
+    expect(parsePlaces("0", "")).toHaveProperty("error");
+    expect(parsePlaces("51", "")).toHaveProperty("error");
+    expect(parsePlaces("40", "51")).toHaveProperty("error");
+    expect(parsePlaces("", "")).toHaveProperty("error");
+    expect(parsePlaces("2.5", "")).toHaveProperty("error");
+  });
+
+  it("lehnt einen rueckwaerts eingegebenen Bereich ab", () => {
+    expect(parsePlaces("20", "10")).toHaveProperty("error");
+  });
+
+  it("beschriftet einzelne Plaetze und Bereiche", () => {
+    expect(placeLabel({ placeFrom: 1, placeTo: 1 })).toBe("1. Platz");
+    expect(placeLabel({ placeFrom: 10, placeTo: 20 })).toBe("10.–20. Platz");
+  });
+
+  it("findet den Preis, mit dem sich Plaetze ueberschneiden", () => {
+    const others = [
+      { id: "a", placeFrom: 1, placeTo: 1 },
+      { id: "b", placeFrom: 10, placeTo: 20 },
+    ];
+    expect(placeConflict({ placeFrom: 20, placeTo: 25 }, others)?.id).toBe("b");
+    expect(placeConflict({ placeFrom: 2, placeTo: 9 }, others)).toBeNull();
+  });
+
+  it("ignoriert beim Bearbeiten den eigenen Preis", () => {
+    const others = [{ id: "b", placeFrom: 10, placeTo: 20 }];
+    expect(placeConflict({ placeFrom: 10, placeTo: 21 }, others, "b")).toBeNull();
+  });
+
+  it("schlaegt den ersten Platz hinter allen vergebenen vor", () => {
+    expect(nextFreePlace([])).toBe(1);
+    expect(nextFreePlace([{ placeFrom: 1, placeTo: 1 }, { placeFrom: 10, placeTo: 20 }])).toBe(21);
+  });
+
+  /* So fuellt auch die Migration die Plaetze auf: in der bisherigen
+     Reihenfolge, lueckenlos, jeder Preis so breit wie seine Anzahl. */
+  it("leitet Plaetze aus Reihenfolge und Anzahl ab, solange die Spalten fehlen", () => {
+    expect(derivePlaces([{ quantity: 1 }, { quantity: 3 }, { quantity: 1 }]).map(({ placeFrom, placeTo }) => [placeFrom, placeTo]))
+      .toEqual([[1, 1], [2, 4], [5, 5]]);
   });
 });

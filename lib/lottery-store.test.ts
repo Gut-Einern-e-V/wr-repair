@@ -11,7 +11,8 @@ function prize(overrides: Partial<PrizeRow> & { id: string; title: string }): Pr
     image_path: null,
     quantity: 1,
     is_main: false,
-    sort_order: 0,
+    place_from: 1,
+    place_to: 1,
     ...overrides,
   };
 }
@@ -110,8 +111,8 @@ describe("Preise mit ihren Gewinner*innen", () => {
 /**
  * Der Ausfall, den Issue #99 beschreibt: Die Preise erscheinen nicht - weil
  * die Abfrage stillschweigend scheitert und nicht, weil keine eingetragen
- * sind. Zwischen Deployment und Migration fehlt die Spalte `image_path`; das
- * darf die ganze Liste nicht kosten.
+ * sind. Zwischen Deployment und Migration fehlen die Platzspalten (Issue
+ * #119); das darf die ganze Liste nicht kosten.
  */
 function fakeSupabase(responses: { data: unknown; error: { code?: string; message: string } | null }[]) {
   const asked: string[] = [];
@@ -133,26 +134,29 @@ function fakeSupabase(responses: { data: unknown; error: { code?: string; messag
 }
 
 describe("readPrizes", () => {
-  it("liest die Preise samt Foto", async () => {
-    const { client, asked } = fakeSupabase([{ data: [{ id: "p1", image_path: "p1.jpg" }], error: null }]);
+  it("liest die Preise samt Plaetzen", async () => {
+    const { client, asked } = fakeSupabase([{ data: [{ id: "p1", place_from: 1, place_to: 1 }], error: null }]);
     const { rows, error } = await readPrizes(client);
 
     expect(error).toBeNull();
-    expect(rows).toEqual([{ id: "p1", image_path: "p1.jpg" }]);
-    expect(asked[0]).toContain("image_path");
+    expect(rows).toEqual([{ id: "p1", place_from: 1, place_to: 1 }]);
+    expect(asked[0]).toContain("place_from");
   });
 
-  it("liest die Preise ohne Foto weiter, wenn die Spalte noch fehlt", async () => {
+  it("platziert die Preise in alter Reihenfolge, solange die Spalten fehlen", async () => {
     const { client, asked } = fakeSupabase([
-      { data: null, error: { code: "42703", message: "column lottery_prizes.image_path does not exist" } },
-      { data: [{ id: "p1", title: "Preis" }], error: null },
+      { data: null, error: { code: "42703", message: "column lottery_prizes.place_from does not exist" } },
+      { data: [{ id: "p1", quantity: 1 }, { id: "p2", quantity: 3 }], error: null },
     ]);
     const { rows, error } = await readPrizes(client);
 
     expect(error).toBeNull();
-    expect(rows).toEqual([{ id: "p1", title: "Preis", image_path: null }]);
+    expect(rows).toEqual([
+      { id: "p1", quantity: 1, place_from: 1, place_to: 1 },
+      { id: "p2", quantity: 3, place_from: 2, place_to: 4 },
+    ]);
     expect(asked).toHaveLength(2);
-    expect(asked[1]).not.toContain("image_path");
+    expect(asked[1]).not.toContain("place_from");
   });
 
   it("gibt jeden anderen Fehler weiter", async () => {

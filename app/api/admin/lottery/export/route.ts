@@ -1,5 +1,6 @@
 import { requireAdmin } from "@/lib/admin-auth";
 import { readLotteryOverview } from "@/lib/lottery-store";
+import { placeLabel } from "@/lib/prize-list";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
@@ -39,11 +40,12 @@ export async function GET() {
   }
 
   const columns = [
-    "preis", "hauptpreis", "gestiftet_von", "name", "email",
+    "platz", "preis", "hauptpreis", "gestiftet_von", "name", "email",
     "gezogen_am", "reparatur_id", "kategorie", "kreis", "marke_modell", "gelungen", "geschichte",
   ];
 
   const rows = overview.prizes.flatMap((prize) => prize.winners.map((winner) => [
+    placeLabel(prize),
     prize.title,
     prize.isMain ? "ja" : "nein",
     prize.sponsorName ?? "",

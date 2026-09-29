@@ -5,7 +5,7 @@ import { brandPhotos } from "@/lib/brand-photos";
 import { getAppSettings } from "@/lib/app-settings";
 import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { readPrizes, type PrizeRow } from "@/lib/lottery-store";
-import { isPrizeListBinding, prizeListLead, totalPrizeCount } from "@/lib/prize-list";
+import { isPrizeListBinding, placeLabel, prizeListLead, totalPrizeCount } from "@/lib/prize-list";
 import { publicPrizeLogoUrl, publicPrizePhotoUrl } from "@/lib/prize-logo";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -69,14 +69,16 @@ function periodLine(startAt: Date | null, endAt: Date | null) {
  * die niemand zugesagt hat.
  *
  * Die Anzahl steht dabei, sobald es mehr als eines gibt: Sie ist der
- * Unterschied zwischen einem und zehn Gewinnen.
+ * Unterschied zwischen einem und zehn Gewinnen. Darueber steht der Platz
+ * (Issue #119) - "10.–20. Platz" sagt dasselbe noch einmal anders, und so
+ * liest man eine Preisliste.
  */
 function PrizeCard({ prize }: { prize: PrizeRow }) {
   const logoUrl = prize.sponsor_kind === "organisation" ? publicPrizeLogoUrl(prize.logo_path) : null;
   const photoUrl = publicPrizePhotoUrl(prize.image_path);
 
   return <li className={prize.is_main ? "prize-card is-main" : "prize-card"}>
-    {prize.is_main && <span className="prize-badge">Hauptpreis</span>}
+    <span className="prize-badge">{placeLabel({ placeFrom: prize.place_from, placeTo: prize.place_to })}{prize.is_main ? " · Hauptpreis" : ""}</span>
     {photoUrl && (
       <span className="prize-photo">
         {/* eslint-disable-next-line @next/next/no-img-element -- Foto aus dem oeffentlichen Speicher, Groesse steht im CSS. */}

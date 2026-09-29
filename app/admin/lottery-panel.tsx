@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { FormEvent, useMemo, useState } from "react";
 import { defaultLotteryOrganizer } from "@/lib/organisation";
+import { placeLabel } from "@/lib/prize-list";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { useJsonResource } from "@/lib/use-json-resource";
 import type { PrizeView, WinnerView } from "@/lib/lottery-store";
@@ -362,7 +363,7 @@ export default function LotteryPanel({
             <div className="admin-card-head">
               <h4>{prize.title}</h4>
               <span className="section-index">
-                {prize.isMain ? "Hauptpreis · " : ""}
+                {placeLabel(prize)} · {prize.isMain ? "Hauptpreis · " : ""}
                 {prize.winners.length} von {prize.quantity} vergeben
               </span>
             </div>

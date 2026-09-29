@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getAppSettings } from "@/lib/app-settings";
 import { readPrizes } from "@/lib/lottery-store";
-import { isPrizeListBinding, prizeQuantityRefusal, prizeRemovalRefusal } from "@/lib/prize-list";
+import { isPrizeListBinding, parsePlaces, placeConflict, placeLabel, placesQuantity, prizeQuantityRefusal, prizeRemovalRefusal, type PrizePlaces } from "@/lib/prize-list";
 import { publicPrizeLogoUrl, publicPrizePhotoUrl } from "@/lib/prize-logo";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -17,10 +17,10 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
  * werden koennen. Die Ziehung bleibt Superadmin-Sache - sie ist der Teil, den
  * niemand zuruecknehmen kann, ohne dass es auffaellt.
  *
- * Die Reihenfolge steht nicht mehr in diesem Formular, sondern hinter zwei
- * Pfeilen je Preis (siehe order/route.ts). Ein neuer Preis stellt sich hinten
- * an: Wer einen eintraegt, will nicht, dass er die schon sortierte Liste
- * durcheinanderbringt.
+ * Seit Issue #119 belegt jeder Preis einen Platz oder einen Bereich von
+ * Plaetzen ("10.-20. Platz"). Der Bereich ist zugleich die Anzahl, und nach
+ * dem ersten Platz richtet sich die Reihenfolge - die Pfeile zum Sortieren
+ * sind damit weg. Jeder Platz gehoert hoechstens einem Preis.
  *
  * In eine Richtung ist die Pflege seit Issue #110 zu: Ab dem Start der
  * Teilnahme laesst sich ein Preis nicht mehr entfernen und seine Anzahl nicht
@@ -56,6 +56,8 @@ type PrizeFields = {
   sponsor_website: string | null;
   quantity: number;
   is_main: boolean;
+  place_from: number;
+  place_to: number;
 };
 
 /**
@@ -92,10 +94,10 @@ function readFields(form: FormData): { fields: PrizeFields } | { error: string }
     return { error: "Die Website der stiftenden Stelle muss mit http:// oder https:// beginnen." };
   }
 
-  const quantity = Number.parseInt(String(form.get("quantity") ?? "1"), 10);
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 999) {
-    return { error: "Die Anzahl muss eine ganze Zahl zwischen 1 und 999 sein." };
-  }
+  /* Keine eigene Anzahl mehr: Wie oft gezogen wird, ergibt sich aus den
+     Plaetzen (Issue #119). */
+  const places = parsePlaces(form.get("placeFrom"), form.get("placeTo"));
+  if ("error" in places) return { error: places.error };
 
   return {
     fields: {
@@ -104,8 +106,10 @@ function readFields(form: FormData): { fields: PrizeFields } | { error: string }
       sponsor_name: sponsorName || null,
       sponsor_kind: sponsorKind,
       sponsor_website: sponsorWebsite || null,
-      quantity,
+      quantity: placesQuantity(places),
       is_main: String(form.get("isMain") ?? "") === "true",
+      place_from: places.placeFrom,
+      place_to: places.placeTo,
     },
   };
 }
@@ -133,22 +137,30 @@ async function storeImage(supabase: ReturnType<typeof createSupabaseAdminClient>
 }
 
 /**
- * Wo der neue Preis in seiner Gruppe landet: hinten.
+ * Gehoert einer dieser Plaetze schon einem anderen Preis?
  *
- * Hauptpreise und kleine Preise sind zwei Listen (`is_main desc, sort_order`),
- * jede mit eigener Zaehlung.
+ * Die Datenbank lehnt Ueberschneidungen ohnehin ab (Ausschlussbedingung in der
+ * Migration zu Issue #119). Hier wird vorher nachgesehen, damit die Meldung
+ * den Preis nennt, der den Platz schon hat.
  */
-async function nextSortOrder(supabase: ReturnType<typeof createSupabaseAdminClient>, isMain: boolean) {
-  const { data } = await supabase
-    .from("lottery_prizes")
-    .select("sort_order")
-    .eq("is_main", isMain)
-    .order("sort_order", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+async function placeRefusal(supabase: ReturnType<typeof createSupabaseAdminClient>, places: PrizePlaces, ownId?: string) {
+  const { data, error } = await supabase.from("lottery_prizes").select("id, title, place_from, place_to");
+  if (error) return "Die Plaetze der anderen Preise konnten nicht gelesen werden. Wurde die Migration ausgefuehrt?";
 
-  const highest = Number(data?.sort_order ?? -1);
-  return Number.isFinite(highest) ? highest + 1 : 0;
+  const others = (data ?? []).map((row) => ({ id: row.id as string, title: row.title as string, placeFrom: Number(row.place_from), placeTo: Number(row.place_to) }));
+  const conflict = placeConflict(places, others, ownId);
+  if (!conflict) return null;
+  return `${placeLabel(places)} überschneidet sich mit „${conflict.title}“ (${placeLabel(conflict)}). Jeder Platz kann nur einem Preis gehören.`;
+}
+
+/** Postgres: Ausschlussbedingung verletzt - zwei Preise wollten denselben Platz. */
+const EXCLUSION_VIOLATION = "23P01";
+
+function saveFailure(error: { code?: string; message: string }) {
+  if (error.code === EXCLUSION_VIOLATION) {
+    return Response.json({ error: "Einer dieser Plätze ist gerade an einen anderen Preis vergeben worden. Bitte die Liste neu laden." }, { status: 409 });
+  }
+  return Response.json({ error: "Der Preis konnte nicht gespeichert werden. Wurde die Migration ausgefuehrt?", detail: error.message }, { status: 502 });
 }
 
 /**
@@ -207,6 +219,9 @@ export async function POST(request: Request) {
   }
 
   const supabase = createSupabaseAdminClient();
+  const conflict = await placeRefusal(supabase, { placeFrom: parsed.fields.place_from, placeTo: parsed.fields.place_to });
+  if (conflict) return Response.json({ error: conflict }, { status: 409 });
+
   const prizeId = crypto.randomUUID();
   const paths: Partial<Record<Slot["column"], string | null>> = {};
   const uploaded: { bucket: Slot["bucket"]; path: string }[] = [];
@@ -225,11 +240,10 @@ export async function POST(request: Request) {
     uploaded.push({ bucket: slot.bucket, path: stored.path });
   }
 
-  const sortOrder = await nextSortOrder(supabase, parsed.fields.is_main);
-  const { error } = await supabase.from("lottery_prizes").insert({ id: prizeId, ...parsed.fields, ...paths, sort_order: sortOrder });
+  const { error } = await supabase.from("lottery_prizes").insert({ id: prizeId, ...parsed.fields, ...paths });
   if (error) {
     for (const done of uploaded) await supabase.storage.from(done.bucket).remove([done.path]);
-    return Response.json({ error: "Der Preis konnte nicht gespeichert werden. Wurde die Migration ausgefuehrt?", detail: error.message }, { status: 502 });
+    return saveFailure(error);
   }
 
   refreshPublicPage();
@@ -261,12 +275,16 @@ export async function PATCH(request: Request) {
   if (readError) return Response.json({ error: "Der Preis konnte nicht gelesen werden." }, { status: 502 });
   if (!existing) return Response.json({ error: "Diesen Preis gibt es nicht (mehr)." }, { status: 404 });
 
-  /* Titel, Beschreibung und Bilder bleiben aenderbar - ein Tippfehler muss
-     sich korrigieren lassen. Die Anzahl ist etwas anderes: Sie zu verringern
-     nimmt Gewinne aus einer Liste, auf die sich schon jemand verlassen hat
-     (Issue #110). */
+  /* Titel, Beschreibung, Bilder und Plaetze bleiben aenderbar - ein
+     Tippfehler muss sich korrigieren lassen, und ein spaeter gestifteter
+     grosser Preis soll nach vorne ruecken koennen. Die Anzahl ist etwas
+     anderes: Einen Bereich zu verkleinern nimmt Gewinne aus einer Liste, auf
+     die sich schon jemand verlassen hat (Issue #110). */
   const quantityRefusal = prizeQuantityRefusal(await prizeListBinds(), Number(existing.quantity ?? 0), parsed.fields.quantity);
   if (quantityRefusal) return Response.json({ error: quantityRefusal }, { status: 409 });
+
+  const conflict = await placeRefusal(supabase, { placeFrom: parsed.fields.place_from, placeTo: parsed.fields.place_to }, prizeId);
+  if (conflict) return Response.json({ error: conflict }, { status: 409 });
 
   const paths: Partial<Record<Slot["column"], string | null>> = {};
   /* Dateien, die nach dem Speichern weg koennen: die ersetzten und die
@@ -300,7 +318,7 @@ export async function PATCH(request: Request) {
   const { error } = await supabase.from("lottery_prizes").update({ ...parsed.fields, ...paths }).eq("id", prizeId);
   if (error) {
     for (const done of added) await supabase.storage.from(done.bucket).remove([done.path]);
-    return Response.json({ error: "Der Preis konnte nicht gespeichert werden.", detail: error.message }, { status: 502 });
+    return saveFailure(error);
   }
 
   // Erst wenn die neue Adresse in der Zeile steht, darf die alte Datei weg.

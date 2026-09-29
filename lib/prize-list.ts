@@ -88,3 +88,81 @@ export function prizeListLead(binding: boolean, startLabel: string | null, total
 export function totalPrizeCount(prizes: { quantity: number }[]): number {
   return prizes.reduce((sum, prize) => sum + (Number.isFinite(prize.quantity) ? Math.max(0, prize.quantity) : 0), 0);
 }
+
+/**
+ * Platzierungen (Issue #119).
+ *
+ * Ein Preis belegt einen Platz ("1. Platz") oder einen Bereich ("10.–20.
+ * Platz") - der Bereich ist dann auch seine Anzahl: Zehn gleiche Gutscheine
+ * sind die Plaetze zehn bis neunzehn und nicht ein Platz mit einer Zahl
+ * daneben, die jemand getrennt pflegen und mit den Plaetzen abgleichen muesste.
+ * Nach den Plaetzen richtet sich die Reihenfolge auf der Seite und im Backend,
+ * Pfeile zum Sortieren gibt es fuer Preise deshalb nicht mehr.
+ *
+ * Jeder Platz gehoert hoechstens einem Preis. Die Datenbank sichert das mit
+ * einer Ausschlussbedingung ab; die Pruefung hier ist dafuer da, dass die
+ * Fehlermeldung sagt, mit welchem Preis sich die Plaetze ueberschneiden.
+ */
+export const PRIZE_PLACE_LIMIT = 50;
+
+export type PrizePlaces = { placeFrom: number; placeTo: number };
+
+/** Wie viele Gewinne ein Bereich ist. */
+export function placesQuantity({ placeFrom, placeTo }: PrizePlaces): number {
+  return placeTo - placeFrom + 1;
+}
+
+/** "1. Platz" oder "10.–20. Platz". */
+export function placeLabel({ placeFrom, placeTo }: PrizePlaces): string {
+  return placeFrom === placeTo ? `${placeFrom}. Platz` : `${placeFrom}.–${placeTo}. Platz`;
+}
+
+/**
+ * Die Plaetze aus dem Formular lesen. "Bis" ist freiwillig: leer heisst, der
+ * Preis belegt genau einen Platz.
+ */
+export function parsePlaces(fromRaw: unknown, toRaw: unknown): PrizePlaces | { error: string } {
+  const from = Number(String(fromRaw ?? "").trim());
+  const toText = String(toRaw ?? "").trim();
+  const to = toText ? Number(toText) : from;
+
+  if (!Number.isInteger(from) || from < 1 || from > PRIZE_PLACE_LIMIT) {
+    return { error: `Der Platz muss eine ganze Zahl zwischen 1 und ${PRIZE_PLACE_LIMIT} sein.` };
+  }
+  if (!Number.isInteger(to) || to > PRIZE_PLACE_LIMIT) {
+    return { error: `„Bis Platz“ muss eine ganze Zahl bis ${PRIZE_PLACE_LIMIT} sein.` };
+  }
+  if (to < from) {
+    return { error: `„Bis Platz“ (${to}) liegt vor „Platz“ (${from}). Für einen einzelnen Platz „bis“ leer lassen.` };
+  }
+  return { placeFrom: from, placeTo: to };
+}
+
+/** Der erste Preis, dessen Plaetze sich mit diesen ueberschneiden - oder null. */
+export function placeConflict<T extends PrizePlaces & { id: string }>(places: PrizePlaces, others: T[], ownId?: string): T | null {
+  return others.find((other) => other.id !== ownId
+    && other.placeFrom <= places.placeTo
+    && places.placeFrom <= other.placeTo) ?? null;
+}
+
+/** Der erste freie Platz hinter allen vergebenen - Vorschlag fuer einen neuen Preis. */
+export function nextFreePlace(prizes: PrizePlaces[]): number {
+  return prizes.reduce((highest, prize) => Math.max(highest, prize.placeTo), 0) + 1;
+}
+
+/**
+ * Plaetze fuer Zeilen, die noch keine haben.
+ *
+ * Zwischen Deployment und Migration fehlen die Spalten (Issue #119). Dann
+ * gelten die Preise in ihrer bisherigen Reihenfolge als lueckenlos
+ * hintereinander platziert - genau so fuellt die Migration sie auch auf.
+ */
+export function derivePlaces<T extends { quantity: number }>(prizes: T[]): (T & PrizePlaces)[] {
+  let next = 1;
+  return prizes.map((prize) => {
+    const quantity = Math.max(1, Number.isFinite(prize.quantity) ? prize.quantity : 1);
+    const placed = { ...prize, placeFrom: next, placeTo: next + quantity - 1 };
+    next += quantity;
+    return placed;
+  });
+}

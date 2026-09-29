@@ -85,7 +85,7 @@ export default function PartnerPanel({ onStatus, onError }: { onStatus: (message
     <div className="admin-stack">
       <section className="admin-card" aria-labelledby="partner-heading">
         <div className="admin-card-head"><h3 id="partner-heading">Unterstützer</h3><span className="section-index">{partners.length} eingetragen</span></div>
-        <p>Diese Logos stehen auf der Startseite und auf der Unterstützungsseite – in der Reihenfolge, in der sie hier stehen. Solange kein Partner eingetragen ist, gilt die Liste aus dem Quelltext.</p>
+        <p>Diese Logos stehen auf der Startseite und auf der Unterstützungsseite – in der Reihenfolge, in der sie hier stehen. Ein neuer Partner kommt ans Ende. Solange kein Partner eingetragen ist, gilt die Liste aus dem Quelltext.</p>
 
         {error && <p className="form-error" role="alert">{error}</p>}
         {isLoading ? <p className="queue-empty">Partner werden geladen.</p> : (
