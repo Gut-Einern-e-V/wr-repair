@@ -1292,6 +1292,26 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .funding-logos picture, .funding-card picture { display: block; width: 100%; }
 .funding-logos img { width: 100%; max-width: 100%; height: auto; object-fit: contain; }
 
+/* Die Unterstuetzenden in jedem Footer (components/partner-strip.tsx). Die
+   Foerderleiste darueber ist weiss, deshalb liegt diese Leiste auf dem
+   Seitengrund - sonst verschwaenden die weissen Kacheln darin. Das Raster
+   waehlt die Spaltenzahl selbst, neue Logos brauchen keine neue Regel. Die
+   Kachelhoehe bleibt unter dem EU-Emblem im Abbinder. */
+.partner-strip { max-width: none; padding: 26px var(--gutter, 24px) 30px; background: var(--bg); }
+.partner-strip-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 20px; margin-bottom: 14px; }
+.partner-strip h2 { margin: 0; font: 800 11px/1.3 var(--sans); letter-spacing: .09em; text-transform: uppercase; }
+.partner-strip-head a { color: var(--ink); font-size: 13px; text-underline-offset: 3px; }
+.partner-strip ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.partner-strip li { height: 56px; padding: 8px 12px; background: #fff; }
+/* `fill` setzt das Bild absolut in die naechste positionierte Huelle - der
+   Innenabstand der Kachel bleibt so frei. */
+.partner-strip li span { position: relative; display: block; height: 100%; }
+.partner-strip li img { object-fit: contain; }
+@media (max-width: 720px) {
+  .partner-strip ul { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .partner-strip li { height: 48px; padding: 6px 8px; }
+}
+
 /* Countdown im Hero-Kasten anstelle des QR-Codes. */
 .hero-countdown-label { margin: 0 0 10px; font: 800 11px/1.3 var(--sans); letter-spacing: .09em; text-transform: uppercase; }
 .hero-countdown-clock { display: flex; gap: 8px; }

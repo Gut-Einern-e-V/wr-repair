@@ -1,4 +1,6 @@
+import { revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
+import { PARTNERS_TAG } from "@/lib/partners";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const logoTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"]);
@@ -50,7 +52,13 @@ export async function POST(request: Request) {
   const partnerId = crypto.randomUUID();
   const extension = logo.name.split(".").pop()?.toLowerCase() || "png";
   const logoPath = `${partnerId}.${extension}`;
-  const { error: uploadError } = await supabase.storage.from("partner-logos").upload(logoPath, logo, { contentType: logo.type, upsert: false });
+  const { error: uploadError } = await supabase.storage.from("partner-logos").upload(logoPath, logo, {
+    contentType: logo.type,
+    upsert: false,
+    /* Ein Jahr: Jeder Upload bekommt eine neue UUID als Namen, unter einem
+       Namen aendert sich die Datei also nie. Das Logo steht in jedem Footer. */
+    cacheControl: "31536000",
+  });
   if (uploadError) return Response.json({ error: "Das Logo konnte nicht gespeichert werden." }, { status: 502 });
 
   const { error } = await supabase.from("partners").insert({ id: partnerId, name: name.trim(), website_url: websiteUrl, logo_path: logoPath });
@@ -58,6 +66,7 @@ export async function POST(request: Request) {
     await supabase.storage.from("partner-logos").remove([logoPath]);
     return Response.json({ error: "Der Partner konnte nicht gespeichert werden." }, { status: 502 });
   }
+  revalidateTag(PARTNERS_TAG, "max");
   return Response.json({ ok: true }, { status: 201 });
 }
 
@@ -72,5 +81,6 @@ export async function DELETE(request: Request) {
   const { error } = await supabase.from("partners").delete().eq("id", id);
   if (error) return Response.json({ error: "Der Partner konnte nicht entfernt werden." }, { status: 502 });
   if (partner?.logo_path) await supabase.storage.from("partner-logos").remove([partner.logo_path]);
+  revalidateTag(PARTNERS_TAG, "max");
   return Response.json({ ok: true });
 }
