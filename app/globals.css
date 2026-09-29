@@ -2083,7 +2083,7 @@ h1, h2, h3 { overflow-wrap: break-word; }
 /* Die aktuelle Seite ist kein Link, muss sich aber trotzdem abheben. */
 .festival-nav [aria-current="page"] { background: var(--ink); color: var(--paper); }
 
-.festival-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 0 0 28px; border-top: var(--line); border-bottom: var(--line); }
+.festival-facts { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0; margin: 0 0 28px; border-top: var(--line); border-bottom: var(--line); }
 .festival-facts > div { padding: 18px 16px; border-left: var(--line); }
 .festival-facts > div:last-child { border-right: var(--line); }
 .festival-facts dt { color: var(--red-deep); font: 11px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
@@ -2129,8 +2129,14 @@ h1, h2, h3 { overflow-wrap: break-word; }
   .content-section > .section-lead { margin-top: -6px; font-size: 17px; }
 }
 .festival-pending + .festival-pending { margin-top: 14px; }
+.travel-routes + .festival-pending { margin-top: 26px; }
 .two-column-copy .festival-pending { margin-top: 18px; }
 
+@media (max-width: 980px) {
+  .festival-facts { grid-template-columns: repeat(2, 1fr); }
+  .festival-facts > div:nth-child(2n) { border-right: var(--line); }
+  .festival-facts > div:nth-child(-n + 2) { border-bottom: var(--line); }
+}
 @media (max-width: 720px) {
   .festival-facts { grid-template-columns: 1fr; }
   .festival-facts > div { border-right: var(--line); border-bottom: var(--line); }

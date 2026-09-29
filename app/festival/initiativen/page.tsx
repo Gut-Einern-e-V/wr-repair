@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
-import { FESTIVAL_DATE_TEXT, FestivalFacts, FestivalNav, FestivalPending } from "../festival-chrome";
+import { FESTIVAL_DATE_TEXT, FESTIVAL_SIGNUP_URL, FestivalFacts, FestivalNav, FestivalPending } from "../festival-chrome";
 
 const CONTACT = mailto(CONTACT_EMAIL, "Repair & Share Festival - Initiative");
 
@@ -38,7 +38,7 @@ export default function FestivalInitiativesPage() {
         </div>
       </div>
       <FestivalFacts />
-      <FestivalPending>Aufbauzeiten, Standgrößen, Strom- und Wasseranschlüsse, Verpflegung für Helfende und die Anmeldefrist. Wir tragen das hier nach, sobald die Planung des Geländes steht.</FestivalPending>
+      <FestivalPending>Aufbauzeiten, Standgrößen, Strom- und Wasseranschlüsse, Verpflegung für Helfende und die Anmeldefrist. Wer sich anmeldet, bekommt diese Angaben direkt; hier tragen wir sie nach, sobald die Planung des Geländes steht.</FestivalPending>
     </section>
 
     <section className="content-section two-column-copy" aria-labelledby="initiatives-who-title">
@@ -58,17 +58,19 @@ export default function FestivalInitiativesPage() {
     <section className="content-section two-column-copy" aria-labelledby="initiatives-how-title">
       <div>
         <p className="section-index">Mitmachen</p>
-        <h2 id="initiatives-how-title">Drei Wege, dabei zu sein.</h2>
+        <h2 id="initiatives-how-title">Ihr seid das Rückgrat der Aktion.</h2>
       </div>
       <div>
+        <p>Als Reparaturinitiative könnt ihr auf drei Wegen zum Rekord beitragen:</p>
         <ul>
-          <li><strong>Mit einer offenen Werkstatt.</strong> Ihr repariert vor Ort mit den Menschen, die etwas mitbringen. Das ist der Kern des Tages.</li>
-          <li><strong>Mit einem Stand.</strong> Zeigt, was ihr sonst macht, sucht neue Ehrenamtliche, verschenkt Ersatzteile, tauscht Material.</li>
-          <li><strong>Mit einem Beitrag zum Programm.</strong> Ein Workshop, eine Vorführung, ein Vortrag, eine Reparaturschule für Kinder.</li>
+          <li><strong>Am Festival mitreparieren.</strong> Schickt Reparateur:innen, Organisator:innen und Helfende aus euren Reihen am 31. Oktober nach Wuppertal. Einen Tag lang reparieren wir miteinander, lernen voneinander – und stellen nebenbei vielleicht das bisher größte ehrenamtliche Reparaturevent auf die Beine.</li>
+          <li><strong>Euer Repair Café wie gewohnt.</strong> Veranstaltet eure Termine im Oktober wie immer und helft euren Besuchenden, gelungene Reparaturen hier einzutragen. Das geht schnell und mit wenigen Angaben.</li>
+          <li><strong>Eigene Geräte reparieren.</strong> Auch was ihr bei euch selbst repariert, zählt – eingetragen über dasselbe Formular.</li>
         </ul>
-        <p>Schreibt uns kurz, was ihr vorhabt und was ihr dafür braucht. Je früher wir das wissen, desto besser lässt sich das Gelände planen.</p>
+        <p>Für das Festival meldet sich jede Person einzeln an, damit das Team Stärken und Einsatzgebiete planen kann. Nach der Anmeldung kommt per E-Mail ein Link, über den ihr die Details ergänzt. Auch Unternehmen mit eigenen Angeboten und Sponsoren melden sich dort.</p>
         <p className="link-row">
-          <a className="button button-primary" href={CONTACT}>Als Initiative melden <span aria-hidden="true">&#8594;</span></a>
+          <a className="button button-primary" href={FESTIVAL_SIGNUP_URL} target="_blank" rel="noreferrer">Zum Festival anmelden <span aria-hidden="true">&#8599;</span></a>
+          <a className="text-button" href={CONTACT}>Eigene Idee? Schreibt uns <span aria-hidden="true">&#8594;</span></a>
         </p>
       </div>
     </section>
