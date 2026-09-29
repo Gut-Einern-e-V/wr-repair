@@ -135,6 +135,6 @@ export default async function AboutPage() {
       </div>
     </section>
 
-    <SiteFooter />
+    <SiteFooter partners={false} />
   </main>;
 }

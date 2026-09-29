@@ -1,5 +1,7 @@
+import { revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
 import { isOrderDirection, reorder, type Ordered } from "@/lib/sort-order";
+import { PARTNERS_TAG } from "@/lib/partners";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 /**
@@ -40,5 +42,6 @@ export async function POST(request: Request) {
     if (writeError) return Response.json({ error: "Die Reihenfolge konnte nicht gespeichert werden." }, { status: 502 });
   }
 
+  revalidateTag(PARTNERS_TAG, "max");
   return Response.json({ ok: true, moved: true });
 }

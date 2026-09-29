@@ -4,6 +4,7 @@ import { getSiteLogoUrl } from "@/lib/site-logo";
 import { AccessBar } from "@/components/access-bar";
 import { MobileNavigation } from "@/components/mobile-navigation";
 import { FundingStrip } from "@/components/funding-strip";
+import { PartnerStrip } from "@/components/partner-strip";
 import { ConsentSettingsLink } from "@/components/consent-settings-link";
 import { MadeInWuppertal } from "@/components/made-in-wuppertal";
 import { circularWeek, operator } from "@/lib/organisation";
@@ -42,10 +43,12 @@ export async function SiteHeader() {
 
 /* Der Foerderhinweis gehoert auf jede oeffentliche Seite und steht deshalb hier,
    direkt ueber dem Footer. `funding={false}` nur dort, wo die Foerderlogos schon
-   im Seiteninhalt stehen (/supporters) - zweimal auf einer Seite ist redundant. */
-export function SiteFooter({ funding = true }: { funding?: boolean } = {}) {
+   im Seiteninhalt stehen (/supporters) - zweimal auf einer Seite ist redundant.
+   Dasselbe gilt fuer `partners={false}` auf Seiten mit der grossen Logowand. */
+export function SiteFooter({ funding = true, partners = true }: { funding?: boolean; partners?: boolean } = {}) {
   return <>
     {funding && <FundingStrip />}
+    {partners && <PartnerStrip />}
     <footer className="site-footer">
       {/* Zwei Rollen, zwei Zeilen (Issue #78): Die Initiative liegt beim CSCP
           und gehoert zur Circular Week, die Website kommt aus der FAB Region.

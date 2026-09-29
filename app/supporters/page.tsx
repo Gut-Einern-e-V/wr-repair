@@ -107,6 +107,6 @@ export default function SupportersPage() {
       </div>
       <a className="text-button" href="https://www.fab-bergisch.org/ueber-uns/projektpartner-unterstutzende" target="_blank" rel="noreferrer">Alle Projektbeteiligten ansehen <span aria-hidden="true">&#8599;</span></a>
     </section>
-    <SiteFooter funding={false} />
+    <SiteFooter funding={false} partners={false} />
   </main>;
 }

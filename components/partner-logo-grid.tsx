@@ -1,21 +1,10 @@
-"use client";
+import { getPartners } from "@/lib/partners";
 
-import { useEffect, useState } from "react";
-import { defaultPartners, type Partner } from "@/lib/default-partners";
-
-export function PartnerLogoGrid() {
-  const [partners, setPartners] = useState<Partner[]>(defaultPartners);
-
-  useEffect(() => {
-    void fetch("/api/partners")
-      .then(async (response) => {
-        if (!response.ok) return defaultPartners;
-        const data = await response.json() as { partners?: Partner[] };
-        return data.partners?.length ? data.partners : defaultPartners;
-      })
-      .then(setPartners)
-      .catch(() => setPartners(defaultPartners));
-  }, []);
+/* Holt die Liste auf dem Server aus demselben Cache wie die Footer-Leiste
+   (components/partner-strip.tsx) - vorher per fetch im Browser nachgeladen,
+   mit den Voreinstellungen als kurz sichtbarem Zwischenstand. */
+export async function PartnerLogoGrid() {
+  const partners = await getPartners();
 
   return <div className="supporter-grid">{partners.map((partner) => <a className="supporter-card" href={partner.websiteUrl} target="_blank" rel="noreferrer" key={partner.id} aria-label={`${partner.name} öffnen`} title={partner.name}>
     {/* Partner assets originate from local public files or the public partner-logos bucket. */}
