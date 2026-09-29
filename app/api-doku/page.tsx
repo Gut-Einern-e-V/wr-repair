@@ -185,7 +185,7 @@ export default async function ApiDocsPage() {
 
       <section>
         <h2>Was in den Daten steckt und was nicht</h2>
-        <p>Keine Namen, keine E-Mail-Adressen, keine IP-Adressen, keine genauen Standorte. Was zu einem Ort gehört, ist bereits vor dem Speichern vergröbert: Die Koordinate wird <strong>im Browser</strong> um eine zufällige Strecke von bis zu 1 km verschoben und auf rund 110 m gerundet, bevor sie gesendet wird. <code>kreis</code> ist die gröbste sinnvolle Ortsangabe und aus derselben Zelle abgeleitet. Fotos werden vor dem Upload im Browser neu gerendert; EXIF- und GPS-Metadaten fallen dabei weg. Details in der <Link href="/privacy">Datenschutzerklärung</Link>.</p>
+        <p>Keine Namen, keine E-Mail-Adressen, keine IP-Adressen, keine genauen Standorte. Was zu einem Ort gehört, ist bereits vor dem Speichern vergröbert: Die Koordinate wird <strong>im Browser</strong> um eine zufällige Strecke von bis zu 1 km verschoben und auf rund 110 m gerundet, bevor sie gesendet wird. <code>kreis</code> ist die gröbste sinnvolle Ortsangabe und aus derselben Zelle abgeleitet. Fotos werden vor dem Upload im Browser neu gerendert, und der Server entfernt EXIF- und GPS-Metadaten noch einmal selbst. Ein ausgeliefertes Foto enthält keinen Aufnahmeort. Details in der <Link href="/privacy">Datenschutzerklärung</Link>.</p>
         <p>Alles, was hier ausgeliefert wird, ist zur Veröffentlichung freigegeben und steht so auch auf der Bühne unter <Link href="/stats">/stats</Link>. Wer es weiterverwendet, sollte dieselbe Zurückhaltung walten lassen: Es sind Beiträge von Menschen, die eine Reparatur gezeigt haben, keine Datenbank zum Weiterverkaufen.</p>
       </section>
 
@@ -193,6 +193,7 @@ export default async function ApiDocsPage() {
         <h2>Und was nicht öffentlich ist</h2>
         <p>Die Routen unter <code>/api/admin/</code>, <code>/api/moderation/</code>, die Einreichung selbst (<code>/api/repairs</code>) und die Benachrichtigungen verlangen eine Anmeldung mit einer Team-Rolle oder nehmen nur <code>POST</code> an. Sie sind nicht Teil dieser Zusage und können sich jederzeit ändern.</p>
         <p><strong>Kopiere keine Zugangsdaten dieser Website und keinen Supabase-Schlüssel auf ein Gerät.</strong> Die öffentlichen Routen brauchen keine &ndash; und ein Schlüssel auf einem Mikrocontroller im Foyer ist ein Schlüssel für alle.</p>
+        <p>Auch die Datenbank selbst ist keine Schnittstelle: Mit dem öffentlichen Supabase-Schlüssel aus dem Seitencode lassen sich keine Tabellen lesen, abgesehen von den Partnern. Alles Öffentliche kommt ausschließlich über die Routen oben.</p>
         <p>Die hier beschriebenen Felder bleiben erhalten. Neue Felder können jederzeit dazukommen, und die Reihenfolge von Listen und Objekten ist nicht garantiert. Lies die Felder, die du brauchst, und ignoriere den Rest.</p>
       </section>
     </article>
