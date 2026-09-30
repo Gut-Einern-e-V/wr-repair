@@ -1,9 +1,11 @@
 import type { MetadataRoute } from "next";
 
-/* Die Seite ist dreimal installierbar (Issue #43).
+/* Die Seite ist viermal installierbar (Issues #43 und #126).
  *
- * Das Wurzelmanifest in app/manifest.ts ist die Hauptseite. Daneben gibt es zwei
- * eigene Apps: die Schnelleintragung und die Moderation. Warum getrennt statt
+ * Das Wurzelmanifest in app/manifest.ts ist die Hauptseite. Daneben gibt es drei
+ * eigene Apps: die Schnelleintragung, die Moderation und die Verwaltung. Ohne
+ * eigenes Manifest erbt eine Route das der Hauptseite, und iOS oeffnet das
+ * Lesezeichen dann auf `/` statt auf der Route (Issue #126). Warum getrennt statt
  * als Shortcut:
  *
  * - Die Shortcut-Liste eines Manifests wird an jeden ausgeliefert. Moderation
@@ -13,7 +15,7 @@ import type { MetadataRoute } from "next";
  * - Auf iOS ist Push nur in einer installierten App moeglich. Ohne eigenes
  *   Manifest fuer /moderator gaebe es dort keine Benachrichtigungen.
  *
- * Chrome unterscheidet die drei Installationen an der `id`. Die Scopes
+ * Chrome unterscheidet die Installationen an der `id`. Die Scopes
  * ueberlappen sich nicht, weil jede App bei ihrer Route bleibt.
  */
 
@@ -78,6 +80,24 @@ export const moderatorManifest: MetadataRoute.Manifest = {
   // Die Konsole ist dunkel; eine helle Statusleiste darueber saehe falsch aus.
   theme_color: INK,
   icons: icons("moderator-icon"),
+};
+
+/* Push bleibt bei der Moderation: Nur deren Konsole hat den Schalter. Wer als
+   Admin auf iOS Benachrichtigungen will, installiert zusaetzlich die
+   Moderation. */
+export const adminManifest: MetadataRoute.Manifest = {
+  id: "/admin",
+  name: "Reparaturrekord Verwaltung",
+  short_name: "Verwaltung",
+  description: "Aktion, Team und Gewinnspiel verwalten.",
+  lang: "de",
+  dir: "ltr",
+  start_url: "/admin",
+  scope: "/admin",
+  display: "standalone",
+  background_color: INK,
+  theme_color: INK,
+  icons: icons("admin-icon"),
 };
 
 // Content-Type ist vorgeschrieben; ohne ihn ignorieren Browser das Manifest.
