@@ -48,6 +48,11 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    /* Die Voreinstellung von vier Stunden laesst das CDN jedes Logo mehrmals
+       am Tag neu umrechnen, weil aeltere Uploads mit `max-age=3600` im Bucket
+       liegen. Ein Logo aendert sich unter seinem Namen nie (UUID je Upload,
+       app/api/admin/partners/route.ts) - ein neues Logo ist eine neue URL. */
+    minimumCacheTTL: 2678400,
     remotePatterns: supabaseUrl
       ? [new URL("/storage/v1/object/public/partner-logos/**", supabaseUrl)]
       : [],
