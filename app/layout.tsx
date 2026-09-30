@@ -39,17 +39,17 @@ export const metadata: Metadata = {
   // Ohne metadataBase wuerden geteilte Links und Bilder relativ bleiben.
   metadataBase: new URL(getSiteUrl() || "http://localhost:3000"),
   title: {
-    default: "Reparaturrekord NRW | FAB Region",
+    default: "Reparaturrekord NRW | Circular Week 2026",
     template: "%s | Reparaturrekord NRW",
   },
   description: "Einen Monat lang zaehlt Nordrhein-Westfalen jede Reparatur: Repariere etwas, trage es ein und werde Teil des Reparatur-Weltrekords.",
   applicationName: "Reparaturrekord NRW",
   /* `creator` ist, wer die Seite gemacht hat, `publisher`, wer sie
      herausgibt - seit Issue #78 sind das zwei verschiedene Haeuser: Die
-     Website kommt aus der FAB Region, herausgegeben wird sie vom CSCP, das
+     Website hat Gut Einern gebaut, herausgegeben wird sie vom CSCP, das
      auch im Impressum steht. */
-  authors: [{ name: "FAB Region Bergisches Städtedreieck", url: "https://www.fab-bergisch.org/" }],
-  creator: "FAB Region Bergisches Städtedreieck",
+  authors: [{ name: "Gut Einern e.V.", url: "https://www.gut-einern.org/" }],
+  creator: "Gut Einern e.V.",
   publisher: operator.legalName,
   /* Der Kanonische zeigt je Seite auf sich selbst. Ohne diese Angabe zaehlen
      Suchmaschinen Aufrufe mit Kampagnenparametern als eigene Adressen. */

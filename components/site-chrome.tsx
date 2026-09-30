@@ -51,11 +51,11 @@ export function SiteFooter({ funding = true, partners = true }: { funding?: bool
     {partners && <PartnerStrip />}
     <footer className="site-footer">
       {/* Zwei Rollen, zwei Zeilen (Issue #78): Die Initiative liegt beim CSCP
-          und gehoert zur Circular Week, die Website kommt aus der FAB Region.
-          Vorher stand hier nur die FAB Region und damit der falsche Absender. */}
+          und gehoert zur Circular Week, die Website hat Gut Einern gebaut. Der
+          Verweis fuehrt nach /open-source, dort steht mehr dazu. */}
       <p><strong>Reparaturrekord NRW</strong><br />Eine Initiative der <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>, organisiert vom <a href={operator.website} target="_blank" rel="noreferrer">{operator.shortName}</a>.</p>
       <div><Link href="/gewinnspiel">{messages.navigation.lottery}</Link><Link href="/privacy">{messages.footer.privacy}</Link><Link href="/imprint">{messages.footer.imprint}</Link><Link href="/accessibility">{messages.footer.accessibility}</Link><Link href="/leichte-sprache">{messages.footer.easyLanguage}</Link><Link href="/open-source">{messages.footer.openSource}</Link><ConsentSettingsLink /></div>
-      <p>Website der <a href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">FAB Region</a></p>
+      <p>Website von <Link href="/open-source">Gut Einern e.V.</Link></p>
     </footer>
     <MadeInWuppertal />
   </>;

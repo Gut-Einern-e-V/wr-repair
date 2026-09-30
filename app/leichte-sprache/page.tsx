@@ -169,11 +169,10 @@ export default async function EasyLanguagePage() {
 
     <footer className="easy-footer">
       {/* Zwei kurze Saetze statt eines langen (Issue #78): Wer die Seite
-          betreibt und wer sie gemacht hat, sind seit dem Wechsel zum CSCP
-          zwei verschiedene Haeuser - in Leichter Sprache bekommt jedes
-          seinen eigenen Satz. */}
+          betreibt und wer sie gemacht hat, sind zwei verschiedene Haeuser -
+          in Leichter Sprache bekommt jedes seinen eigenen Satz. */}
       <p>Das Projekt kommt vom CSCP.<br />Das CSCP ist eine Organisation in Wuppertal.</p>
-      <p>Die Website hat die FAB Region <W>Bergisches·Städtedreieck</W> gemacht.</p>
+      <p>Die Website hat der Verein Gut Einern gemacht.<br />Gut Einern ist auch in Wuppertal.</p>
       <div><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link></div>
     </footer>
   </main>;

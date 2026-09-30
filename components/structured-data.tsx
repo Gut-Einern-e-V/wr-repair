@@ -13,9 +13,9 @@ import type { Story } from "@/lib/stories";
 
 /* Zwei Organisationen mit verschiedenen Rollen (Issue #78): Betreiberin und
    damit `publisher` ist das CSCP, das den Rekordversuch im Rahmen der Circular
-   Week ausrichtet. Die FAB Region hat die Website beigesteuert und steht
-   deshalb als `creator`. Vorher war beides die FAB Region - fuer Suchmaschinen
-   war der Absender damit ein anderer als im Impressum. */
+   Week ausrichtet. Gut Einern hat die Website programmiert und steht deshalb
+   als `creator`. Bis zum Wechsel unter das Dach der Circular Week stand hier
+   die FAB Region, aus deren Projekt die Website urspruenglich kam. */
 const ORGANIZATION_ID = "#organization";
 const CREATOR_ID = "#creator";
 
@@ -57,9 +57,9 @@ export function SiteStructuredData() {
       {
         "@type": "NGO",
         "@id": `${siteUrl}/${CREATOR_ID}`,
-        name: "FAB Region Bergisches Städtedreieck",
-        url: "https://www.fab-bergisch.org/",
-        description: "Partnerprojekt, in dem die Website zum Reparaturrekord NRW entstanden ist.",
+        name: "Gut Einern e.V.",
+        url: "https://www.gut-einern.org/",
+        description: "Verein in Wuppertal, der die Website zum Reparaturrekord NRW programmiert hat und betreut.",
       },
       {
         "@type": "WebSite",
