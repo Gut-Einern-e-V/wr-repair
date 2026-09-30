@@ -3,6 +3,7 @@ import { Nunito, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { getSiteUrl } from "@/lib/share";
 import { operator } from "@/lib/organisation";
+import { AppBoundary } from "@/components/app-boundary";
 import { ConsentAnalytics } from "@/components/consent-analytics";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ScrollReveal } from "@/components/scroll-reveal";
@@ -87,6 +88,7 @@ export default function RootLayout({
     <html lang="de" className={`${nunito.variable} ${playfairDisplay.variable}`}>
       <body>
         {children}
+        <AppBoundary />
         <ScrollReveal />
         <ConsentBanner />
         <ConsentAnalytics />

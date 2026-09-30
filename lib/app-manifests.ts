@@ -106,3 +106,11 @@ export function manifestResponse(manifest: MetadataRoute.Manifest) {
     headers: { "Content-Type": "application/manifest+json" },
   });
 }
+
+/* Zu welcher installierbaren App ein Pfad gehoert: der Scope der Unter-App, sonst
+   die Hauptseite. Grundlage fuer components/app-boundary.tsx. */
+const APP_SCOPES = [eintragenManifest, moderatorManifest, adminManifest].map((manifest) => manifest.scope!);
+
+export function appScopeFor(pathname: string) {
+  return APP_SCOPES.find((scope) => pathname === scope || pathname.startsWith(`${scope}/`)) ?? "/";
+}
