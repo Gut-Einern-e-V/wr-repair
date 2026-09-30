@@ -1271,28 +1271,27 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
   letter-spacing: 0;
   text-transform: none;
 }
-/* Zwei Spalten in festem Verhaeltnis statt Pixelhoehen (Issue #97): Der
-   EFRE-Leitfaden verlangt, dass das EU-Emblem mindestens so hoch ist wie das
-   groesste andere Logo. Im Abbinder ist das Emblem 42 Prozent der Bildhoehe,
-   die FAB-Wortmarke 27 Prozent ihrer eigenen Breite - erst ab einem
-   Spaltenverhaeltnis von 16:84 bleibt das Emblem das hoehere Zeichen. Als
-   Rasteranteile gilt das in jeder Fenstergroesse; feste Hoehen wuerden die
-   Bedingung beim Schrumpfen verlieren. Der Deckel haelt den Abbinder auf
-   breiten Schirmen bei rund 790 Pixeln. */
+/* Zwei Gruppen nach der Vorlage des CSCP (components/funding-strip.tsx):
+   "Gefördert von" mit dem Ministerium, "Eine Initiative von" mit CSCP und
+   Circular Week. Je Logo eine eigene Hoehe, weil die Seitenverhaeltnisse weit
+   auseinanderliegen - das Ministerium ist fast fuenfmal so breit wie hoch. */
 .funding-logos {
-  display: grid;
-  grid-template-columns: minmax(0, 16fr) minmax(0, 84fr);
-  align-items: center;
-  justify-content: start;
-  gap: 22px 40px;
-  max-width: 980px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 40px clamp(72px, 16vw, 240px);
 }
+.funding-group { display: grid; gap: 18px; }
+.funding-strip .funding-group p { font: 400 14px/1.3 var(--sans); }
+.funding-group-logos { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 44px; min-height: 80px; }
 .funding-logos .funding-logo { display: flex; align-items: center; min-height: 0; padding: 0; background: transparent; }
-/* `<picture>` waehlt nach Fenstergroesse zwischen der Reihen- und der
-   untereinander-Fassung des Abbinders (components/funding-abbinder.tsx) und
-   ist im Layout nur eine Huelle. */
-.funding-logos picture, .funding-card picture { display: block; width: 100%; }
-.funding-logos img { width: 100%; max-width: 100%; height: auto; object-fit: contain; }
+.funding-logos img { width: auto; max-width: 100%; object-fit: contain; }
+.funding-logos .is-ministry img { height: 76px; }
+.funding-logos .is-cscp img { height: 54px; }
+.funding-logos .is-circular-week img { height: 80px; }
+/* `<picture>` im Foerderabbinder (components/funding-abbinder.tsx) ist im
+   Layout nur eine Huelle. */
+.funding-card picture { display: block; width: 100%; }
 
 /* Die Unterstuetzenden in jedem Footer (components/partner-strip.tsx). Die
    Foerderleiste darueber ist weiss, deshalb liegt diese Leiste auf dem
@@ -1432,25 +1431,25 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .credit-logo img { width: auto; max-width: 100%; max-height: 40px; object-fit: contain; }
 
 @media (max-width: 1100px) {
-  .funding-logos { gap: 20px 30px; }
   .story-mosaic { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 200px; }
   .story-mosaic.is-mosaic > :not(:first-child) { grid-column: span 1; }
 }
 
 @media (max-width: 720px) {
   .funding-strip { padding-top: 26px; padding-bottom: 26px; gap: 20px; }
-  /* Auf dem Telefon greift die untereinander-Fassung des Abbinders. Sie ist
-     etwa 1,29 mal so breit wie hoch, das EU-Emblem darin ein Fuenftel ihrer
-     Hoehe - die Wortmarke der FAB Region darf deshalb bis zu 57 Prozent der
-     Abbinderbreite einnehmen und bleibt trotzdem das kleinere Zeichen. In der
-     Reihenfassung waeren es 21 Prozent gewesen, also ein Stempel von 70
-     Pixeln. Das Seitenverhaeltnis steht zur Sicherheit hier: So kennt der
-     Browser die Hoehe schon vor dem Laden, auch ohne die Masse am `<source>`
-     zu lesen. */
-  .funding-logos { grid-template-columns: minmax(0, 1fr); gap: 18px; max-width: none; }
-  .funding-logos .is-fab { width: min(55%, 170px); }
-  .funding-logos .is-abbinder { width: min(100%, 320px); }
-  .funding-logos .is-abbinder img, .funding-card.is-abbinder img { aspect-ratio: 1200 / 928; }
+  /* Auf dem Telefon stehen die Gruppen untereinander; das Ministeriumslogo
+     wird ueber die Breite begrenzt, damit die dreizeilige Angabe lesbar
+     bleibt. */
+  .funding-logos { flex-direction: column; gap: 26px; }
+  .funding-group { gap: 12px; }
+  .funding-group-logos { gap: 16px 32px; min-height: 0; }
+  .funding-logos .is-ministry img { width: min(100%, 320px); height: auto; }
+  .funding-logos .is-cscp img { height: 44px; }
+  .funding-logos .is-circular-week img { height: 64px; }
+  /* Auf dem Telefon greift auf /supporters die untereinander-Fassung des
+     Abbinders; das Seitenverhaeltnis steht hier, damit der Browser die Hoehe
+     vor dem Laden kennt. */
+  .funding-card.is-abbinder img { aspect-ratio: 1200 / 928; }
   /* Dieselbe Grenze auf /supporters: Die Karte des Projekttraegers steht dort
      ueber dem Abbinder, ihr Logo bleibt schmaler als dessen EU-Emblem. */
   .funding-card:not(.is-abbinder) img { max-width: min(55%, 170px); max-height: none; }
