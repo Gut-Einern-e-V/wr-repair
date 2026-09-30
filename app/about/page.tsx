@@ -10,7 +10,7 @@ import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 export const metadata = {
   title: "Über das Projekt",
   description:
-    "Warum der Reparaturrekord NRW einen Weltrekord versucht: Reparieren sichtbar machen, Wissen teilen und zeigen, wie viel Kreislaufwirtschaft im Alltag schon steckt. Eine Initiative der Circular Week 2026, getragen von der FAB Region Bergisches Städtedreieck.",
+    "Warum der Reparaturrekord NRW einen Weltrekord versucht: Reparieren sichtbar machen, Wissen teilen und zeigen, wie viel Kreislaufwirtschaft im Alltag schon steckt. Eine Initiative der Circular Week 2026, organisiert vom CSCP in Wuppertal.",
 };
 
 /* Die Seite nennt die eingestellte Zielzahl (Issue #74). Sie ist im Backend
@@ -19,7 +19,8 @@ export const metadata = {
 export const revalidate = 300;
 
 /* Reihenfolge nach Issue #84: erst der Antrieb (warum ueberhaupt ein Rekord),
-   dann der Absender (wer die FAB Region ist), dann das Mitmachen. Open Source
+   dann der Absender (Circular Week, CSCP und die Partner in der Region),
+   dann das Mitmachen. Open Source
    stand hier frueher an zweiter Stelle und hatte damit mehr Gewicht als die
    Sache im Erzaehlbogen verdient - sie hat jetzt eine eigene Seite und hier nur
    noch eine Zeile unter "Mitmachen". */
@@ -60,9 +61,8 @@ export default async function AboutPage() {
         <p className="section-index">Wer dahinter steht</p>
         <h2 id="region-title">Drei Städte, eine gemeinsame Idee.</h2>
         <p>Der Reparaturrekord ist eine Initiative der <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>, der europäischen Aktionswoche zur Kreislaufwirtschaft. Organisiert wird er vom <a href={operator.website} target="_blank" rel="noreferrer">{operator.shortName}</a> in Wuppertal.</p>
-        <p>In der Region getragen wird er von der FAB Region Bergisches Städtedreieck – einem gemeinsamen Projekt von Wuppertal, Solingen und Remscheid. Die drei Städte liegen so dicht beieinander, dass man sie seit jeher als Dreieck denkt.</p>
-        <p>Die Idee stammt aus dem weltweiten <a href="https://fab.city/" target="_blank" rel="noreferrer">Fab-City-Netzwerk</a>: Regionen sollen wieder mehr von dem herstellen, reparieren und im Kreislauf halten, was sie verbrauchen. Im Bergischen richtet sich das auf drei Bereiche – Textilien, Ernährung und Bauen.</p>
-        <p>Ausprobiert wird das an drei Orten:</p>
+        <p>In der Region tragen ihn Partner aus Wuppertal, Solingen und Remscheid mit. Die drei Städte liegen so dicht beieinander, dass man sie seit jeher als Dreieck denkt.</p>
+        <p>Reparieren, Herstellen und Weitergeben lässt sich dort an drei Orten ausprobieren:</p>
         <ul className="region-places">
           <li><a href="https://www.gut-einern.org/" target="_blank" rel="noreferrer">Gut Einern <span aria-hidden="true">&#8599;</span></a> <span>Wuppertal</span></li>
           <li><a href="https://www.glaeserne-werkstatt-solingen.de/" target="_blank" rel="noreferrer">Gläserne Werkstatt <span aria-hidden="true">&#8599;</span></a> <span>Solingen</span></li>
@@ -70,7 +70,7 @@ export default async function AboutPage() {
         </ul>
         <p>Reparatur ist dabei der Anfang von allem. Bevor etwas recycelt, gespendet oder ersetzt wird, ist die längere Nutzung immer die beste Option – ökologisch wie sozial.</p>
         <p className="link-row">
-          <a className="text-button" href="https://www.fab-bergisch.org/ueber-uns" target="_blank" rel="noreferrer">Mehr über die FAB Region <span aria-hidden="true">&#8599;</span></a>
+          <a className="text-button" href={circularWeek.hostUrl} target="_blank" rel="noreferrer">Die Circular Week beim CSCP <span aria-hidden="true">&#8599;</span></a>
           <Link className="text-button" href="/supporters">Wer das Projekt trägt <span aria-hidden="true">&#8594;</span></Link>
         </p>
       </div>

@@ -1,9 +1,9 @@
 import Link from "next/link";
-import NextImage from "next/image";
-import { FundingAbbinder } from "@/components/funding-abbinder";
+import { FundingLogos } from "@/components/funding-strip";
 import { PartnerLogoGrid } from "@/components/partner-logo-grid";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
-import { CONTACT_EMAIL, circularWeek, mailto, projectCredits } from "@/lib/organisation";
+import { CONTACT_EMAIL, circularWeek, mailto, operator, projectCredits } from "@/lib/organisation";
+import { ministry } from "@/lib/funding";
 
 const CONTACT = mailto(CONTACT_EMAIL, "Reparaturrekord NRW unterstuetzen");
 
@@ -14,13 +14,8 @@ export const metadata = {
 };
 
 /* Weil die Foerderlogos hier gross im Inhalt stehen, laesst diese Seite die
-   Foerderleiste im Footer weg.
-
-   EU-Emblem, Ministerium und efre-Wortmarke standen bis Issue #97 als drei
-   Karten mit eigener Rollenzeile nebeneinander. Der EFRE-Leitfaden erlaubt das
-   nicht: Die drei sind eine gebundene Logo-Kombination und duerfen nicht
-   zerlegt werden. Sie stehen jetzt als ein Abbinder unter der Karte des
-   Projekttraegers, die Rollen nennt die Zeile darunter. */
+   Foerderleiste im Footer weg. Die Logos kommen aus lib/funding.ts, dieselbe
+   Quelle wie im Footer. */
 
 export default function SupportersPage() {
   return <main className="page-shell content-page">
@@ -38,16 +33,14 @@ export default function SupportersPage() {
       </div>
       <PartnerLogoGrid />
     </section>
-    {/* Drei Rollen, die im Alltag gern zusammenfallen (Issue #78): Das CSCP
-        richtet den Rekordversuch aus, die FAB Region hat die Website
-        beigesteuert, Gut Einern hat sie gebaut. Ohne diese Aufteilung liest
-        sich der Foerderhinweis darunter so, als traege die FAB Region auch
-        die Initiative. */}
+    {/* Drei Rollen, die im Alltag gern zusammenfallen (Issue #78): Der
+        Rekordversuch gehoert zur Circular Week, das CSCP richtet ihn aus, Gut
+        Einern hat die Website gebaut. Die Liste steht in lib/organisation.ts. */}
     <section className="content-section credit-section" aria-labelledby="credits-title">
       <div className="section-heading">
         <div>
           <p className="section-index">Wer was macht</p>
-          <h2 id="credits-title">Drei Häuser, drei Rollen.</h2>
+          <h2 id="credits-title">Drei Partner, drei Rollen.</h2>
         </div>
       </div>
       <ul className="credit-list">
@@ -90,22 +83,11 @@ export default function SupportersPage() {
     </section>
     <section className="funding-note" aria-labelledby="funding-title">
       <p className="section-index">Förderhinweis</p>
-      <h2 id="funding-title">Gefördert vom Land NRW und aus EFRE-Mitteln.</h2>
-      {/* Praezisiert nach Issue #78: Gefoerdert wird das Projekt, in dem diese
-          Website entstanden ist - nicht der Rekordversuch als Ganzes. Der
-          gehoert zur Circular Week. */}
-      <p>Diese Website ist im Projekt &bdquo;FAB.Region Bergisches Städtedreieck &ndash; Transformation hin zu einer co-kreativen Kreislaufwirtschaftsregion&ldquo; entstanden. Es wird aus Mitteln des Europäischen Fonds für regionale Entwicklung (EFRE) und des Landes Nordrhein-Westfalen gefördert.</p>
-      <div className="funding-cards">
-        <a className="funding-card" href="https://www.fab-bergisch.org/" target="_blank" rel="noreferrer">
-          <NextImage src="/funding/fab-region-dark.png" alt="FAB Region Bergisches Städtedreieck" width={1355} height={381} sizes="200px" />
-          <span>Projektträger</span>
-        </a>
-        <a className="funding-card is-abbinder" href="https://www.efre.nrw/" target="_blank" rel="noreferrer">
-          <FundingAbbinder />
-          <span>Europäischer Fonds für regionale Entwicklung (EFRE) und Land Nordrhein-Westfalen</span>
-        </a>
+      <h2 id="funding-title">Gefördert vom Umweltministerium NRW.</h2>
+      <p>Der Reparaturrekord NRW ist eine Initiative des <a href={operator.website} target="_blank" rel="noreferrer">{operator.shortName}</a> im Rahmen der <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>. Gefördert wird er vom {ministry.name}.</p>
+      <div className="funding-panel">
+        <FundingLogos />
       </div>
-      <a className="text-button" href="https://www.fab-bergisch.org/ueber-uns/projektpartner-unterstutzende" target="_blank" rel="noreferrer">Alle Projektbeteiligten ansehen <span aria-hidden="true">&#8599;</span></a>
     </section>
     <SiteFooter funding={false} partners={false} />
   </main>;

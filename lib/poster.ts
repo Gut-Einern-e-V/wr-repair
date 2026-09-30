@@ -88,12 +88,15 @@ export type PosterCopy = {
   /** Kurzfassung fuer A6 und fuer die dreisprachige Variante. */
   leadShort: string;
   steps: string[];
+  /** Ueberschriften der beiden Logogruppen aus lib/funding.ts. */
+  fundedBy: string;
+  initiativeBy: string;
   footer: string;
 };
 
 /* Die englische und die arabische Fassung sind Uebersetzungen der deutschen.
    Der Projektname bleibt in allen drei Fassungen deutsch: Er steht so auf der
-   Domain, im Foerderabbinder und auf allen anderen Materialien. */
+   Domain und auf allen anderen Materialien. */
 export const posterCopy: Record<Exclude<PosterLanguage, "all">, PosterCopy> = {
   de: {
     locale: "de",
@@ -108,7 +111,9 @@ export const posterCopy: Record<Exclude<PosterLanguage, "all">, PosterCopy> = {
       "Kategorie wählen und kurz beschreiben",
       "Nach der Prüfung zählt deine Reparatur",
     ],
-    footer: "Ein Projekt der FAB Region Bergisches Städtedreieck",
+    fundedBy: "Gefördert von",
+    initiativeBy: "Eine Initiative von",
+    footer: "Teil der Circular Week 2026",
   },
   en: {
     locale: "en",
@@ -123,7 +128,9 @@ export const posterCopy: Record<Exclude<PosterLanguage, "all">, PosterCopy> = {
       "Choose a category and describe it briefly",
       "Once it is checked, your repair counts",
     ],
-    footer: "A project by FAB Region Bergisches Städtedreieck",
+    fundedBy: "Funded by",
+    initiativeBy: "An initiative by",
+    footer: "Part of Circular Week 2026",
   },
   ar: {
     locale: "ar",
@@ -138,7 +145,9 @@ export const posterCopy: Record<Exclude<PosterLanguage, "all">, PosterCopy> = {
       "اختر الفئة واكتب وصفاً قصيراً",
       "بعد المراجعة يُحتسب إصلاحك",
     ],
-    footer: "مشروع من FAB Region Bergisches Städtedreieck",
+    fundedBy: "بدعم من",
+    initiativeBy: "مبادرة من",
+    footer: "جزء من Circular Week 2026",
   },
 };
 

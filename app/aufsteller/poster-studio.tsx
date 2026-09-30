@@ -18,16 +18,12 @@ import {
   trilingualOrder,
 } from "@/lib/poster";
 import type { QrGlyph } from "@/lib/qr-glyph";
+import { fundingGroups } from "@/lib/funding";
 
-/* Derselbe Foerderabbinder wie in components/funding-strip.tsx: eine gebundene
-   Logo-Kombination, die der EFRE-Leitfaden nicht zerlegt sehen will (Issue
-   #97). Die Hoehen kommen als `em` aus dem Stylesheet, damit sie mit dem
-   Blattformat mitschrumpfen; die Wortmarke der FAB Region bleibt darin unter
-   der Hoehe des EU-Emblems. */
-const fundingLogos = [
-  { src: "/funding/fab-region-dark.png", width: 1355, height: 381, className: "is-fab", alt: "FAB Region Bergisches Städtedreieck" },
-  { src: "/funding/fab-region-abbinder-2025.webp", width: 2400, height: 320, className: "is-abbinder", alt: "Kofinanziert von der Europäischen Union · Ministerium für Umwelt, Naturschutz und Verkehr des Landes Nordrhein-Westfalen · www.efre.nrw" },
-];
+/* Dieselben Logogruppen wie im Footer (lib/funding.ts). Die Hoehen kommen als
+   `em` aus dem Stylesheet, damit sie mit dem Blattformat mitschrumpfen; die
+   Gruppenueberschriften stehen in der Sprache des Aufstellers. */
+const fundingLabels = { "funded-by": "fundedBy", "initiative-by": "initiativeBy" } as const;
 
 /* Aufkleber und Grund duerfen laut Styleguide nie dieselbe Farbfamilie teilen:
    Mint steht auf hellem Grund, Gelb auf dunklem, sonst traegt Papier. */
@@ -141,7 +137,7 @@ export function PosterStudio({ submissionUrl, qrGlyph, arabicFontClassName }: Po
           </label>
           <label>
             <input type="checkbox" checked={showFunding} onChange={(event) => setShowFunding(event.target.checked)} />
-            <span>Förderlogos zeigen<small>EFRE, EU, Land NRW und FAB Region</small></span>
+            <span>Förderlogos zeigen<small>Umweltministerium NRW, CSCP und Circular Week</small></span>
           </label>
           <label>
             <input type="checkbox" checked={showCutLines} disabled={!multiUp} onChange={(event) => setShowCutLines(event.target.checked)} />
@@ -235,15 +231,20 @@ function PosterCard({ hidden, format, language, background, withSteps, withFundi
       {withFunding && <div className="poster-funding">
         {/* Statische Logos in fester Groesse - der Bildoptimierer bringt hier
             nichts und liefert im Druck gelegentlich noch den Platzhalter aus. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {fundingLogos.map((logo) => <img
-          key={logo.src}
-          className={logo.className}
-          src={logo.src}
-          alt={logo.alt}
-          width={logo.width}
-          height={logo.height}
-        />)}
+        {fundingGroups.map((group) => <div key={group.key} className="poster-funding-group">
+          <p lang={copy.locale} dir={copy.direction}>{copy[fundingLabels[group.key]]}</p>
+          <div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {group.logos.map((logo) => <img
+              key={logo.src}
+              className={logo.className}
+              src={logo.src}
+              alt={logo.alt}
+              width={logo.width}
+              height={logo.height}
+            />)}
+          </div>
+        </div>)}
       </div>}
 
       <p className="poster-footer">{copy.footer}</p>

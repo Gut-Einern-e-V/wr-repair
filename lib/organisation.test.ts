@@ -40,8 +40,8 @@ describe("Betreiberangaben", () => {
 });
 
 describe("Projektbeteiligte", () => {
-  it("nennt Initiative, Website und Programmierung getrennt", () => {
-    expect(projectCredits.map((credit) => credit.role)).toEqual(["Initiative", "Website", "Programmierung"]);
+  it("nennt Rahmen, Initiative und Programmierung getrennt", () => {
+    expect(projectCredits.map((credit) => credit.role)).toEqual(["Rahmen", "Initiative", "Programmierung"]);
   });
 
   it("gibt jeder Rolle einen Namen, einen Satz und ein Ziel", () => {

@@ -799,28 +799,26 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .poster-steps li:nth-child(2) b { background: var(--chip-2); color: var(--ink); }
 .poster-steps li:nth-child(3) b { background: var(--chip-3); color: var(--chip-3-fg); }
 
-/* Die Foerderlogos liegen als dunkle Variante vor und brauchen deshalb immer
-   eine helle Flaeche - auf dem Papierblatt ist die schon da, sonst kommt ein
-   weisser Streifen darunter. Die Hoehen sind so gewaehlt, dass Wortmarke und
-   Abbinder auf jedem Format in eine Reihe passen und das EU-Emblem im Abbinder
-   (42 Prozent seiner Bildhoehe) hoeher bleibt als die Wortmarke der FAB Region
-   - so verlangt es der EFRE-Leitfaden (Issue #97). */
+/* Die Logogruppen aus lib/funding.ts. Die Logos brauchen eine helle Flaeche -
+   auf dem Papierblatt ist die schon da, sonst kommt ein weisser Streifen
+   darunter. Die Hoehen stehen in `em`, damit sie mit dem Blattformat
+   mitschrumpfen. */
 .poster-funding {
-  display: flex; flex-wrap: wrap; gap: .6em .9em; align-items: center; justify-content: center;
-  width: 100%; margin-top: auto; padding: .7em .9em; background: #fff;
-  /* Die Reihenfolge des Abbinders ist vorgegeben und dreht sich auch auf der
-     arabischen Fassung nicht mit. */
+  display: flex; flex-wrap: wrap; gap: .5em 4em; align-items: flex-start; justify-content: center;
+  width: 100%; margin-top: auto; padding: .7em .9em; background: #fff; color: #000;
+  /* Die Reihenfolge der Logos dreht sich auf der arabischen Fassung nicht mit. */
   direction: ltr;
 }
+.poster-funding-group { display: grid; gap: .35em; text-align: start; }
+.poster-funding-group p { margin: 0; font-size: .62em; font-weight: 500; letter-spacing: 0; }
+.poster-funding-group div { display: flex; align-items: center; gap: 1.8em; }
 .poster-funding img { width: auto; max-width: 100%; object-fit: contain; }
-.poster-funding .is-fab { height: 1.5em; }
-.poster-funding .is-abbinder { height: 3.6em; }
+.poster-funding .is-ministry { height: 3em; }
+.poster-funding .is-cscp { height: 2.2em; }
+.poster-funding .is-circular-week { height: 3.2em; }
 .poster-sheet.bg-paper .poster-funding { padding-right: 0; padding-left: 0; background: transparent; }
-.poster-sheet.is-a5 .poster-funding .is-fab { height: 1.4em; }
-.poster-sheet.is-a5 .poster-funding .is-abbinder { height: 3.3em; }
-.poster-sheet.is-a6 .poster-funding { gap: .45em .6em; }
-.poster-sheet.is-a6 .poster-funding .is-fab { height: 1.1em; }
-.poster-sheet.is-a6 .poster-funding .is-abbinder { height: 2.6em; }
+.poster-sheet.is-a6 .poster-funding { gap: .4em 1.9em; }
+.poster-sheet.is-a6 .poster-funding-group div { gap: 1.3em; }
 
 .poster-footer { margin: 0; color: var(--poster-muted); font-size: .72em; font-weight: 800; letter-spacing: .08em; line-height: 1.35; text-transform: uppercase; }
 .poster-inner[dir="rtl"] .poster-footer { letter-spacing: normal; }
@@ -1250,7 +1248,7 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 
 /* --- Startseite: Foerderleiste, Countdown, Kategorien, Blog-Mosaik --------- */
 
-/* Der offizielle Foerderabbinder liegt nur mit dunkler Schrift vor. Die Leiste
+/* Die Foerderlogos liegen nur mit dunkler Schrift vor. Die Leiste
    ist deshalb hell statt tintenfarben, sonst verschwinden Logos und Text
    (Issue #2). Wie im uebrigen Layout ohne Trennlinie: Die weisse Flaeche setzt
    sich schon vom Bildbanner darueber und vom Footer darunter ab. */
@@ -1289,15 +1287,11 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .funding-logos .is-ministry img { height: 76px; }
 .funding-logos .is-cscp img { height: 54px; }
 .funding-logos .is-circular-week img { height: 80px; }
-/* `<picture>` im Foerderabbinder (components/funding-abbinder.tsx) ist im
-   Layout nur eine Huelle. */
-.funding-card picture { display: block; width: 100%; }
 
 /* Die Unterstuetzenden in jedem Footer (components/partner-strip.tsx). Die
    Foerderleiste darueber ist weiss, deshalb liegt diese Leiste auf dem
    Seitengrund - sonst verschwaenden die weissen Kacheln darin. Das Raster
-   waehlt die Spaltenzahl selbst, neue Logos brauchen keine neue Regel. Die
-   Kachelhoehe bleibt unter dem EU-Emblem im Abbinder. */
+   waehlt die Spaltenzahl selbst, neue Logos brauchen keine neue Regel. */
 .partner-strip { max-width: none; padding: 26px var(--gutter, 24px) 30px; background: var(--bg); }
 .partner-strip-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 6px 20px; margin-bottom: 14px; }
 .partner-strip h2 { margin: 0; font: 800 11px/1.3 var(--sans); letter-spacing: .09em; text-transform: uppercase; }
@@ -1324,6 +1318,19 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .supporter-card-logo { position: relative; display: block; width: 100%; max-width: 180px; height: 82px; }
 .supporter-card-logo img { object-fit: contain; }
 @media (max-width: 720px) { .supporter-card-logo { height: 64px; } }
+
+/* Gut Einern auf /open-source: Ziel der Zeile "made with love in Wuppertal"
+   unter jedem Footer. Das Logo liegt auf Weiss, weil es selbst einen weissen
+   Grund hat. */
+.legal-page .maker-card { display: grid; grid-template-columns: 180px minmax(0, 1fr); gap: 28px; align-items: center; padding: 28px; border-top: 0; background: var(--paper); }
+.maker-logo { display: grid; place-items: center; height: 120px; padding: 14px; background: #fff; }
+.maker-logo img { width: 100%; height: auto; max-height: 92px; object-fit: contain; }
+.legal-page .maker-card h2 { margin-bottom: 10px; }
+.maker-card .link-row { display: flex; flex-wrap: wrap; gap: 8px 22px; }
+@media (max-width: 720px) {
+  .legal-page .maker-card { grid-template-columns: minmax(0, 1fr); gap: 18px; padding: 20px; }
+  .maker-logo { width: min(100%, 220px); }
+}
 
 /* Countdown im Hero-Kasten anstelle des QR-Codes. */
 .hero-countdown-label { margin: 0 0 10px; font: 800 11px/1.3 var(--sans); letter-spacing: .09em; text-transform: uppercase; }
@@ -1394,22 +1401,10 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .story-tile-more { font: 800 11px/1 var(--sans); letter-spacing: .07em; text-transform: uppercase; }
 .story-tile-more i { font-style: normal; }
 
-/* Foerderlogos im Seiteninhalt (/supporters). Die Logos haben einen weissen
-   Bildhintergrund und brauchen deshalb eine weisse Karte, nicht die gelbe Flaeche.
-
-   Der Abbinder ist eine gebundene Logo-Kombination (Issue #97) und liegt
-   deshalb als ein Bild in einer Karte ueber die ganze Breite - so bleibt die
-   Ministeriumszeile lesbar. Die Karte des Projekttraegers darueber bleibt
-   schmal: Ihr Logo darf nach dem EFRE-Leitfaden nicht groesser sein als das
-   EU-Emblem im Abbinder. */
-.funding-cards { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; margin: 30px 0 26px; max-width: 980px; }
-.funding-card { display: grid; align-content: space-between; gap: 20px; min-height: 168px; padding: 24px; background: #fff; text-decoration: none; transition: box-shadow 120ms ease; }
-.funding-card img { justify-self: start; width: auto; max-width: 100%; height: auto; max-height: 48px; object-fit: contain; }
-.funding-card:not(.is-abbinder) { width: min(100%, 320px); }
-.funding-card.is-abbinder { gap: 14px; min-height: 0; }
-.funding-card.is-abbinder img { width: 100%; max-height: none; }
-.funding-card span { color: var(--muted); font: 700 11px/1.4 var(--sans); letter-spacing: .06em; text-transform: uppercase; }
-.funding-card:hover, .funding-card:focus-visible { box-shadow: inset 0 0 0 4px var(--ink); }
+/* Foerderlogos im Seiteninhalt (/supporters): dieselben Logogruppen wie in
+   der Foerderleiste im Footer, auf einer weissen Flaeche. */
+.funding-panel { max-width: 980px; margin: 30px 0 0; padding: 28px 24px; background: #fff; }
+.funding-panel .funding-group p { margin: 0; font: 400 14px/1.3 var(--sans); }
 
 /* Initiative, Website, Programmierung (/supporters, Issue #78). Wie die
    Foerderkarten aufgebaut, aber auf Papier statt Weiss: Hier steht Fliesstext,
@@ -1426,8 +1421,7 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .credit-logo { display: grid; place-items: center; width: 100%; height: 56px; margin-bottom: 6px; padding: 8px 12px; background: #fff; }
 /* Deckel in Pixeln statt `height: 100%`: In einem Rasterfeld mit `place-items:
    center` behandelt der Browser die Prozentangabe als `auto`, dann zieht das
-   Logo an seiner eigenen Breite hoch und laeuft aus dem Kasten. Dieselbe
-   Loesung wie bei `.funding-card img`. */
+   Logo an seiner eigenen Breite hoch und laeuft aus dem Kasten. */
 .credit-logo img { width: auto; max-width: 100%; max-height: 40px; object-fit: contain; }
 
 @media (max-width: 1100px) {
@@ -1446,13 +1440,6 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
   .funding-logos .is-ministry img { width: min(100%, 320px); height: auto; }
   .funding-logos .is-cscp img { height: 44px; }
   .funding-logos .is-circular-week img { height: 64px; }
-  /* Auf dem Telefon greift auf /supporters die untereinander-Fassung des
-     Abbinders; das Seitenverhaeltnis steht hier, damit der Browser die Hoehe
-     vor dem Laden kennt. */
-  .funding-card.is-abbinder img { aspect-ratio: 1200 / 928; }
-  /* Dieselbe Grenze auf /supporters: Die Karte des Projekttraegers steht dort
-     ueber dem Abbinder, ihr Logo bleibt schmaler als dessen EU-Emblem. */
-  .funding-card:not(.is-abbinder) img { max-width: min(55%, 170px); max-height: none; }
   .hero-countdown-clock { gap: 6px; }
   .hero-countdown-clock span { min-width: 0; flex: 1; padding: 8px 4px 6px; }
   .hero-countdown-clock strong { font-size: 22px; }
@@ -2018,6 +2005,10 @@ h1, h2, h3 { overflow-wrap: break-word; }
 .made-bar { display: flex; justify-content: center; align-items: center; padding: 0 var(--gutter, 24px); background: var(--ink); color: var(--bg); }
 .made-line { display: inline-flex; align-items: center; gap: 9px; min-height: 38px; margin: 0; padding: 4px 0; font: 800 12px var(--sans); letter-spacing: .07em; text-transform: uppercase; }
 .made-heart { width: 20px; height: 20px; flex: none; }
+/* Die Zeile fuehrt zu /open-source. Unterstrichen erst beim Zeigen, damit
+   sie als Unterschrift stehen bleibt und nicht als weiterer Footer-Link. */
+a.made-line { color: inherit; text-decoration: none; text-underline-offset: 4px; }
+a.made-line:hover, a.made-line:focus-visible { text-decoration: underline; }
 
 @media (max-width: 720px) {
   .made-line { min-height: 44px; font-size: 13px; }

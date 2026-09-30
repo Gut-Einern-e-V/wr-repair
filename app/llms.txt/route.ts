@@ -39,7 +39,7 @@ export async function GET() {
 
   const body = `# Reparaturrekord NRW
 
-> Ein Weltrekordversuch der ${circularWeek.name}, organisiert vom ${operator.shortName} und umgesetzt mit der FAB Region Bergisches Staedtedreieck: Einen Monat lang zaehlt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag haelt. Wer etwas repariert hat, traegt es mit Foto und ein paar Angaben ein; nach der Pruefung durch die Moderation zaehlt der Beitrag.
+> Ein Weltrekordversuch der ${circularWeek.name}, organisiert vom ${operator.shortName}: Einen Monat lang zaehlt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag haelt. Wer etwas repariert hat, traegt es mit Foto und ein paar Angaben ein; nach der Pruefung durch die Moderation zaehlt der Beitrag.
 
 ${campaignLine(campaign.status, campaign.startAt, campaign.endAt)} Das Ziel liegt bei ${settings.recordGoal.toLocaleString("de-DE")} gezaehlten Reparaturen.
 

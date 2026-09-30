@@ -94,34 +94,35 @@ export type ProjectCredit = {
 /**
  * Wer welchen Teil verantwortet (Issue #78).
  *
- * Drei Rollen, die im Alltag gern zusammenfallen und es hier nicht tun: Das
- * CSCP richtet den Rekordversuch als Teil der Circular Week aus, die FAB
- * Region hat die Website beigesteuert und wird dafuer gefoerdert, Gut Einern
- * hat sie gebaut. Die Reihenfolge ist die der Verantwortung, nicht die der
+ * Drei Rollen, die im Alltag gern zusammenfallen und es hier nicht tun: Der
+ * Rekordversuch gehoert zur Circular Week 2026, das CSCP richtet ihn aus, Gut
+ * Einern hat die Website gebaut. Bis zum Wechsel unter das Dach der Circular
+ * Week stand an zweiter Stelle die FAB Region, aus deren Projekt die Website
+ * urspruenglich kam. Die Reihenfolge ist die der Verantwortung, nicht die der
  * Arbeitsmenge.
  */
 export const projectCredits: ProjectCredit[] = [
   {
+    role: "Rahmen",
+    name: circularWeek.name,
+    shortName: "Circular Week",
+    description: `Der Reparaturrekord ist Teil der ${circularWeek.name} – einer Aktionswoche für Kreislaufwirtschaft.`,
+    url: circularWeek.url,
+    logoUrl: "/funding/circular-week-2026.webp",
+  },
+  {
     role: "Initiative",
     name: "CSCP",
     shortName: "CSCP",
-    description: `Der Reparaturrekord ist eine Initiative der ${circularWeek.name}, organisiert vom CSCP.`,
+    description: "Das CSCP in Wuppertal hat den Rekordversuch ins Leben gerufen und organisiert ihn.",
     url: operator.website,
-    logoUrl: "/partners/cscp.png",
-  },
-  {
-    role: "Website",
-    name: "FAB Region Bergisches Städtedreieck",
-    shortName: "FAB Region",
-    description: "Die Website ist im Partnerprojekt FAB Region Bergisches Städtedreieck entstanden, gefördert aus EFRE-Mitteln und vom Land Nordrhein-Westfalen.",
-    url: "https://www.fab-bergisch.org/",
-    logoUrl: "/funding/fab-region-dark.png",
+    logoUrl: "/funding/cscp.svg",
   },
   {
     role: "Programmierung",
     name: "Gut Einern e.V.",
     shortName: "Gut Einern",
-    description: "Programmiert wurde sie von Gut Einern e.V. in Wuppertal – der Quelltext ist offen.",
+    description: "Die Website hat Gut Einern e.V. in Wuppertal programmiert – der Quelltext ist offen.",
     url: "https://www.gut-einern.org/",
     logoUrl: "/partners/gut-einern.png",
   },
