@@ -8,9 +8,7 @@ import { getPartners } from "@/lib/partners";
    Footer waeren ebenso viele Tab-Stopps. Die Leiste fuehrt als Ganzes zur
    Dankeseite, dort geht es zu den einzelnen Websites.
 
-   Die Kacheln sind weiss, weil nicht jedes hochgeladene Logo transparent ist,
-   und bleiben kleiner als das EU-Emblem im Abbinder darueber - der
-   EFRE-Leitfaden laesst andere Logos nicht groesser stehen.
+   Die Kacheln sind weiss, weil nicht jedes hochgeladene Logo transparent ist.
 
    Hochgeladen werden bis zu 1 MB je Logo. Der Bildoptimierer liefert sie hier
    in Kachelbreite aus; SVGs bringen ihm nichts und gehen unveraendert durch. */
