@@ -5,6 +5,7 @@ import { CategoryMotif } from "@/components/category-motif";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
 import OriginMap from "./origin-map";
+import ScreenedImage from "./screened-image";
 import {
   draftFromRepair,
   isUnderReview,
@@ -14,6 +15,7 @@ import {
   isTestRunRepair,
   originWarning,
   performedByLabel,
+  screeningWarning,
   repairStatusLabels,
   type MetadataDraft,
   type ModerationRepair,
@@ -50,8 +52,7 @@ export default function RepairDetail({
     <article className="repair-review">
       <div className="repair-image-column">
         {repair.imageUrl
-          // eslint-disable-next-line @next/next/no-img-element -- Signierte Storage-URL ohne feste Groesse.
-          ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" />
+          ? <ScreenedImage repair={{ ...repair, imageUrl: repair.imageUrl }} alt="Eingereichtes Reparaturbild" />
           : <div className="missing-image">
               <CategoryMotif category={repair.category} size={96} />
               <span>{missingImageNote(repair)}</span>
@@ -78,7 +79,7 @@ export default function RepairDetail({
         )}
       </div>
       <div>
-        <p className="section-index">{repairCategoryLabel(repair.category)} <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span>{isTestRunRepair(repair) && <span className="status-chip is-test-run">Testlauf</span>}</p>
+        <p className="section-index">{repairCategoryLabel(repair.category)} <span className={`status-chip is-${repair.status}`}>{repairStatusLabels[repair.status]}</span>{isTestRunRepair(repair) && <span className="status-chip is-test-run">Testlauf</span>}{screeningWarning(repair) && <span className="status-chip is-pending">{screeningWarning(repair)}</span>}</p>
         <h3>{repair.brand_model || "Marke/Modell unbekannt"}</h3>
         {isUnderReview(repair) && <p className="moderator-comment">Diese Einreichung liegt gerade in einer anderen Schnellprüfung.</p>}
         {repair.story && <p>{repair.story}</p>}

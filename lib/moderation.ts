@@ -1,5 +1,6 @@
 import { requireModerator } from "@/lib/admin-auth";
 import { acceptsSubmissions, getAppSettings } from "@/lib/app-settings";
+import { toStoredScreening } from "@/lib/image-screening";
 import { hasOriginMismatch, type OriginSignal, type OriginSource } from "@/lib/origin-check";
 import { projectToUnitSquare } from "@/lib/nrw-map";
 import type { RegionConfig } from "@/lib/region-config";
@@ -25,8 +26,10 @@ const baseModerationColumns =
  *   Migration 202609010001.
  * - `origin_signals`: die widerspruechlichen Herkunftssignale (Issue #87).
  *   Aus Migration 202609030002.
+ * - `image_screening`: Ergebnis der Bildpruefung durch Sightengine. Aus
+ *   Migration 202609300001.
  */
-const OPTIONAL_COLUMNS = ["image_deleted_at", "origin_signals"] as const;
+const OPTIONAL_COLUMNS = ["image_deleted_at", "origin_signals", "image_screening"] as const;
 
 /**
  * Welche der optionalen Spalten es gibt - einmal je Serverprozess geprueft.
@@ -92,6 +95,8 @@ export type ModerationRow = {
   origin_ip_region: string | null;
   /** Fehlt, solange Migration 202609030002 nicht gelaufen ist. */
   origin_signals?: unknown;
+  /** Fehlt, solange Migration 202609300001 nicht gelaufen ist. */
+  image_screening?: unknown;
 };
 
 /**
@@ -258,7 +263,7 @@ export function toModerationRepair<Row extends ModerationRow>(
   /* Die Herkunftsspalten gehen als aufbereitetes `origin`-Objekt raus, nicht
      zusaetzlich als lose Spalten - sie werden hier nur weggeschnitten. */
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { image_path, image_deleted_at, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region, origin_signals, ...rest } = row;
+  const { image_path, image_deleted_at, claimed_by, claimed_at, location_lat, location_lon, kreis, origin_source, origin_ip_region, origin_signals, image_screening, ...rest } = row;
   const claimedUntil = claimed_at && row.status === "pending"
     ? new Date(Date.parse(claimed_at) + CLAIM_LEASE_SECONDS * 1000).toISOString()
     : null;
@@ -271,6 +276,7 @@ export function toModerationRepair<Row extends ModerationRow>(
        einer abgelehnten Einreichung "Kein Bild eingereicht", obwohl es eines
        gab und die Ablehnung es geloescht hat (Issue #58). */
     imageDeletedAt: image_deleted_at ?? null,
+    imageScreening: toStoredScreening(image_screening),
     claimedUntil: claimedUntil && Date.parse(claimedUntil) > Date.now() ? claimedUntil : null,
     claimedByMe: claimed_by === viewerId,
   };

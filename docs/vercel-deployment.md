@@ -23,6 +23,8 @@ Copy `.env.example` to `.env.local` for local work. `.env.local` is intentionall
 | `NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY` | Public | Development, Preview, Production | Friendly Captcha v2 application sitekey. It starts with `FC`. |
 | `FRIENDLY_CAPTCHA_API_KEY` | Secret | Development, Preview, Production | Friendly Captcha API key used only by the server-side Siteverify request. |
 | `NEXT_PUBLIC_CAPTCHA_ENABLED` | Public | Development, Preview, Production | Set to `true` by default. Set to `false` only for a short, deliberate temporary bypass; Friendly Captcha is then skipped in browser and server route, while the upload rate limit remains active. |
+| `SIGHTENGINE_API_USER` | Secret | Preview, Production | Sightengine API user for the image screening in `lib/image-screening.ts`. Without it, photos go to moderation unchecked. |
+| `SIGHTENGINE_API_SECRET` | Secret | Preview, Production | Sightengine API secret, server only. |
 | `SUBMISSION_START_AT` | Secret | Preview, Production | Start of the validated participation window in ISO 8601 with timezone. |
 | `SUBMISSION_END_AT` | Secret | Preview, Production | End of the validated participation window in ISO 8601 with timezone. |
 | `GEOIP_ALLOW_LOCAL` | Secret | Development only | Set to `true` only for local testing when Vercel geo headers are unavailable. Never set this in Preview or Production. |
@@ -46,6 +48,13 @@ Do not set a `NODE_ENV` variable in Vercel. Next.js supplies `production` for bu
 - Create a Friendly Captcha application and register the local, preview and production hostnames before enabling the upload endpoint. Copy its `FC...` sitekey to `NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY`.
 - Create a Friendly Captcha API key and save it only as `FRIENDLY_CAPTCHA_API_KEY`. The server validates `frc-captcha-response` through `https://global.frcapi.com/api/v2/captcha/siteverify` with its `X-API-Key` header.
 - Keep `NEXT_PUBLIC_CAPTCHA_ENABLED=true` in public operation. To temporarily accept submissions while the Friendly Captcha configuration is being fixed, set it to `false` and create a new deployment. This is intentionally visible in the submission form and must be changed back to `true` before public promotion.
+
+### Sightengine image screening
+
+- Every submitted photo is sent (metadata already stripped) to `https://api.sightengine.com/1.0/check.json` with the models `nudity-2.1,gore-2.0` before it is stored. Each photo uses two operations of the Sightengine quota.
+- Clearly sexual or gory photos are refused with a 422; the photo is never stored, the rest of the submission lands in the abandoned submissions. Borderline photos are accepted, shown blurred in moderation and skipped by the quick review. Thresholds live in `SCREENING_THRESHOLDS`.
+- Timeouts, errors and an exhausted quota never block a submission: it is accepted unchecked and logged as `screening/screening_unavailable` in the admin system status.
+- Before setting the keys: sign the Sightengine DPA (support@sightengine.com) and enable immediate deletion after processing - the privacy page promises both. Run migration `202609300001_image_screening.sql` before deploying, otherwise the screening result is not stored and the quick-review counter shows no number.
 
 #### Turning spam protection on (issue #59)
 

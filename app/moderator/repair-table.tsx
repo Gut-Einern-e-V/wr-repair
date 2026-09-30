@@ -6,6 +6,7 @@ import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
 import { useJsonResource } from "@/lib/use-json-resource";
 import { decideRepair, deleteRepair, deleteRepairImage, saveRepairMetadata } from "./moderation-api";
 import RepairDetail from "./repair-detail";
+import ScreenedImage from "./screened-image";
 import {
   buildQuery,
   isTestRunRepair,
@@ -17,6 +18,7 @@ import {
   type ModerationRepair,
   type RepairStatus,
   originWarning,
+  screeningWarning,
 } from "./repair-types";
 
 type LoadResponse = { repairs: ModerationRepair[]; counts: Record<string, number> | null; truncated: boolean };
@@ -195,14 +197,14 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
                 {repairs.map((repair) => (
                   <tr key={repair.id} className={repair.id === selectedId ? "is-selected" : ""}>
                     <td>{repair.imageUrl
-                      // eslint-disable-next-line @next/next/no-img-element -- Signierte Storage-URL ohne feste Groesse.
-                      ? <img className="table-thumb" src={repair.imageUrl} alt="" />
+                      ? <ScreenedImage repair={{ ...repair, imageUrl: repair.imageUrl }} className="table-thumb" alt="" revealable={false} />
                       : <span className="table-thumb is-empty" title={missingImageNote(repair)}><CategoryPictogram category={repair.category} /></span>}</td>
                     <td><strong>{repair.brand_model || "Marke/Modell unbekannt"}</strong><span className="table-sub">{repairCategoryLabel(repair.category)}</span></td>
                     <td>{new Date(repair.entry_time ?? repair.created_at).toLocaleString("de-DE")}</td>
                     <td>
                       {repair.origin?.kreis ?? repair.location_region ?? "–"}
                       {originWarning(repair) && <span className="table-sub is-warning">{originWarning(repair)}</span>}
+                      {screeningWarning(repair) && <span className="table-sub is-warning">{screeningWarning(repair)}</span>}
                     </td>
                     <td>{repair.consent_publication ? "Ja" : "Nein"}</td>
                     <td>

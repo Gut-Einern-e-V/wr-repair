@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildQuery, draftFromRepair, isUnderReview, missingImageNote, originSignalRows, originWarning, type ModerationRepair } from "./repair-types";
+import { buildQuery, draftFromRepair, isUnderReview, missingImageNote, originSignalRows, originWarning, screeningWarning, type ModerationRepair } from "./repair-types";
 import type { ModerationOrigin, ModerationOriginSignal } from "@/lib/moderation";
 
 function repair(overrides: Partial<ModerationRepair> = {}): ModerationRepair {
@@ -23,6 +23,7 @@ function repair(overrides: Partial<ModerationRepair> = {}): ModerationRepair {
     entry_time: "2026-08-27T08:00:00.000Z",
     imageUrl: null,
     imageDeletedAt: null,
+    imageScreening: null,
     claimedUntil: null,
     claimedByMe: false,
     ...overrides,
@@ -167,5 +168,21 @@ describe("Liste der Herkunftsangaben", () => {
     expect(rows[0]).toMatchObject({ number: 1, kreis: "Wuppertal", used: true });
     expect(rows[1]).toMatchObject({ number: 2, kreis: null, used: false });
     expect(rows[2]).toMatchObject({ number: 3, kreis: "Köln", used: false });
+  });
+});
+
+describe("Hinweis der Bildpruefung", () => {
+  const flagged = { verdict: "flagged" as const, scores: { explicit: 0.1, suggestive: 0.1, gore: 0.7 }, reasons: ["gore" as const] };
+
+  it("nennt den Grund eines auffaelligen Fotos", () => {
+    expect(screeningWarning(repair({ imageUrl: "https://example.test/bild.jpg", imageScreening: flagged })))
+      .toBe("Foto auffällig: Blut/Verletzung");
+  });
+
+  it("schweigt bei unauffaelligen, ungeprueften und geloeschten Fotos", () => {
+    expect(screeningWarning(repair({ imageUrl: "https://example.test/bild.jpg", imageScreening: { ...flagged, verdict: "clear", reasons: [] } }))).toBeNull();
+    expect(screeningWarning(repair({ imageUrl: "https://example.test/bild.jpg" }))).toBeNull();
+    // Das Foto ist weg, der Hinweis haette nichts mehr, worauf er zeigt.
+    expect(screeningWarning(repair({ imageScreening: flagged }))).toBeNull();
   });
 });

@@ -1,4 +1,5 @@
 import { requireAdmin } from "@/lib/admin-auth";
+import { isScreeningConfigured } from "@/lib/image-screening";
 import { readPrizes } from "@/lib/lottery-store";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -185,6 +186,18 @@ export async function GET() {
         detail: process.env.NEXT_PUBLIC_CAPTCHA_ENABLED === "false"
           ? "Captcha ist per Konfiguration abgeschaltet (NEXT_PUBLIC_CAPTCHA_ENABLED=false). Einreichungen laufen ohne Spam-Schutz."
           : null,
+      },
+      /* Ohne Schluessel laeuft die Aktion weiter, nur ohne Vorpruefung der
+         Fotos - deshalb ein Hinweis und kein Ausfall. Ob das Kontingent
+         reicht, steht im Einreichungsprotokoll (screening_unavailable). */
+      {
+        id: "screening",
+        label: "Bildpruefung (Sightengine)",
+        ok: isScreeningConfigured(),
+        ms: null,
+        detail: isScreeningConfigured()
+          ? null
+          : "SIGHTENGINE_API_USER oder SIGHTENGINE_API_SECRET fehlt. Fotos gehen ungeprueft in die Moderation.",
       },
     ],
     usage: usage
