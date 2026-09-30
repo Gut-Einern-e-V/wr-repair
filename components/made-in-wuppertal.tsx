@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 /**
  * Schlusszeile unter dem Footer (Issue #89).
  *
@@ -7,15 +9,16 @@
  * demselben Band ab, und die Zeile wirkt als Abschluss und nicht als weiterer
  * Absatz des Footers.
  *
- * Inhaltlich ist sie kein Navigationselement: kein Link, keine Angabe, die
- * jemand braucht - eine Unterschrift. Deshalb steht sie ausserhalb des
- * `<footer>` und traegt keine eigene Ueberschrift.
+ * Inhaltlich ist sie eine Unterschrift, kein Navigationselement. Deshalb
+ * steht sie ausserhalb des `<footer>` und traegt keine eigene Ueberschrift.
+ * Sie fuehrt aber zu /open-source: Dort steht, wer die Website in Wuppertal
+ * gebaut hat (Gut Einern e.V.) und wo der Quelltext liegt.
  */
 export function MadeInWuppertal() {
   return <div className="made-bar">
-    <p className="made-line">
+    <Link className="made-line" href="/open-source" aria-label="Made with love in Wuppertal – von Gut Einern e.V., zum offenen Quelltext">
       made with <PrideHeart /> in Wuppertal
-    </p>
+    </Link>
   </div>;
 }
 

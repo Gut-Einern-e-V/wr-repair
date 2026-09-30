@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { DEVELOPER_EMAIL, mailto } from "@/lib/organisation";
 
 export const metadata = {
   title: "Open Source",
@@ -21,6 +22,24 @@ export default function OpenSourcePage() {
     <article id="inhalt" className="legal-page">
       <p className="eyebrow">Open Source</p>
       <h1>Zum Nachbauen gemacht.</h1>
+      {/* Hierher fuehrt die Zeile "made with love in Wuppertal" unter jedem
+          Footer (components/made-in-wuppertal.tsx). Deshalb steht zuerst, wer
+          die Website gebaut hat - erst danach, was im Quelltext steckt. */}
+      <section className="maker-card" aria-labelledby="maker-title">
+        <a className="maker-logo" href="https://www.gut-einern.org/" target="_blank" rel="noreferrer">
+          {/* Statisches Logo aus public/ in fester Groesse. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/partners/gut-einern.png" alt="Gut Einern e.V." width={204} height={97} />
+        </a>
+        <div>
+          <h2 id="maker-title">Gebaut von Gut Einern e.V. in Wuppertal</h2>
+          <p>Programmiert und betreut wird diese Website von Gut Einern e.V. aus Wuppertal. Fragen zu Schnittstellen, Quelltext oder Nachnutzung gehen direkt dorthin.</p>
+          <p className="link-row">
+            <a className="text-button" href="https://www.gut-einern.org/" target="_blank" rel="noreferrer">gut-einern.org <span aria-hidden="true">&#8599;</span></a>
+            <a className="text-button" href={mailto(DEVELOPER_EMAIL, "Reparaturrekord NRW – Quelltext")}>{DEVELOPER_EMAIL} <span aria-hidden="true">&#8594;</span></a>
+          </p>
+        </div>
+      </section>
       <section>
         <h2>Der Quelltext ist offen</h2>
         <p>Diese Website liegt vollständig in einem öffentlichen Repository. Andere Initiativen können den technischen Ansatz für ihre eigene Reparaturkampagne prüfen, übernehmen und weiterentwickeln – ohne bei null anzufangen und ohne uns um Erlaubnis zu fragen.</p>

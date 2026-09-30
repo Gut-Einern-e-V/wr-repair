@@ -33,16 +33,14 @@ export default function SupportersPage() {
       </div>
       <PartnerLogoGrid />
     </section>
-    {/* Drei Rollen, die im Alltag gern zusammenfallen (Issue #78): Das CSCP
-        richtet den Rekordversuch aus, die FAB Region hat die Website
-        beigesteuert, Gut Einern hat sie gebaut. Ohne diese Aufteilung liest
-        sich der Foerderhinweis darunter so, als traege die FAB Region auch
-        die Initiative. */}
+    {/* Drei Rollen, die im Alltag gern zusammenfallen (Issue #78): Der
+        Rekordversuch gehoert zur Circular Week, das CSCP richtet ihn aus, Gut
+        Einern hat die Website gebaut. Die Liste steht in lib/organisation.ts. */}
     <section className="content-section credit-section" aria-labelledby="credits-title">
       <div className="section-heading">
         <div>
           <p className="section-index">Wer was macht</p>
-          <h2 id="credits-title">Drei Häuser, drei Rollen.</h2>
+          <h2 id="credits-title">Drei Partner, drei Rollen.</h2>
         </div>
       </div>
       <ul className="credit-list">
