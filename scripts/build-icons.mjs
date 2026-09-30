@@ -99,7 +99,7 @@ function engravedR(color, width, id) {
   );
 }
 
-/* Die drei installierbaren Apps. `any` darf die Flaeche ausnutzen, weil
+/* Die vier installierbaren Apps. `any` darf die Flaeche ausnutzen, weil
    Browser-Tab und iOS das ganze Quadrat zeigen. `maskable` bleibt in der Safe
    Zone, dem zentrierten Kreis mit 80% Kantenmass, den Android-Launcher
    ausstanzen. */
@@ -126,6 +126,30 @@ const APPS = {
     render: (width, id) =>
       graphPaper("rgba(255,196,50,.10)", "rgba(255,196,50,.20)") +
       `<g transform="rotate(-2 32 32)">${engravedR(YELLOW, width, id)}</g>`,
+  },
+  /* Verwaltung: gleiche Arbeitsflaeche wie die Moderation, damit beide als
+     Backend erkennbar sind, aber drei Schieberegler statt des R - Einstellungen
+     statt Pruefen. Bei `width` 34 liegt die aeusserste Ecke 21,6 vom Mittelpunkt,
+     also in der Safe Zone (Issue #126). */
+  admin: {
+    field: INK,
+    route: "admin",
+    render: (width) => {
+      const s = +(width / 40).toFixed(4);
+      const tracks = [20, 32, 44].map((x) => `<path d="M${x - 1} 14h2v36h-2z"/>`).join("");
+      const knobs = [
+        [20, 36],
+        [32, 20],
+        [44, 30],
+      ]
+        .map(([x, y]) => `<rect x="${x - 5}" y="${y - 3.5}" width="10" height="7" rx="1.5"/>`)
+        .join("");
+      return (
+        graphPaper("rgba(255,196,50,.10)", "rgba(255,196,50,.20)") +
+        `<g transform="translate(32 32) scale(${s}) translate(-32 -32)">` +
+        `<g fill="rgba(255,196,50,.45)">${tracks}</g><g fill="${YELLOW}">${knobs}</g></g>`
+      );
+    },
   },
 };
 

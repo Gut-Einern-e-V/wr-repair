@@ -1,7 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+/* Manifest und Pin-Icon der installierbaren Backend-Apps (Issue #126).
+   Browser holen das Manifest ohne Cookies ab, iOS auch das apple-touch-icon.
+   Landen diese Abrufe beim Login, bekommt iOS statt Manifest eine HTML-Seite
+   und legt das Lesezeichen ohne `start_url` an. Beide Dateien enthalten nur
+   Name, Farbe und Icon, keine Daten - sie duerfen ohne Anmeldung raus. */
+const INSTALL_FILES = /^\/(moderator|admin)\/(manifest\.webmanifest|apple-icon\.png)$/;
+
 export async function proxy(request: NextRequest) {
+  if (INSTALL_FILES.test(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
   let response = NextResponse.next({ request });
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;

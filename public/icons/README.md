@@ -4,9 +4,9 @@ Alles hier kommt aus `scripts/build-icons.mjs`. Grundform ist das geometrische R
 aus dem `.brand-mark` im Header - gelbe Flaeche (`--yellow`), Ink-R (`--ink`),
 leicht nach links gekippt.
 
-## Drei installierbare Apps
+## Vier installierbare Apps
 
-Die Seite ist dreimal installierbar (siehe `lib/app-manifests.ts`). Jede App
+Die Seite ist viermal installierbar (siehe `lib/app-manifests.ts`). Jede App
 braucht ein eigenes Icon, sonst liegen auf dem Startbildschirm mehrere
 ununterscheidbare Verknuepfungen.
 
@@ -15,6 +15,7 @@ ununterscheidbare Verknuepfungen.
 | Hauptseite | `../../app/icon.svg`, `icon-*.png` | R auf `--yellow` |
 | Eintragung | `eintragen-icon*` | Plus auf `--mint` |
 | Moderation | `moderator-icon*` | R auf `--ink`, in Millimeterpapier, in die Flaeche gepraegt |
+| Verwaltung | `admin-icon*` | Drei Schieberegler auf `--ink`, in Millimeterpapier |
 
 Je App gibt es `-192`/`-512` fuer `purpose: "any"` und `-maskable-192`/`-512`
 fuer `purpose: "maskable"`, dazu ein `apple-icon.png` in der jeweiligen Route.

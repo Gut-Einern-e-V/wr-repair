@@ -9,9 +9,11 @@ import type { AdminSettings } from "./campaign-panel";
 export const dynamic = "force-dynamic";
 
 // Backend gehoert in keinen Suchindex (Issue #67), wie schon bei /moderator.
+// Eigenes Manifest, sonst oeffnet das iOS-Lesezeichen die Hauptseite (Issue #126).
 export const metadata = {
   title: "Administration",
   robots: { index: false, follow: false },
+  manifest: "/admin/manifest.webmanifest",
 };
 
 export default async function AdminPage() {
