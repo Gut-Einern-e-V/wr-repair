@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/admin-auth";
 import { nrwKreiseList } from "@/lib/nrw-kreise-list";
-import { SharepicStudio } from "./sharepic-studio";
+import { SharepicStudio } from "@/components/sharepics/sharepic-studio";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,8 @@ export const metadata = {
  * Sharepics fuer Instagram-Storys mit dem Live-Stand (siehe lib/sharepics.ts).
  *
  * Unter /moderator, weil die Bildroute daneben nur mit Moderationsrolle
- * zeichnet - und damit die Seite nie in der oeffentlichen App landet.
+ * zeichnet - sie kann eigene Ueberschriften und Beispielzahlen. Die Fassung
+ * fuer alle liegt unter /sharepics.
  */
 export default async function SharepicsPage() {
   const currentAdmin = await getCurrentAdmin();
@@ -28,5 +29,5 @@ export default async function SharepicsPage() {
   }
 
   const kreise = nrwKreiseList.map((kreis) => kreis.name).sort((a, b) => a.localeCompare(b, "de"));
-  return <SharepicStudio kreise={kreise} />;
+  return <SharepicStudio kreise={kreise} variant="moderation" />;
 }

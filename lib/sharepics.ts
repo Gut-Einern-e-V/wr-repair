@@ -1,8 +1,9 @@
 /**
  * Sharepics fuer Instagram-Storys: Motive, Rechenwege und Texte.
  *
- * Gezeichnet werden die Bilder in app/moderator/sharepics/image/route.tsx,
- * zusammengestellt im Studio unter /moderator/sharepics. Hier steht nur, was
+ * Gezeichnet werden die Bilder in components/sharepics/render.tsx, fuer die
+ * Moderation unter /moderator/sharepics und fuer alle unter /sharepics. Hier
+ * steht nur, was
  * ohne Datenbank und ohne Satori testbar ist - genau wie beim Teilbild einer
  * einzelnen Reparatur (lib/share-visual.ts), dessen Grundfarben die Motive
  * uebernehmen.
@@ -131,6 +132,42 @@ export function parseSharepicRequest(params: URLSearchParams): SharepicRequest {
     demo: params.get("demo") === "1",
     download: params.get("download") === "1",
   };
+}
+
+/**
+ * Die Anfrage fuer das oeffentliche Studio unter /sharepics.
+ *
+ * Offen erreichbar darf die Bildroute nichts zeichnen, was sich jemand
+ * ausdenkt: Sonst waere sie ein Generator fuer echt aussehende Grafiken mit
+ * beliebigem Inhalt. Deshalb fallen hier weg
+ * - die eigene Ueberschrift,
+ * - die Beispielzahlen,
+ * - die frei gewaehlte Meilensteinzahl ("1.000.000 geschafft!"), es zaehlt
+ *   nur der zuletzt tatsaechlich erreichte,
+ * - Ortsnamen, die nicht in der Kreisliste stehen - "Eine Stadt" setzt den
+ *   Namen als Ueberschrift.
+ */
+export function parsePublicSharepicRequest(params: URLSearchParams, kreise: readonly string[]): SharepicRequest {
+  const request = parseSharepicRequest(params);
+  const known = (name: string | null) => (name && kreise.includes(name) ? name : null);
+  const kreis = sharepicMotifs[request.motif].params.includes("kreis") ? known(request.kreis) : null;
+  const kreisB = sharepicMotifs[request.motif].params.includes("kreisB") ? known(request.kreisB) : null;
+  return { ...request, kreis, kreisB, milestone: null, headline: null, demo: false };
+}
+
+/**
+ * Die kanonische Adresse einer oeffentlichen Anfrage, als Query ohne "?".
+ *
+ * Die oeffentliche Route leitet jede andere Schreibweise hierhin um. So
+ * landen alle Aufrufe desselben Bildes im selben Cache-Eintrag, und ein
+ * angehaengtes `&x=123` zwingt den Server nicht, neu zu zeichnen.
+ */
+export function publicSharepicQuery(request: SharepicRequest) {
+  const params = new URLSearchParams({ motif: request.motif, ground: request.ground });
+  if (request.kreis) params.set("kreis", request.kreis);
+  if (request.kreisB) params.set("kreisB", request.kreisB);
+  if (request.download) params.set("download", "1");
+  return params.toString();
 }
 
 export function sharepicFileName(motif: SharepicMotif, now: Date) {

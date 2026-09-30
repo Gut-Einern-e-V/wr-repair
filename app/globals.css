@@ -717,8 +717,8 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .poster-actions .button { margin: 0; }
 .poster-target { flex: 1 1 340px; margin: 0; font-size: 13px; line-height: 1.5; }
 
-/* Sharepics (app/moderator/sharepics): dieselben Bedienelemente wie beim
-   Aufsteller, daneben die Vorschau. Auf dem Handy steht sie ueber den
+/* Sharepics (components/sharepics, unter /sharepics und /moderator/sharepics):
+   dieselben Bedienelemente wie beim Aufsteller, daneben die Vorschau. Auf dem Handy steht sie ueber den
    Einstellungen, damit man sieht, was man einstellt. */
 .sharepic-layout { display: grid; gap: 32px; max-width: 1180px; margin: 0 auto; }
 .sharepic-layout .poster-controls { margin: 0; }

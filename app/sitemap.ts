@@ -34,6 +34,7 @@ const staticPages: StaticEntry[] = [
   { path: "/festival/anreise", changeFrequency: "monthly", priority: 0.5 },
   { path: "/festival/initiativen", changeFrequency: "monthly", priority: 0.5 },
   { path: "/gewinnspiel", changeFrequency: "weekly", priority: 0.7 },
+  { path: "/sharepics", changeFrequency: "daily", priority: 0.5 },
   { path: "/about", changeFrequency: "monthly", priority: 0.6 },
   /* Die Schnittstellen-Doku gehoert in den Index: Sie ist fuer Menschen
      geschrieben, die eine eigene Anzeige bauen wollen, und die suchen danach

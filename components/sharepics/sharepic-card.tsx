@@ -22,7 +22,7 @@ import {
 } from "@/lib/sharepics";
 
 /**
- * Die Motive der Sharepics als JSX fuer Satori (siehe image/route.tsx).
+ * Die Motive der Sharepics als JSX fuer Satori (siehe render.tsx).
  *
  * Getrennt von der Route, weil hier nichts vom Server gebraucht wird: Die
  * Route holt Anmeldung, Zahlen und Schrift, diese Datei zeichnet nur. Gebaut

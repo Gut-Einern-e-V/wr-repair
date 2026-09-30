@@ -7,7 +7,9 @@ import {
   goalPercent,
   kreisStanding,
   parseHeadline,
+  parsePublicSharepicRequest,
   parseSharepicRequest,
+  publicSharepicQuery,
   rankEntries,
 } from "./sharepics";
 
@@ -90,5 +92,36 @@ describe("Anfrage", () => {
   it("fasst den Zeitraum im selben Monat zusammen", () => {
     expect(formatPeriod(start, end)).toBe("1.–31. Oktober");
     expect(formatPeriod("2026-10-27T23:00:00Z", "2026-11-03T23:00:00Z")).toBe("28. Oktober – 3. November");
+  });
+});
+
+describe("Oeffentliche Sharepics", () => {
+  const kreise = ["Wuppertal", "Köln"];
+  const parse = (query: string) => parsePublicSharepicRequest(new URLSearchParams(query), kreise);
+
+  it("laesst Ueberschrift, Beispielzahlen und freien Meilenstein weg", () => {
+    const request = parse("motif=milestone&headline=Alles%20gelogen&demo=1&milestone=1000000");
+    expect(request).toMatchObject({ motif: "milestone", headline: null, demo: false, milestone: null });
+  });
+
+  it("nimmt nur Orte aus der Kreisliste", () => {
+    expect(parse("motif=kreis&kreis=Köln").kreis).toBe("Köln");
+    expect(parse("motif=kreis&kreis=Irgendwas%20Erfundenes").kreis).toBeNull();
+  });
+
+  it("nimmt Orte nur bei Motiven, die sie brauchen", () => {
+    expect(parse("motif=launch&kreis=Köln&kreisB=Wuppertal")).toMatchObject({ kreis: null, kreisB: null });
+    expect(parse("motif=kreis&kreis=Köln&kreisB=Wuppertal")).toMatchObject({ kreis: "Köln", kreisB: null });
+  });
+
+  it("hat eine kanonische Adresse ohne fremde Angaben", () => {
+    const request = parse("t=123&kreis=Köln&motif=duel&download=1&ground=ink");
+    expect(publicSharepicQuery(request)).toBe("motif=duel&ground=ink&kreis=K%C3%B6ln&download=1");
+  });
+
+  it("aendert eine kanonische Adresse nicht", () => {
+    const canonical = "motif=duel&ground=ink&kreis=K%C3%B6ln&kreisB=Wuppertal";
+    expect(publicSharepicQuery(parse(canonical))).toBe(canonical);
+    expect(new URLSearchParams(canonical).toString()).toBe(canonical);
   });
 });
