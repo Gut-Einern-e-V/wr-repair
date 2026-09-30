@@ -68,6 +68,7 @@ const stageLabels: Record<string, string> = {
   lottery: "Gewinnspiel",
   notify: "Benachrichtigung",
   blocked: "Zaehlung ausserhalb",
+  screening: "Bildpruefung",
 };
 
 const reasonLabels: Record<string, string> = {
@@ -81,6 +82,9 @@ const reasonLabels: Record<string, string> = {
   link_failed: "Das Foto liegt im Speicher, liess sich aber nicht mit der Einreichung verknuepfen.",
   push_failed: "Die Moderation konnte nicht benachrichtigt werden.",
   count_failed: "Die Zaehlung einer Einreichung von ausserhalb ist fehlgeschlagen.",
+  image_blocked: "Sightengine hat das Foto als eindeutig sexuell oder verstoerend eingestuft; die Einreichung wurde mit diesem Foto nicht angenommen. Die Angaben stehen bei den abgebrochenen Einreichungen, das Foto nirgends.",
+  screening_unavailable: "Sightengine hat nicht geantwortet oder das Kontingent ist aufgebraucht; die Einreichung wurde ungeprueft angenommen.",
+  screening_save_failed: "Das Ergebnis der Bildpruefung liess sich nicht speichern; fehlt Migration 202609300001?",
   idempotency_unavailable: "Wiederholungsversuche waren nicht erkennbar; die Migration 202608310001 fehlte. Ein zweiter Versuch konnte eine doppelte Reparatur anlegen.",
 };
 

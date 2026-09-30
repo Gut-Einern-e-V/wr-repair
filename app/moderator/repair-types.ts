@@ -1,4 +1,5 @@
 import type { ModerationOrigin } from "@/lib/moderation";
+import type { ScreeningReason, StoredScreening } from "@/lib/image-screening";
 import type { OriginSource } from "@/lib/origin-check";
 
 export type RepairStatus = "pending" | "approved" | "rejected";
@@ -28,6 +29,8 @@ export type ModerationRepair = {
    * Unterscheidet "hat nie eins mitgebracht" von "hatte eins, ist weg".
    */
   imageDeletedAt: string | null;
+  /** Ergebnis der Bildpruefung, oder null wenn nicht geprueft. */
+  imageScreening: StoredScreening | null;
   /** Ende des Anspruchs einer Moderationssitzung, sonst null (Issue #38). */
   claimedUntil: string | null;
   /** Der Anspruch gehoert der eigenen Sitzung. */
@@ -124,6 +127,24 @@ export function originWarning(repair: ModerationRepair): string | null {
   if (repair.origin.signals.some((signal) => signal.kreis === null)) return "Angaben widersprechen sich";
   if (repair.origin.mismatch) return "Verbindung woanders";
   return null;
+}
+
+const screeningReasonLabels: Record<ScreeningReason, string> = {
+  explicit: "Nacktheit",
+  suggestive: "anzüglich",
+  gore: "Blut/Verletzung",
+};
+
+/**
+ * Hinweis der Bildpruefung fuer Liste, Vollansicht und Schnellpruefung, oder
+ * null. Wie bei der Herkunft kein Ablehnungsgrund: Das Modell irrt sich, und
+ * ein blutiger Finger nach dem Abrutschen ist eine gute Einreichung. Er sagt
+ * nur, dass das Foto verdeckt angezeigt wird und ein bewusster Blick lohnt.
+ */
+export function screeningWarning(repair: ModerationRepair): string | null {
+  if (!repair.imageUrl || repair.imageScreening?.verdict !== "flagged") return null;
+  const reasons = repair.imageScreening.reasons.map((reason) => screeningReasonLabels[reason]);
+  return `Foto auffällig${reasons.length ? `: ${reasons.join(", ")}` : ""}`;
 }
 
 /**

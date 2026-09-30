@@ -11,6 +11,7 @@ import { checkSubmissionGate, retryHint, submissionLimit } from "@/lib/submissio
 import { logAbandonedSubmission, logSubmissionFailure, logSubmissionFailureOnce, type AbandonedSubmission, type FailureStage } from "@/lib/submission-log";
 import { repairCategoryValues } from "@/lib/repair-catalog";
 import { isCaptchaSolution } from "@/lib/captcha-token";
+import { screenImage, type ScreeningResult } from "@/lib/image-screening";
 
 export const runtime = "nodejs";
 
@@ -481,6 +482,39 @@ export async function POST(request: Request) {
     ));
   }
 
+  /* Bildpruefung auf Nacktheit und Gore, nach Spam-Schutz und Herkunft und
+     vor dem Speichern (siehe lib/image-screening.ts).
+
+     Die Reihenfolge ist Datensparsamkeit: Sightengine bekommt nur Fotos von
+     Einreichungen, die sonst angenommen wuerden, und nur die Fassung ohne
+     Metadaten. Und sie ist Schutz fuer das Team: Ein gesperrtes Foto kommt
+     nie in den Storage und damit nie vor die Augen der Moderation. */
+  let screening: ScreeningResult | null = null;
+  if (uploadImage) {
+    const screeningStartedAt = Date.now();
+    screening = await screenImage(uploadImage);
+    mark("screening", screeningStartedAt);
+
+    if (screening.verdict === "blocked") {
+      /* Die Angaben aufheben, das Foto nicht. Hinter einer Sperre kann ein
+         Fehlgriff des Modells stecken - dann soll sich die Reparatur von Hand
+         nachtragen lassen (Issue #107). Das Foto selbst gehoert nirgends
+         hin; `abandoned` haelt ohnehin nur fest, dass es eines gab. */
+      const detail = `${screening.reasons.join(", ")} (${JSON.stringify(screening.scores)})`;
+      after(async () => {
+        await logSubmissionFailureOnce(supabase, request, { stage: "screening", reason: "image_blocked", detail });
+        await logAbandonedSubmission(supabase, request, abandoned("screening", "image_blocked", detail));
+      });
+      /* `captchaStale`, weil das Loesungswort mit dieser Anfrage verbraucht
+         ist. Wer danach ohne Foto oder mit einem anderen sendet, braucht ein
+         frisches - sonst endet der zweite Versuch am Spam-Schutz. */
+      return withTimings(Response.json({
+        error: "Dieses Foto koennen wir leider nicht annehmen. Bitte waehle ein anderes Foto oder sende die Reparatur ohne Foto - deine Angaben bleiben stehen.",
+        captchaStale: true,
+      }, { status: 422 }));
+    }
+  }
+
   const imagePath = uploadImage ? `pending/${repairId}.${imageExtensions[uploadImage.type]}` : null;
 
   const parsedDuration = durationMinutes ? parseInt(String(durationMinutes), 10) : null;
@@ -595,6 +629,37 @@ export async function POST(request: Request) {
           detail: signalsError.message,
           repairId,
         });
+      }
+    }
+
+    /* Das Ergebnis der Bildpruefung nachtragen - als eigenes Update aus
+       demselben Grund wie `origin_signals`: Fehlt die Spalte, weil Migration
+       202609300001 noch nicht ausgerollt ist, kostet das nur den Hinweis an
+       die Moderation, nie die Reparatur. */
+    if (screening && screening.verdict !== "blocked") {
+      if (screening.verdict === "unchecked") {
+        if (screening.cause === "unavailable") {
+          await logSubmissionFailure(supabase, request, {
+            stage: "screening",
+            reason: "screening_unavailable",
+            detail: screening.detail,
+            repairId,
+          });
+        }
+      } else {
+        const { error: screeningError } = await supabase
+          .from("repairs")
+          .update({ image_screening: { verdict: screening.verdict, scores: screening.scores, reasons: screening.reasons } })
+          .eq("id", repairId);
+
+        if (screeningError) {
+          await logSubmissionFailure(supabase, request, {
+            stage: "screening",
+            reason: "screening_save_failed",
+            detail: screeningError.message,
+            repairId,
+          });
+        }
       }
     }
 

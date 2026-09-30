@@ -2200,3 +2200,10 @@ h1, h2, h3 { overflow-wrap: break-word; }
   .easy-page h1 { font-size: 32px; }
   .easy-page h2 { font-size: 26px; }
 }
+
+/* Von der Bildpruefung markierte Fotos (app/moderator/screened-image.tsx):
+   verdeckt, bis jemand bewusst aufdeckt. */
+img.is-screened { filter: blur(22px) grayscale(0.6); }
+.screened-image { position: relative; display: grid; width: 100%; overflow: hidden; }
+.screened-image > img { grid-area: 1 / 1; }
+.screened-image > .button { grid-area: 1 / 1; place-self: center; z-index: 1; max-width: calc(100% - 24px); margin: 0; white-space: normal; }

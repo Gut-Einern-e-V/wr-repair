@@ -69,14 +69,16 @@ export async function POST(request: Request) {
          gehoert in die Liste und nicht in die Wischschlange - und darf hier
          deshalb auch nicht mitgezaehlt werden. Die Spalte ist generiert; die
          Formel steht in supabase/migrations/202609030002_origin_signals.sql. */
-      .not("origin_signals_outside", "is", true);
+      .not("origin_signals_outside", "is", true)
+      // Ebenso auffaellige Fotos, siehe 202609300001_image_screening.sql.
+      .not("image_screening_flagged", "is", true);
     if (expectedIpRegion) {
       pending = pending.or(`origin_ip_region.is.null,origin_ip_region.eq.${expectedIpRegion}`);
     }
     const { count, error: countError } = await pending;
     /* Bei einem Fehler lieber gar keine Zahl als eine falsche: Solange
-       Migration 202609030002 nicht ausgerollt ist, kennt PostgREST die
-       generierte Spalte nicht und weist die ganze Abfrage ab. Eine "0" waere
+       Migration 202609030002 oder 202609300001 nicht ausgerollt ist, kennt
+       PostgREST die generierte Spalte nicht und weist die ganze Abfrage ab. Eine "0" waere
        dann die Aussage "nichts mehr zu tun" - und das waere gelogen. */
     remaining = countError ? null : count ?? 0;
   }

@@ -4,10 +4,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { CategoryMotif } from "@/components/category-motif";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
+import ScreenedImage from "./screened-image";
 import { claimNextRepair, decideRepair, deleteRepairImage, releaseRepairClaim, saveRepairMetadata } from "./moderation-api";
 import { draftFromRepair, missingImageNote, performedByLabel, type MetadataDraft, type ModerationRepair,
   isTestRunRepair,
   originWarning,
+  screeningWarning,
 } from "./repair-types";
 
 const SWIPE_THRESHOLD = 90;
@@ -94,8 +96,7 @@ function QuickCard({
         <div className={`quick-verdict is-approve${drag > SWIPE_THRESHOLD ? " is-active" : ""}`} aria-hidden="true">Freigeben</div>
         <div className={`quick-verdict is-reject${drag < -SWIPE_THRESHOLD ? " is-active" : ""}`} aria-hidden="true">Ablehnen</div>
         {repair.imageUrl
-          // eslint-disable-next-line @next/next/no-img-element -- Signierte Storage-URL ohne feste Groesse.
-          ? <img src={repair.imageUrl} alt="Eingereichtes Reparaturbild" draggable={false} />
+          ? <ScreenedImage repair={{ ...repair, imageUrl: repair.imageUrl }} alt="Eingereichtes Reparaturbild" draggable={false} />
           : <div className="missing-image">
               <CategoryMotif category={repair.category} size={128} />
               <span>{missingImageNote(repair)}</span>
@@ -110,6 +111,9 @@ function QuickCard({
                 Meinung sind - dann steht er auf der Karte, statt still
                 durchzulaufen. */}
             {originWarning(repair) && <span className="status-chip is-pending">{originWarning(repair)}</span>}
+            {/* Ebenso: `claim_next_repair()` ueberspringt auffaellige Fotos
+                seit Migration 202609300001. */}
+            {screeningWarning(repair) && <span className="status-chip is-pending">{screeningWarning(repair)}</span>}
             {/* Eingegangen waehrend eines Testlaufs (Issue #102): gehoert
                 abgelehnt, sonst zaehlt eine Probe zum Rekord. */}
             {isTestRunRepair(repair) && <span className="status-chip is-test-run">Testlauf</span>}

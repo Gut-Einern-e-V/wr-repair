@@ -27,7 +27,7 @@ import { ipRegionTag } from "./origin-check";
  */
 
 /** Stelle im Ablauf, an der es klemmte. */
-export type FailureStage = "gate" | "captcha" | "insert" | "image" | "lottery" | "notify" | "blocked";
+export type FailureStage = "gate" | "captcha" | "insert" | "image" | "lottery" | "notify" | "blocked" | "screening";
 
 export type SubmissionFailure = {
   stage: FailureStage;
