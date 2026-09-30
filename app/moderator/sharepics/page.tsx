@@ -11,7 +11,7 @@ export const metadata = {
 };
 
 /**
- * Sharepics fuer Instagram-Storys mit dem Live-Stand (siehe lib/sharepics.ts).
+ * Sharepics fuer Story und Feed mit dem Live-Stand (siehe lib/sharepics.ts).
  *
  * Unter /moderator, weil die Bildroute daneben nur mit Moderationsrolle
  * zeichnet - sie kann eigene Ueberschriften und Beispielzahlen. Die Fassung

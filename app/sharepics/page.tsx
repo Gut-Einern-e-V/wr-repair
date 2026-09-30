@@ -2,8 +2,8 @@ import { SharepicStudio } from "@/components/sharepics/sharepic-studio";
 import { nrwKreiseList } from "@/lib/nrw-kreise-list";
 
 export const metadata = {
-  title: "Sharepics für Storys",
-  description: "Bilder mit dem Live-Stand des Reparaturrekords NRW für die eigene Instagram-Story – Motiv wählen, herunterladen, teilen.",
+  title: "Sharepics zum Teilen",
+  description: "Bilder mit dem Live-Stand des Reparaturrekords NRW für Story und Feed – Motiv und Format wählen, herunterladen, teilen.",
 };
 
 /**

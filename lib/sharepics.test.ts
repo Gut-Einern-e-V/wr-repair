@@ -119,6 +119,13 @@ describe("Oeffentliche Sharepics", () => {
     expect(publicSharepicQuery(request)).toBe("motif=duel&ground=ink&kreis=K%C3%B6ln&download=1");
   });
 
+  it("nimmt das Format mit, laesst die Story als Vorgabe aber weg", () => {
+    expect(parse("motif=launch&format=square").format).toBe("square");
+    expect(parse("motif=launch&format=riesig").format).toBe("story");
+    expect(publicSharepicQuery(parse("motif=launch&format=story"))).toBe("motif=launch&ground=yellow");
+    expect(publicSharepicQuery(parse("kreis=Köln&format=portrait&motif=kreis"))).toBe("motif=kreis&ground=mint&format=portrait&kreis=K%C3%B6ln");
+  });
+
   it("aendert eine kanonische Adresse nicht", () => {
     const canonical = "motif=duel&ground=ink&kreis=K%C3%B6ln&kreisB=Wuppertal";
     expect(publicSharepicQuery(parse(canonical))).toBe(canonical);

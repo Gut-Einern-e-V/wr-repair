@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { posterBackgrounds } from "@/lib/poster";
 import { shareVisualGroundOrder, type ShareVisualGround } from "@/lib/share-visual";
-import { HEADLINE_MAX_CHARS, HEADLINE_MAX_LINES, sharepicMotifOrder, sharepicMotifs, type SharepicMotif } from "@/lib/sharepics";
+import { HEADLINE_MAX_CHARS, HEADLINE_MAX_LINES, sharepicFormatOrder, sharepicFormats, sharepicMotifOrder, sharepicMotifs, type SharepicFormat, type SharepicMotif } from "@/lib/sharepics";
 
 const groups = ["Start", "Laufend", "Finale", "Extras"] as const;
 
@@ -23,6 +23,7 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
   const moderation = variant === "moderation";
   const imagePath = moderation ? "/moderator/sharepics/image" : "/sharepics/image";
   const [motif, setMotif] = useState<SharepicMotif>("launch");
+  const [format, setFormat] = useState<SharepicFormat>("story");
   const [ground, setGround] = useState<ShareVisualGround>(sharepicMotifs.launch.ground);
   const [kreis, setKreis] = useState("");
   const [kreisB, setKreisB] = useState("");
@@ -38,16 +39,19 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
   const [failedSrc, setFailedSrc] = useState("");
 
   const spec = sharepicMotifs[motif];
+  const size = sharepicFormats[format];
 
   const query = useMemo(() => {
     const params = new URLSearchParams({ motif, ground });
+    /* Reihenfolge wie `publicSharepicQuery`, sonst leitet die oeffentliche Route jedes Bild erst um. */
+    if (format !== "story") params.set("format", format);
     if (spec.params.includes("kreis") && kreis) params.set("kreis", kreis);
     if (spec.params.includes("kreisB") && kreisB) params.set("kreisB", kreisB);
     if (moderation && spec.params.includes("milestone") && milestone) params.set("milestone", milestone);
     if (moderation && headline.trim()) params.set("headline", headline);
     if (moderation && demo) params.set("demo", "1");
     return params.toString();
-  }, [motif, ground, kreis, kreisB, milestone, headline, demo, spec.params, moderation]);
+  }, [motif, format, ground, kreis, kreisB, milestone, headline, demo, spec.params, moderation]);
 
   /* Tippen soll nicht bei jedem Buchstaben ein neues Bild anfordern. */
   const [previewQuery, setPreviewQuery] = useState(query);
@@ -72,15 +76,14 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
   return <main className="poster-page sharepic-page" data-reveal="off">
     <section className="poster-intro">
       <p className="brand-kicker">{moderation ? "Moderation" : "Mitmachen"}</p>
-      <h1 className="sticker-head is-mint"><span className="sticker">Sharepics</span><span className="sticker">für Storys</span></h1>
+      <h1 className="sticker-head is-mint"><span className="sticker">Sharepics</span><span className="sticker">zum Teilen</span></h1>
       {moderation ? <p>
-        Motiv wählen, Vorschau ansehen, herunterladen. Die Zahlen sind der Live-Stand in dem Moment, in dem du das Bild
-        lädst – unten auf dem Bild steht, wann das war. Format 1080 × 1920 für Instagram-Storys; oben und unten bleibt Platz
-        für die Bedienelemente von Instagram und den Link-Sticker.
+        Motiv und Format wählen, Vorschau ansehen, herunterladen. Die Zahlen sind der Live-Stand in dem Moment, in dem du
+        das Bild lädst – unten auf dem Bild steht, wann das war. In der Story bleibt oben und unten Platz für die
+        Bedienelemente von Instagram und den Link-Sticker.
       </p> : <p>
-        Erzähl weiter, was NRW gerade repariert: Motiv wählen, herunterladen und in deiner Story teilen. Die Zahlen sind
-        der Live-Stand, unten auf dem Bild steht, von wann. Format 1080 × 1920 für Instagram-Storys, mit Platz oben und
-        unten für die Bedienelemente und den Link-Sticker.
+        Erzähl weiter, was NRW gerade repariert: Motiv und Format wählen, herunterladen und in deiner Story oder deinem
+        Feed teilen. Die Zahlen sind der Live-Stand, unten auf dem Bild steht, von wann.
       </p>}
       <p className="link-row">{moderation
         ? <Link className="text-button" href="/moderator"><span aria-hidden="true">&#8592;</span> Zurück zur Moderation</Link>
@@ -98,6 +101,16 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
             </label>)}
           </div>
         </fieldset>)}
+
+        <fieldset>
+          <legend>Format</legend>
+          <div className="poster-choices">
+            {sharepicFormatOrder.map((value) => <label key={value}>
+              <input type="radio" name="sharepic-format" value={value} checked={format === value} onChange={() => setFormat(value)} />
+              <span>{sharepicFormats[value].label}<small>{sharepicFormats[value].hint}</small></span>
+            </label>)}
+          </div>
+        </fieldset>
 
         <fieldset>
           <legend>Hintergrund</legend>
@@ -164,8 +177,8 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
         {/* eslint-disable-next-line @next/next/no-img-element -- ein vom Server gezeichnetes PNG, der Bildoptimierer braucht es nicht. */}
         <img
           src={previewSrc}
-          width={1080}
-          height={1920}
+          width={size.width}
+          height={size.height}
           alt={`Vorschau: ${spec.label}`}
           className={loading ? "is-loading" : ""}
           onLoad={() => setLoadedSrc(previewSrc)}

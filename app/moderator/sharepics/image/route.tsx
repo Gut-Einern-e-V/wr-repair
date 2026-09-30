@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Ein Sharepic als PNG im Story-Format (siehe lib/sharepics.ts).
+ * Ein Sharepic als PNG (siehe lib/sharepics.ts).
  *
  * Nur fuer die Moderation: Die Route setzt auch eine frei waehlbare
  * Ueberschrift und Beispielzahlen in die Markengestaltung. Offen erreichbar
