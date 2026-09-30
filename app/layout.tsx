@@ -1,31 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Nunito, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import { fontClassName } from "./fonts";
 import { getSiteUrl } from "@/lib/share";
 import { operator } from "@/lib/organisation";
 import { AppBoundary } from "@/components/app-boundary";
 import { ConsentAnalytics } from "@/components/consent-analytics";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ScrollReveal } from "@/components/scroll-reveal";
-
-/* `next/font` laedt die Schriften beim Build herunter und liefert sie von der
-   eigenen Domain aus. Damit gibt es keine Anfrage an Google und nichts, wofuer
-   eine Einwilligung noetig waere. Vorher stand in globals.css ein
-   `@import url("https://fonts.googleapis.com/...")` - den hat der Bundler still
-   verworfen, sodass Nunito ueberhaupt nicht ausgeliefert wurde. */
-const nunito = Nunito({
-  subsets: ["latin"],
-  display: "swap",
-  style: ["normal", "italic"],
-  variable: "--font-sans",
-});
-
-const playfairDisplay = Playfair_Display({
-  subsets: ["latin"],
-  display: "swap",
-  style: ["normal", "italic"],
-  variable: "--font-display",
-});
 
 /* Vorgaben fuer alle Seiten (Issue #67). Einzelne Seiten ueberschreiben Titel
    und Beschreibung; alles andere - Vorschaubild, Sprache, Indexierung - gilt
@@ -85,7 +66,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="de" className={`${nunito.variable} ${playfairDisplay.variable}`}>
+    <html lang="de" className={fontClassName}>
       <body>
         {children}
         <AppBoundary />
