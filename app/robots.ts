@@ -32,6 +32,8 @@ const closedPaths = [
   "/api/",
   "/reparatur/",
   "/aufsteller",
+  // Die Bilder der Sharepics: Jeder Abruf zeichnet auf dem Server neu.
+  "/sharepics/image",
 ];
 
 /* Crawler, die Antworten von Assistenten mit Quellen versorgen. Sie bekommen

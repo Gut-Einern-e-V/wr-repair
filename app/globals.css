@@ -636,6 +636,9 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .quick-submit-panel { max-width: 640px; margin: 0 auto; padding: 24px 20px 32px; border: var(--line); background: var(--paper); }
 .quick-submit-panel .campaign-window { padding: 0; border: 0; background: none; }
 .quick-submit-back { margin: 20px 0 0; }
+.quick-submit-share { max-width: 640px; margin: 24px auto 0; padding: 0 20px; }
+.quick-submit-share h2 { margin: 0 0 6px; font-size: 20px; }
+.quick-submit-share p { margin: 0 0 10px; }
 .quick-submit-footer {
   display: grid; gap: 10px; max-width: 640px; margin: 0 auto; padding: 28px 16px 40px;
   font-size: 13px; line-height: 1.4;
@@ -717,8 +720,8 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .poster-actions .button { margin: 0; }
 .poster-target { flex: 1 1 340px; margin: 0; font-size: 13px; line-height: 1.5; }
 
-/* Sharepics (app/moderator/sharepics): dieselben Bedienelemente wie beim
-   Aufsteller, daneben die Vorschau. Auf dem Handy steht sie ueber den
+/* Sharepics (components/sharepics, unter /sharepics und /moderator/sharepics):
+   dieselben Bedienelemente wie beim Aufsteller, daneben die Vorschau. Auf dem Handy steht sie ueber den
    Einstellungen, damit man sieht, was man einstellt. */
 .sharepic-layout { display: grid; gap: 32px; max-width: 1180px; margin: 0 auto; }
 .sharepic-layout .poster-controls { margin: 0; }

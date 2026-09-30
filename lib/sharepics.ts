@@ -1,8 +1,9 @@
 /**
- * Sharepics fuer Instagram-Storys: Motive, Rechenwege und Texte.
+ * Sharepics fuer Story und Feed: Motive, Formate, Rechenwege und Texte.
  *
- * Gezeichnet werden die Bilder in app/moderator/sharepics/image/route.tsx,
- * zusammengestellt im Studio unter /moderator/sharepics. Hier steht nur, was
+ * Gezeichnet werden die Bilder in components/sharepics/render.tsx, fuer die
+ * Moderation unter /moderator/sharepics und fuer alle unter /sharepics. Hier
+ * steht nur, was
  * ohne Datenbank und ohne Satori testbar ist - genau wie beim Teilbild einer
  * einzelnen Reparatur (lib/share-visual.ts), dessen Grundfarben die Motive
  * uebernehmen.
@@ -65,22 +66,51 @@ export function isSharepicMotif(value: unknown): value is SharepicMotif {
   return typeof value === "string" && value in sharepicMotifs;
 }
 
-/** Instagram-Story: 1080 Pixel breit, 9:16. */
-export const SHAREPIC_SIZE = { width: 1080, height: 1920 } as const;
+export type SharepicFormat = "story" | "portrait" | "square";
+
+export type SharepicFormatSpec = {
+  label: string;
+  hint: string;
+  width: number;
+  height: number;
+  /**
+   * Schutzraeume oben und unten, in Pixeln des fertigen Bildes.
+   *
+   * Instagram legt in der Story oben Profilzeile und Fortschrittsbalken ueber
+   * das Bild, unten das Antwortfeld. Was dort steht, ist verdeckt - also
+   * steht dort nichts, was man lesen muss. Im Feed liegt nichts darueber, dort
+   * ist es nur Rand.
+   */
+  safe: { top: number; bottom: number };
+  /** Schriften und Abstaende gegenueber der Story - die Breite bleibt, die Hoehe nicht. */
+  scale: number;
+  /** Wie viele Zeilen eine Rangliste zeigt. */
+  rows: number;
+};
 
 /**
- * Schutzraeume oben und unten, in Pixeln des fertigen Bildes.
- *
- * Instagram legt in der Story oben Profilzeile und Fortschrittsbalken ueber
- * das Bild, unten das Antwortfeld. Was dort steht, ist verdeckt - also steht
- * dort nichts, was man lesen muss.
+ * Alle Formate sind 1080 Pixel breit, damit die Motive dieselbe Zeilenbreite
+ * haben und nur in der Hoehe schrumpfen. Ein Querformat (1,91:1) fehlt mit
+ * Absicht: Aufkleber und Ranglisten passen dort nicht hinein, und die Feeds
+ * von Facebook und LinkedIn zeigen 4:5 und 1:1 ohnehin groesser an.
  */
-export const SHAREPIC_SAFE = { top: 250, bottom: 280 } as const;
+export const sharepicFormats: Record<SharepicFormat, SharepicFormatSpec> = {
+  story: { label: "Story", hint: "9:16 · Instagram, Facebook, WhatsApp-Status", width: 1080, height: 1920, safe: { top: 250, bottom: 280 }, scale: 1, rows: 7 },
+  portrait: { label: "Hochformat", hint: "4:5 · Feed bei Instagram, Facebook, LinkedIn", width: 1080, height: 1350, safe: { top: 110, bottom: 100 }, scale: 0.78, rows: 6 },
+  square: { label: "Quadrat", hint: "1:1 · passt in jeden Feed", width: 1080, height: 1080, safe: { top: 90, bottom: 84 }, scale: 0.64, rows: 5 },
+};
+
+export const sharepicFormatOrder = Object.keys(sharepicFormats) as SharepicFormat[];
+
+export function isSharepicFormat(value: unknown): value is SharepicFormat {
+  return typeof value === "string" && value in sharepicFormats;
+}
 
 /* --- Anfrage -------------------------------------------------------------- */
 
 export type SharepicRequest = {
   motif: SharepicMotif;
+  format: SharepicFormat;
   ground: ShareVisualGround;
   kreis: string | null;
   kreisB: string | null;
@@ -120,9 +150,11 @@ export function parseSharepicRequest(params: URLSearchParams): SharepicRequest {
     ? groundParam as ShareVisualGround
     : sharepicMotifs[motif].ground;
   const milestone = Number.parseInt(params.get("milestone") ?? "", 10);
+  const formatParam = params.get("format");
 
   return {
     motif,
+    format: isSharepicFormat(formatParam) ? formatParam : "story",
     ground,
     kreis: parseName(params.get("kreis")),
     kreisB: parseName(params.get("kreisB")),
@@ -133,8 +165,46 @@ export function parseSharepicRequest(params: URLSearchParams): SharepicRequest {
   };
 }
 
-export function sharepicFileName(motif: SharepicMotif, now: Date) {
-  return `reparaturrekord-nrw-${motif}-${berlinDay(now)}.png`;
+/**
+ * Die Anfrage fuer das oeffentliche Studio unter /sharepics.
+ *
+ * Offen erreichbar darf die Bildroute nichts zeichnen, was sich jemand
+ * ausdenkt: Sonst waere sie ein Generator fuer echt aussehende Grafiken mit
+ * beliebigem Inhalt. Deshalb fallen hier weg
+ * - die eigene Ueberschrift,
+ * - die Beispielzahlen,
+ * - die frei gewaehlte Meilensteinzahl ("1.000.000 geschafft!"), es zaehlt
+ *   nur der zuletzt tatsaechlich erreichte,
+ * - Ortsnamen, die nicht in der Kreisliste stehen - "Eine Stadt" setzt den
+ *   Namen als Ueberschrift.
+ */
+export function parsePublicSharepicRequest(params: URLSearchParams, kreise: readonly string[]): SharepicRequest {
+  const request = parseSharepicRequest(params);
+  const known = (name: string | null) => (name && kreise.includes(name) ? name : null);
+  const kreis = sharepicMotifs[request.motif].params.includes("kreis") ? known(request.kreis) : null;
+  const kreisB = sharepicMotifs[request.motif].params.includes("kreisB") ? known(request.kreisB) : null;
+  return { ...request, kreis, kreisB, milestone: null, headline: null, demo: false };
+}
+
+/**
+ * Die kanonische Adresse einer oeffentlichen Anfrage, als Query ohne "?".
+ *
+ * Die oeffentliche Route leitet jede andere Schreibweise hierhin um. So
+ * landen alle Aufrufe desselben Bildes im selben Cache-Eintrag, und ein
+ * angehaengtes `&x=123` zwingt den Server nicht, neu zu zeichnen.
+ */
+export function publicSharepicQuery(request: SharepicRequest) {
+  const params = new URLSearchParams({ motif: request.motif, ground: request.ground });
+  /* Die Story ist die Vorgabe und steht deshalb nicht in der Adresse. */
+  if (request.format !== "story") params.set("format", request.format);
+  if (request.kreis) params.set("kreis", request.kreis);
+  if (request.kreisB) params.set("kreisB", request.kreisB);
+  if (request.download) params.set("download", "1");
+  return params.toString();
+}
+
+export function sharepicFileName(motif: SharepicMotif, format: SharepicFormat, now: Date) {
+  return `reparaturrekord-nrw-${motif}${format === "story" ? "" : `-${format}`}-${berlinDay(now)}.png`;
 }
 
 /* --- Rechenwege ----------------------------------------------------------- */
