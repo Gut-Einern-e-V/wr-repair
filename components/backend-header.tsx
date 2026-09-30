@@ -17,12 +17,13 @@ export default function BackendHeader({ area, email, logoUrl, canAdminister }: {
         <span>Reparaturrekord<br />NRW</span>
       </Link>
       <div className="backend-nav">
-        {canAdminister && (
-          <nav aria-label="Backend-Bereiche">
-            <Link className={area === "moderation" ? "is-current" : ""} href="/moderator">Moderation</Link>
-            <Link className={area === "admin" ? "is-current" : ""} href="/admin">Administration</Link>
-          </nav>
-        )}
+        {/* Die Sharepics duerfen alle mit Moderationsrolle erzeugen - deshalb
+            steht die Leiste jetzt auch ohne Verwaltungsrecht da. */}
+        <nav aria-label="Backend-Bereiche">
+          <Link className={area === "moderation" ? "is-current" : ""} href="/moderator">Moderation</Link>
+          <Link href="/moderator/sharepics">Sharepics</Link>
+          {canAdminister && <Link className={area === "admin" ? "is-current" : ""} href="/admin">Administration</Link>}
+        </nav>
         <span className="backend-user">{email}</span>
         <form action="/api/auth/signout" method="post"><button className="text-button" type="submit">Abmelden</button></form>
       </div>
