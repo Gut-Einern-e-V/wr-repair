@@ -718,6 +718,26 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .poster-actions .button { margin: 0; }
 .poster-target { flex: 1 1 340px; margin: 0; font-size: 13px; line-height: 1.5; }
 
+/* Sharepics (app/moderator/sharepics): dieselben Bedienelemente wie beim
+   Aufsteller, daneben die Vorschau. Auf dem Handy steht sie ueber den
+   Einstellungen, damit man sieht, was man einstellt. */
+.sharepic-layout { display: grid; gap: 32px; max-width: 1180px; margin: 0 auto; }
+.sharepic-layout .poster-controls { margin: 0; }
+.sharepic-preview { display: grid; gap: 12px; align-content: start; justify-items: center; }
+.sharepic-preview img { width: min(100%, 380px); height: auto; border: var(--line); background: var(--paper); transition: opacity .2s; }
+.sharepic-preview img.is-loading { opacity: .45; }
+.sharepic-fields { display: grid; gap: 14px; }
+.sharepic-fields label { display: grid; gap: 6px; font-size: 15px; font-weight: 700; }
+.sharepic-fields small { display: block; font-size: 12px; font-weight: 600; color: var(--muted); }
+.sharepic-fields select, .sharepic-fields input, .sharepic-fields textarea {
+  width: 100%; min-height: 48px; padding: 10px 12px; border: var(--line); background: var(--bg); font: inherit; font-weight: 600;
+}
+@media (max-width: 859px) { .sharepic-preview { order: -1; } }
+@media (min-width: 860px) {
+  .sharepic-layout { grid-template-columns: minmax(0, 1fr) 380px; align-items: start; }
+  .sharepic-preview { position: sticky; top: 24px; }
+}
+
 /* Der Bogen ist immer A4 - nur die Ausrichtung wechselt, damit der Aufsteller
    in jedem Format hochkant bleibt (siehe lib/poster.ts). Auf dem Bildschirm
    schrumpft er auf die verfuegbare Breite; die Schrift haengt an `cqw` und
