@@ -25,6 +25,13 @@ export default function QuickSubmissionPage() {
     <section className="quick-submit-panel" aria-labelledby="submission-title">
       <QuickSubmission />
     </section>
+    {/* Nach dem Eintragen die naheliegende Frage: Wie erzaehle ich es weiter?
+        Unter dem Formular, damit es beim Eintragen nicht im Weg steht. */}
+    <section className="quick-submit-share" aria-labelledby="share-title">
+      <h2 id="share-title">Weitersagen</h2>
+      <p>Hol dir ein Bild mit dem Live-Stand für deine Story oder deinen Feed – als Story, Hochformat oder Quadrat.</p>
+      <Link className="text-button" href="/sharepics">Zu den Sharepics <span aria-hidden="true">&#8594;</span></Link>
+    </section>
     <footer className="quick-submit-footer">
       <div><Link href="/privacy">Datenschutz</Link><Link href="/imprint">Impressum</Link><Link href="/accessibility">Barrierefreiheit</Link></div>
       <p>Eine Initiative der <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>, organisiert vom <a href={operator.website} target="_blank" rel="noreferrer">{operator.shortName}</a>.</p>
