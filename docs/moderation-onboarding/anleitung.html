@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>Willkommen in der Moderation – Reparaturrekord NRW</title>
+<!-- Quelle fuer public/downloads/moderation-anleitung.pdf. Nach jeder Aenderung
+     neu erzeugen: scripts/build-moderation-guide.sh (siehe README daneben). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,800;1,400&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 13mm 15mm 13mm; }
+  :root {
+    --ink: #101626; --bg: #efece5; --paper: #f7f5f0;
+    --yellow-soft: #f4bd4c; --mint-soft: #b4e0cc; --red: #ec424c; --red-deep: #c2202b; --blue: #465eab;
+    --muted: #5b6072; --line: 2px solid var(--ink); --hairline: 1px solid rgba(16, 22, 38, 0.22);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin: 0; color: var(--ink); background: #fff; font: 10pt/1.42 "Nunito", "Segoe UI", system-ui, sans-serif; }
+  .sheet { max-width: 178mm; margin: 0 auto; }
+
+  .kicker { margin: 0 0 6pt; font: 800 8pt/1.2 "Nunito", sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+  h1 { margin: 0 0 10pt; font: 700 30pt/1.02 "Playfair Display", Georgia, serif; }
+  h1 em { color: var(--red); font-style: italic; }
+  h2 { margin: 0 0 8pt; padding-top: 8pt; border-top: var(--line); font: 700 16pt/1.15 "Playfair Display", Georgia, serif; break-after: avoid; }
+  h2 .num { display: inline-block; min-width: 20pt; color: var(--red-deep); font: 800 10pt "Nunito", sans-serif; vertical-align: 3pt; }
+  h3 { margin: 0 0 4pt; font: 800 11pt/1.2 "Nunito", sans-serif; break-after: avoid; }
+  p { margin: 0 0 7pt; }
+  .lead { max-width: 150mm; font-size: 11.5pt; }
+  ol, ul { margin: 0 0 7pt; padding-left: 15pt; }
+  li { margin-bottom: 3pt; }
+  li::marker { font-weight: 800; }
+  a { color: var(--blue); }
+  .ui { padding: 0 3pt; border: 1px solid var(--ink); background: var(--paper); font-weight: 800; font-size: 9pt; text-transform: uppercase; letter-spacing: .03em; white-space: nowrap; }
+  .path { font-weight: 800; }
+  kbd { padding: 0 3pt; border: 1px solid var(--ink); border-bottom-width: 2px; font: 800 8.5pt "Nunito", sans-serif; }
+
+  .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 8pt; margin-bottom: 14pt; border-bottom: var(--line); }
+  .brand { display: flex; gap: 6pt; align-items: center; font: 800 8pt/1.05 "Nunito", sans-serif; letter-spacing: .03em; text-transform: uppercase; }
+  .brand-mark { display: grid; place-items: center; width: 24pt; height: 24pt; border: var(--line); background: var(--yellow-soft); font: 700 15pt "Playfair Display", serif; }
+  .header .url { font-weight: 800; font-size: 9pt; }
+
+  .section { margin-bottom: 12pt; }
+  .facts { display: grid; grid-template-columns: repeat(3, 1fr); border: var(--line); margin: 10pt 0 14pt; }
+  .facts > div { padding: 7pt 9pt; border-left: var(--line); }
+  .facts > div:first-child { border-left: 0; }
+  .facts dt { margin-bottom: 2pt; font: 800 7.5pt "Nunito", sans-serif; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+  .facts dd { margin: 0; font-weight: 800; }
+
+  .devices { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; border: var(--line); margin-bottom: 9pt; }
+  .device { padding: 7pt 9pt 2pt; border-top: var(--line); break-inside: avoid; }
+  .device:nth-child(-n+2) { border-top: 0; }
+  .device:nth-child(even) { border-left: var(--line); }
+  .device .tag { display: inline-block; margin-bottom: 5pt; padding: 1pt 5pt; border: 1px solid var(--ink); font: 800 7.5pt "Nunito", sans-serif; letter-spacing: .07em; text-transform: uppercase; }
+  .device.is-ios .tag { background: var(--yellow-soft); }
+  .device.is-android .tag { background: var(--mint-soft); }
+  .device ol { padding-left: 13pt; font-size: 9.3pt; }
+  .device .ui, .box .ui { white-space: normal; }
+  .device .note { font-size: 8.5pt; color: var(--muted); }
+
+  .box { padding: 8pt 10pt; border: var(--line); background: var(--paper); margin-bottom: 9pt; break-inside: avoid; }
+  .box.is-warn { border-left: 6pt solid var(--yellow-soft); }
+  .box h3 { margin-bottom: 3pt; }
+  .box p:last-child, .box ul:last-child { margin-bottom: 0; }
+
+  .decisions { width: 100%; border-collapse: collapse; margin-bottom: 9pt; font-size: 9.3pt; }
+  .decisions th, .decisions td { padding: 4pt 6pt; border: 1px solid var(--ink); text-align: left; vertical-align: top; }
+  .decisions th { background: var(--paper); font: 800 7.5pt "Nunito", sans-serif; letter-spacing: .07em; text-transform: uppercase; }
+  .decisions td:first-child { width: 20%; font-weight: 800; }
+  .decisions td:nth-child(2) { width: 24%; }
+
+  .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12pt; }
+  .page-break { break-before: page; }
+  .glance { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; border: var(--line); }
+  .glance li { margin: 0; padding: 9pt 10pt; border-left: var(--line); }
+  .glance li:first-child { border-left: 0; }
+  .glance strong { display: block; margin-bottom: 3pt; color: var(--red-deep); font-size: 8pt; letter-spacing: .07em; text-transform: uppercase; }
+  .footer { margin-top: 8pt; padding-top: 7pt; border-top: var(--hairline); font-size: 8.5pt; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="header">
+    <div class="brand"><span class="brand-mark">R</span><span>Reparaturrekord<br>NRW</span></div>
+    <span class="url">www.reparatur-weltrekord.de</span>
+  </div>
+
+  <p class="kicker">Anleitung für neue Moderator*innen</p>
+  <h1>Willkommen in der <em>Moderation</em></h1>
+  <p class="lead">Jede Reparatur, die jemand einträgt, sieht zuerst die Moderation. Erst wenn du sie freigibst, zählt sie für den Rekord und erscheint auf der Seite. Hier steht, wie du dich anmeldest, wie dein Handy dir Bescheid sagt, wenn etwas wartet, und worauf du beim Prüfen achtest.</p>
+
+  <dl class="facts">
+    <div><dt>Anmelden</dt><dd>reparatur-weltrekord.de/login</dd></div>
+    <div><dt>Moderation</dt><dd>reparatur-weltrekord.de/moderator</dd></div>
+    <div><dt>Zugang</dt><dd>deine E-Mail + temporäres Passwort, das du persönlich bekommst</dd></div>
+  </dl>
+
+  <section class="section">
+    <h2><span class="num">01</span>Anmelden</h2>
+    <ol>
+      <li>Öffne <span class="path">www.reparatur-weltrekord.de/login</span>.</li>
+      <li>Gib deine E-Mail-Adresse und das Passwort ein, das dir die Person gegeben hat, die dein Konto angelegt hat. Das Passwort kommt nie per Mail.</li>
+      <li>Beim ersten Login wählst du ein <strong>eigenes Passwort</strong> (mindestens 12 Zeichen) – das temporäre gilt danach nicht mehr.</li>
+      <li>Danach landest du in der Moderation. Oben findest du <span class="ui">Moderation</span>, <span class="ui">Sharepics</span>, <span class="ui">Passwort</span> und <span class="ui">Abmelden</span>.</li>
+    </ol>
+    <p><strong>Passwort vergessen?</strong> Die Person, die dein Konto angelegt hat, setzt dir ein neues temporäres Passwort – eine Mail zum Zurücksetzen gibt es nicht. Auf einem fremden oder geteilten Gerät meldest du dich nach der Arbeit über <span class="ui">Abmelden</span> wieder ab.</p>
+  </section>
+
+  <section class="section">
+    <h2>Auf einen Blick</h2>
+    <ol class="glance">
+      <li><strong>Heute</strong>Einloggen und auf jedem Gerät, das du nutzt, die Benachrichtigungen einschalten (Seite 2).</li>
+      <li><strong>Wenn es piept</strong>Mitteilung antippen, Karte ansehen, freigeben oder ablehnen. Meist dauert das ein paar Sekunden.</li>
+      <li><strong>Im Zweifel</strong><span class="ui">Später</span> drücken. Lieber einmal mehr nachsehen als etwas Falsches freigeben.</li>
+    </ol>
+  </section>
+
+  <section class="section page-break">
+    <h2><span class="num">02</span>Benachrichtigungen einschalten</h2>
+    <p>Du musst nicht dauernd nachschauen: Sobald eine neue Reparatur eingetragen wird, bekommst du eine Mitteilung <strong>„Neue Eintragung – 3 Einreichungen warten auf Prüfung“</strong>. Kommen mehrere nacheinander, zählt dieselbe Mitteilung hoch, statt dass sich ein Stapel bildet. Ein Tipp darauf öffnet die Moderation. Inhalte oder Fotos stehen nie in der Mitteilung.</p>
+    <p>Der Schalter heißt <span class="ui">Bei neuen Eintragungen benachrichtigen</span> und steht oben in der Moderation. Ist er an, steht dort <span class="ui">Benachrichtigungen an</span>. <strong>Jedes Gerät meldest du einzeln an</strong> – Handy und Laptop sind zwei getrennte Anmeldungen.</p>
+  </section>
+
+  <div class="devices">
+    <div class="device is-ios">
+      <span class="tag">iPhone &amp; iPad</span>
+      <h3>Nur als App vom Home-Bildschirm</h3>
+      <ol>
+        <li>Öffne <span class="path">reparatur-weltrekord.de/moderator</span> in <strong>Safari</strong> und melde dich an.</li>
+        <li>Tippe auf <strong>Teilen</strong> (Quadrat mit Pfeil) und wähle <strong>Zum Home-Bildschirm</strong>. Falls du es nicht siehst: in der Liste nach unten wischen.</li>
+        <li>Öffne die neue App <strong>„Moderation“</strong> vom Home-Bildschirm – nicht Safari. Fragt sie nach dem Login, melde dich dort noch einmal an.</li>
+        <li>Tippe auf <span class="ui">Bei neuen Eintragungen benachrichtigen</span> und dann auf <strong>Erlauben</strong>.</li>
+      </ol>
+      <p class="note">Braucht iOS 16.4 oder neuer. In einem normalen Safari-Tab gibt es auf dem iPhone keine Benachrichtigungen – dort steht statt des Schalters ein Hinweis.</p>
+    </div>
+
+    <div class="device is-android">
+      <span class="tag">Android</span>
+      <h3>Chrome reicht, App ist bequemer</h3>
+      <ol>
+        <li>Öffne <span class="path">reparatur-weltrekord.de/moderator</span> in <strong>Chrome</strong> und melde dich an.</li>
+        <li>Tippe auf <span class="ui">Bei neuen Eintragungen benachrichtigen</span> und dann auf <strong>Zulassen</strong>.</li>
+        <li>Optional: Menü <strong>⋮</strong> → <strong>Zum Startbildschirm hinzufügen</strong> bzw. <strong>App installieren</strong>. Dann hast du ein eigenes Icon „Moderation“.</li>
+      </ol>
+      <p class="note">Bleibt es still: Einstellungen → Apps → Chrome → Benachrichtigungen erlauben, und den Energiesparmodus für Chrome ausnehmen.</p>
+    </div>
+
+    <div class="device">
+      <span class="tag">Computer: Chrome, Edge, Firefox</span>
+      <h3>Im normalen Browserfenster</h3>
+      <ol>
+        <li>Öffne <span class="path">reparatur-weltrekord.de/moderator</span> und melde dich an.</li>
+        <li>Klicke auf <span class="ui">Bei neuen Eintragungen benachrichtigen</span> und dann auf <strong>Zulassen</strong>.</li>
+      </ol>
+      <p class="note">Mitteilungen kommen nur, solange der Browser läuft (das Fenster darf zu sein). Auf dem Mac muss der Browser unter Systemeinstellungen → Mitteilungen erlaubt sein, unter Windows unter Einstellungen → System → Benachrichtigungen.</p>
+    </div>
+
+    <div class="device">
+      <span class="tag">Mac: Safari</span>
+      <h3>Direkt in Safari</h3>
+      <ol>
+        <li>Öffne <span class="path">reparatur-weltrekord.de/moderator</span> in Safari und melde dich an.</li>
+        <li>Klicke auf <span class="ui">Bei neuen Eintragungen benachrichtigen</span> und dann auf <strong>Erlauben</strong>.</li>
+      </ol>
+      <p class="note">Optional: Ablage → <strong>Zum Dock hinzufügen</strong> (ab macOS 14) – dann läuft die Moderation als eigene App.</p>
+    </div>
+  </div>
+
+  <div class="box is-warn">
+    <h3>Es kommt nichts an?</h3>
+    <ul>
+      <li><strong>„Für diese Seite blockiert“:</strong> Du hast die Abfrage einmal abgelehnt. Erlaube Mitteilungen in den Website-Einstellungen (in Chrome und Edge über das Symbol links neben der Adresse, auf dem iPhone unter Einstellungen → Mitteilungen → Moderation) und lade die Seite neu.</li>
+      <li><strong>Fokus, „Nicht stören“ oder Energiesparen</strong> halten Mitteilungen zurück. Nimm die Moderation bzw. den Browser davon aus.</li>
+      <li><strong>Schalter ausprobieren:</strong> Einmal aus- und wieder einschalten meldet das Gerät neu an.</li>
+    </ul>
+  </div>
+
+  <section class="section page-break">
+    <h2><span class="num">03</span>Einreichungen prüfen</h2>
+    <p>Die Moderation öffnet in der <strong>Schnellprüfung</strong>: eine Einreichung pro Karte. Solange du eine Karte offen hast, ist sie für dich reserviert – niemand sonst bekommt sie gleichzeitig. Die <strong>Tabelle</strong> daneben zeigt alle Einreichungen zum Nachschlagen und Korrigieren.</p>
+
+    <table class="decisions">
+      <thead><tr><th>Entscheidung</th><th>So geht’s</th><th>Wann</th></tr></thead>
+      <tbody>
+        <tr><td>Freigeben</td><td>Knopf, nach rechts wischen oder <kbd>→</kbd></td><td>Echte Reparatur, Angaben plausibel, Foto in Ordnung. Zählt dann für den Rekord und wird öffentlich.</td></tr>
+        <tr><td>Ablehnen</td><td>Knopf, nach links wischen oder <kbd>←</kbd></td><td>Keine Reparatur, Unsinn, Spam, doppelt eingetragen, Testeintrag – oder keine Zustimmung zur Veröffentlichung.</td></tr>
+        <tr><td>Später</td><td>Knopf oder <kbd>↓</kbd></td><td>Du bist unsicher. Die Karte geht zurück, jemand anderes oder du selbst schaut sie später noch einmal an.</td></tr>
+        <tr><td>Ohne Foto freigeben</td><td>Link über den Knöpfen</td><td>Die Reparatur stimmt, das Foto soll aber nicht öffentlich werden (Gesichter, Adressen, Kfz-Kennzeichen, Unpassendes). Das Foto wird dabei endgültig gelöscht.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="two">
+      <div>
+        <h3>Worauf du achtest</h3>
+        <ul>
+          <li><strong>Ist es eine Reparatur?</strong> Ein Gegenstand, der kaputt war und repariert wurde – nicht etwa ein Neukauf oder eine reine Reinigung.</li>
+          <li><strong>Passen Foto und Angaben zusammen?</strong> Kategorie, Marke/Modell und Beschreibung lassen sich unter <span class="ui">Angaben ändern</span> korrigieren.</li>
+          <li><strong>Zustimmung zur Veröffentlichung:</strong> Fehlt sie, ist <span class="ui">Freigeben</span> gesperrt – dann bleibt nur Ablehnen.</li>
+          <li><strong>Erfolg „Nein“:</strong> Ehrliche gescheiterte Versuche darfst du freigeben. Für den Rekord zählen nur gelungene Reparaturen.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Hinweise auf der Karte</h3>
+        <ul>
+          <li><strong>Testlauf:</strong> Kam während eines Probelaufs herein – immer ablehnen.</li>
+          <li><strong>Foto auffällig:</strong> Die automatische Bildprüfung hat angeschlagen. Sie irrt sich manchmal, also selbst ansehen.</li>
+          <li><strong>Herkunft:</strong> Gezählt wird für NRW. Wirkt die Herkunft unklar, lieber <span class="ui">Später</span> und in der Tabelle nachsehen.</li>
+          <li><strong>Moderationskommentar:</strong> Nur intern sichtbar. Eine kurze Begründung hilft beim Ablehnen und bei Grenzfällen.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="box">
+      <h3>Verklickt?</h3>
+      <p>Wechsle oben auf <span class="ui">Tabelle</span>, öffne die Einreichung und wähle <span class="ui">Zurück in die Prüfung</span>. Danach kannst du neu entscheiden. Endgültig sind nur <em>Löschen</em> und <em>Ohne Foto freigeben</em> – beide fragen vorher nach.</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2><span class="num">04</span>Sharepics</h2>
+    <p>Unter <span class="ui">Sharepics</span> erzeugst du Bilder für Story und Feed mit dem aktuellen Stand des Rekords – für Instagram, WhatsApp-Status oder die Website deiner Initiative.</p>
+  </section>
+
+  <section class="section">
+    <h2><span class="num">05</span>Vertraulich bleibt vertraulich</h2>
+    <p>In der Moderation siehst du Fotos und Angaben, bevor sie öffentlich sind – auch solche, die nie öffentlich werden. Mach davon keine Screenshots und gib nichts weiter. Deine Zugangsdaten gehören nur dir; wenn du aufhörst, sag Bescheid, dann wird dein Konto gelöscht.</p>
+  </section>
+
+  <p class="footer"><strong>Fragen?</strong> Melde dich bei der Person, die dein Konto angelegt hat – oder antworte auf die Willkommensmail. Danke, dass du mithilfst! · Stand Oktober 2026</p>
+</div>
+</body>
+</html>

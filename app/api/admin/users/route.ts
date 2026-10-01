@@ -1,4 +1,5 @@
 import { type AppRole, requireAdmin, requireSuperadmin } from "@/lib/admin-auth";
+import { mustChangePassword, withMustChangePassword } from "@/lib/password-policy";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 const roles = new Set<AppRole>(["moderator", "admin", "superadmin"]);
@@ -48,6 +49,7 @@ export async function GET() {
       roles: assignedRoles.get(user.id) ?? [],
       createdAt: user.created_at,
       lastSignInAt: user.last_sign_in_at ?? null,
+      mustChangePassword: mustChangePassword(user),
     })),
   });
 }
@@ -74,7 +76,13 @@ export async function POST(request: Request) {
   }
 
   const supabase = createSupabaseAdminClient();
-  const { data: created, error: createError } = await supabase.auth.admin.createUser({ email, password, email_confirm: true });
+  const { data: created, error: createError } = await supabase.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    // Das Passwort vom Anlegen gilt nur bis zum ersten Login (lib/password-policy.ts).
+    app_metadata: withMustChangePassword(null, true),
+  });
   if (createError || !created.user) {
     return errorResponse("Das Konto konnte nicht angelegt werden.", 502);
   }

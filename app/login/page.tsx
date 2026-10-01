@@ -53,6 +53,8 @@ function LoginForm() {
         <label>Passwort<input name="password" type="password" autoComplete="current-password" required /></label>
         {error && <p className="form-error" role="alert">{error}</p>}
         <button className="button button-primary" type="submit" disabled={isSubmitting}>{isSubmitting ? "Prueft ..." : "Einloggen"}</button>
+        {/* Kein Link per Mail: Das Projekt verschickt keine Mails (lib/password-policy.ts). */}
+        <p className="auth-hint auth-secondary">Passwort vergessen? Wende dich an die Person, die dein Konto angelegt hat. Sie setzt dir ein neues temporäres Passwort.</p>
       </form>
     </main>
   );

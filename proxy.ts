@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { mustChangePassword, PASSWORD_PAGE_PATH } from "@/lib/password-policy";
 
 /* Manifest und Pin-Icon der installierbaren Backend-Apps (Issue #126).
    Browser holen das Manifest ohne Cookies ab, iOS auch das apple-touch-icon.
@@ -44,6 +45,14 @@ export async function proxy(request: NextRequest) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("next", request.nextUrl.pathname);
     return NextResponse.redirect(loginUrl);
+  }
+
+  /* Temporaeres Passwort (vom Anlegen oder Zuruecksetzen): erst ein eigenes
+     waehlen, dann weiter. Das Ziel geht mit, damit es danach dort weitergeht. */
+  if (user && mustChangePassword(user) && request.nextUrl.pathname !== PASSWORD_PAGE_PATH) {
+    const passwordUrl = new URL(PASSWORD_PAGE_PATH, request.url);
+    passwordUrl.searchParams.set("next", request.nextUrl.pathname);
+    return NextResponse.redirect(passwordUrl);
   }
 
   return response;
