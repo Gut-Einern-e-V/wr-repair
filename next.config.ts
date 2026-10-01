@@ -41,6 +41,14 @@ const privateResponseHeaders = [{ key: "Cache-Control", value: "private, no-stor
 const privateApiRoutes = ["/api/admin/:path*", "/api/moderation/:path*", "/api/notifications/:path*", "/api/auth/:path*"];
 
 const nextConfig: NextConfig = {
+  /* Die Sharepics lesen ihre Graustufenlogos zur Laufzeit von der Platte
+     (components/sharepics/logos.ts). Die Dateinamen stehen dort in einer
+     Tabelle, darauf verlaesst sich die Dateiverfolgung nicht - also
+     ausdruecklich mitnehmen. */
+  outputFileTracingIncludes: {
+    "/sharepics/image": ["./components/sharepics/logos/*.png"],
+    "/moderator/sharepics/image": ["./components/sharepics/logos/*.png"],
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

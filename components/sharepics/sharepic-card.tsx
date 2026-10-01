@@ -3,6 +3,7 @@ import { categoryPictogramSvg } from "@/components/category-pictogram";
 import { posterCopy } from "@/lib/poster";
 import { successShare, type PublicStats } from "@/lib/public-stats";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
+import type { SharepicLogos } from "./logos";
 import { shareVisualGrounds, type GroundSpec } from "@/lib/share-visual";
 import {
   autoMilestone,
@@ -18,6 +19,7 @@ import {
   sharepicFormats,
   sharepicMotifs,
   type SharepicFormat,
+  type SharepicLanguage,
   type SharepicRequest,
 } from "@/lib/sharepics";
 
@@ -41,6 +43,8 @@ export type SharepicInput = {
   /** Adresse ohne Protokoll, steht unten auf jedem Bild. */
   domain: string;
   prizeCount: number;
+  /** Die Foerderlogos in Graustufen, als data-URLs (siehe logos.ts). */
+  logos: SharepicLogos;
 };
 
 const ink = "#101626";
@@ -66,9 +70,13 @@ const flexRow: CSSProperties = { display: "flex", flexDirection: "row", alignIte
  * Funktion statt als Modulzustand, weil Satori die Bausteine erst beim
  * Zeichnen aufruft - da laeuft womoeglich schon das naechste Bild.
  */
-function kit(format: SharepicFormat) {
+function kit(format: SharepicFormat, lang: SharepicLanguage) {
   const spec = sharepicFormats[format];
   const px = (value: number) => Math.round(value * spec.scale);
+  /** Der Text in der Sprache des Bildes. */
+  const t = (de: string, en: string) => (lang === "en" ? en : de);
+  const count = (value: number) => formatCount(value, lang);
+  const day = (value: string | Date) => formatDay(value, lang);
 
 
   /**
@@ -125,8 +133,8 @@ function kit(format: SharepicFormat) {
         <div style={{ display: "flex", width: `${fill}%`, height: "100%", background: ground.text === ink ? ink : yellow }} />
       </div>
       <div style={{ ...flexRow, justifyContent: "space-between", fontSize: px(38), fontWeight: 800 }}>
-        <span>{formatCount(total)} von {formatCount(goal)}</span>
-        <span>{percent} %</span>
+        <span>{count(total)} {t("von", "of")} {count(goal)}</span>
+        <span>{t(`${percent} %`, `${percent}%`)}</span>
       </div>
     </div>;
   }
@@ -156,7 +164,7 @@ function kit(format: SharepicFormat) {
       <div style={{ ...flexCol, gap: px(6), flex: 1 }}>
         <div style={{ ...flexRow, justifyContent: "space-between", fontSize: px(36), fontWeight: 800 }}>
           <span>{name}</span>
-          <span>{formatCount(count)}</span>
+          <span>{formatCount(count, lang)}</span>
         </div>
         <div style={{ display: "flex", width: Math.max(12, Math.round((count / Math.max(max, 1)) * barMax)), height: px(14), background: ground.text }} />
       </div>
@@ -185,6 +193,30 @@ function kit(format: SharepicFormat) {
   }
 
 
+  /**
+   * Foerderung und Traegerschaft, wie im Footer (lib/funding.ts), klein und in
+   * Graustufen. Die Logos stehen auf einem hellen Streifen, damit sie auf
+   * jedem Grund gleich aussehen - auch auf dem dunklen, wo die schwarze
+   * Schrift des Ministeriums sonst verschwaende.
+   */
+  function FundingStrip({ logos }: { logos: SharepicLogos }) {
+    /* Nicht ganz so klein wie der Rest: Die Schrift im Ministeriumslogo soll lesbar bleiben. */
+    const height = Math.round(52 * Math.max(spec.scale, 0.8));
+    const label = (lines: string[]) => <div style={{ ...flexCol, flex: "none", fontSize: px(19), fontWeight: 800, lineHeight: 1.2, letterSpacing: 1, textTransform: "uppercase", color: "rgba(16, 22, 38, .72)" }}>
+      {lines.map((line) => <span key={line}>{line}</span>)}
+    </div>;
+    // eslint-disable-next-line @next/next/no-img-element -- Satori kennt nur <img>.
+    const logo = (item: SharepicLogos[number]) => <img key={item.key} src={item.src} width={Math.round(height * item.width / item.height)} height={height} alt="" style={{ flex: "none" }} />;
+    const group = (key: "funded-by" | "initiative-by", lines: string[]) => <div style={{ ...flexRow, flex: "none", gap: px(18) }}>
+      {label(lines)}
+      {logos.filter((item) => item.group === key).map(logo)}
+    </div>;
+    return <div style={{ ...flexRow, justifyContent: "space-between", padding: `${px(14)}px ${px(22)}px`, background: "#ffffff", border: `4px solid ${ink}`, color: ink }}>
+      {group("funded-by", t("Gefördert|von", "Funded|by").split("|"))}
+      {group("initiative-by", t("Eine|Initiative von", "An|initiative by").split("|"))}
+    </div>;
+  }
+
   /* --- Motive --------------------------------------------------------------- */
 
   /** `path` haengt an der Adresse unten, etwa `/gewinnspiel`. */
@@ -192,22 +224,22 @@ function kit(format: SharepicFormat) {
 
   function motifBody({ request, stats, now, prizeCount }: SharepicInput, ground: GroundSpec): MotifBody {
     const { startAt, endAt } = stats.campaign;
-    const period = startAt && endAt ? formatPeriod(startAt, endAt) : null;
+    const period = startAt && endAt ? formatPeriod(startAt, endAt, lang) : null;
     const topCategory = rankEntries(stats.categories, 1)[0];
     const topKreis = rankEntries(stats.kreise, 1)[0];
 
     switch (request.motif) {
       case "launch":
         return {
-          headline: ["Heute geht’s", "los!"],
+          headline: t("Heute geht’s|los!", "It starts|today!").split("|"),
           body: <div style={{ ...flexCol, gap: px(56) }}>
-            <Text size={56} weight={800}>Ganz NRW repariert – gemeinsam zum Reparatur-Weltrekord.</Text>
+            <Text size={56} weight={800}>{t("Ganz NRW repariert – gemeinsam zum Reparatur-Weltrekord.", "All of NRW is repairing – together for a repair world record.")}</Text>
             <div style={{ ...flexCol, gap: px(4) }}>
-              <Kicker ground={ground}>Unser Ziel</Kicker>
-              <BigNumber value={formatCount(stats.goal)} size={230} color={ground.text} />
-              <Text size={52} weight={800}>Reparaturen{period ? ` vom ${period}` : ""}</Text>
+              <Kicker ground={ground}>{t("Unser Ziel", "Our goal")}</Kicker>
+              <BigNumber value={count(stats.goal)} size={230} color={ground.text} />
+              <Text size={52} weight={800}>{t("Reparaturen", "repairs")}{period ? t(` vom ${period}`, ` from ${period}`) : ""}</Text>
             </div>
-            <Text size={42} weight={700} color={ground.muted}>Repariert? Foto machen, eintragen, fertig – jede Reparatur zählt.</Text>
+            <Text size={42} weight={700} color={ground.muted}>{t("Repariert? Foto machen, eintragen, fertig – jede Reparatur zählt.", "Fixed something? Take a photo, add it, done – every repair counts.")}</Text>
           </div>,
         };
 
@@ -215,28 +247,32 @@ function kit(format: SharepicFormat) {
         const left = countdown(startAt, endAt, now.getTime());
         if (!left || left.target === "over") {
           return {
-            headline: ["Vorbei!"],
+            headline: [t("Vorbei!", "It’s over!")],
             body: <div style={{ ...flexCol, gap: px(40) }}>
-              <Text size={60} weight={800}>Der Rekordversuch ist zu Ende. Danke an alle, die mitgemacht haben!</Text>
+              <Text size={60} weight={800}>{t("Der Rekordversuch ist zu Ende. Danke an alle, die mitgemacht haben!", "The record attempt has ended. Thank you to everyone who took part!")}</Text>
               <ProgressBar total={stats.total} goal={stats.goal} ground={ground} />
             </div>,
-            cta: "Das Ergebnis:",
+            cta: t("Das Ergebnis:", "The result:"),
             path: "/stats",
           };
         }
         return {
-          headline: left.target === "start" ? ["Nur noch"] : ["Countdown"],
+          headline: left.target === "start" ? [t("Nur noch", "Only")] : ["Countdown"],
           body: <div style={{ ...flexCol, gap: px(48) }}>
             <div style={{ ...flexRow, gap: px(36), alignItems: "flex-end" }}>
               <BigNumber value={String(left.value)} size={360} color={ground.text} />
-              <Text size={96} weight={900} style={{ paddingBottom: px(30) }}>{left.unit}</Text>
+              <Text size={96} weight={900} style={{ paddingBottom: px(30) }}>{t(left.unit, { Tage: "days", Tag: "day", Stunden: "hours", Stunde: "hour" }[left.unit])}</Text>
             </div>
             <Text size={56} weight={800}>
-              {left.target === "start" ? "bis der Reparaturrekord startet." : left.unit.startsWith("Stunde") ? "bis zum Schluss – letzte Chance!" : "läuft der Reparaturrekord noch."}
+              {left.target === "start"
+                ? t("bis der Reparaturrekord startet.", "until the repair record starts.")
+                : left.unit.startsWith("Stunde")
+                  ? t("bis zum Schluss – letzte Chance!", "to go – last chance!")
+                  : t("läuft der Reparaturrekord noch.", "left in the repair record.")}
             </Text>
             {left.target === "end" && <ProgressBar total={stats.total} goal={stats.goal} ground={ground} />}
           </div>,
-          cta: left.target === "end" ? "Jetzt noch mitmachen:" : undefined,
+          cta: left.target === "end" ? t("Jetzt noch mitmachen:", "Join in now:") : undefined,
         };
       }
 
@@ -244,10 +280,10 @@ function kit(format: SharepicFormat) {
         const top = rankEntries(stats.categories, Math.min(6, spec.rows));
         const max = top[0]?.count ?? 1;
         return {
-          headline: ["Das repariert", "NRW gerade"],
+          headline: t("Das repariert|NRW gerade", "What NRW is|repairing").split("|"),
           body: <div style={{ ...flexCol, gap: px(22) }}>
-            {top.map((entry) => <RankRow key={entry.key} badge={<Pictogram category={entry.key} size={48} />} name={repairCategoryLabel(entry.key)} count={entry.count} max={max} ground={ground} />)}
-            <Text size={38} weight={700} color={ground.muted} style={{ marginTop: px(10) }}>{formatCount(stats.total)} Reparaturen insgesamt</Text>
+            {top.map((entry) => <RankRow key={entry.key} badge={<Pictogram category={entry.key} size={48} />} name={repairCategoryLabel(entry.key, lang)} count={entry.count} max={max} ground={ground} />)}
+            <Text size={38} weight={700} color={ground.muted} style={{ marginTop: px(10) }}>{t(`${count(stats.total)} Reparaturen insgesamt`, `${count(stats.total)} repairs in total`)}</Text>
           </div>,
         };
       }
@@ -257,12 +293,12 @@ function kit(format: SharepicFormat) {
         const max = top[0]?.count ?? 1;
         const places = rankEntries(stats.kreise).length;
         return {
-          headline: ["Wer repariert", "am meisten?"],
+          headline: t("Wer repariert|am meisten?", "Who repairs|the most?").split("|"),
           body: <div style={{ ...flexCol, gap: px(18) }}>
             {top.map((entry, index) => <RankRow key={entry.key} badge={String(index + 1)} name={entry.key} count={entry.count} max={max} ground={ground} />)}
-            <Text size={38} weight={700} color={ground.muted} style={{ marginTop: px(10) }}>{places} Städte und Kreise sind schon dabei</Text>
+            <Text size={38} weight={700} color={ground.muted} style={{ marginTop: px(10) }}>{t(`${places} Städte und Kreise sind schon dabei`, `${places} cities and districts have joined`)}</Text>
           </div>,
-          cta: "Bring deine Stadt nach vorn:",
+          cta: t("Bring deine Stadt nach vorn:", "Push your city to the top:"),
         };
       }
 
@@ -271,18 +307,18 @@ function kit(format: SharepicFormat) {
         const record = stats.dayRecord ?? stats.bestDay?.total ?? null;
         const newRecord = record !== null && stats.today > record;
         return {
-          headline: newRecord ? ["Neuer", "Tagesrekord!"] : ["Heute schon"],
+          headline: newRecord ? t("Neuer|Tagesrekord!", "New daily|record!").split("|") : [t("Heute schon", "Today so far")],
           body: <div style={{ ...flexCol, gap: px(44) }}>
             <div style={{ ...flexCol, gap: px(4) }}>
-              <Kicker ground={ground}>{formatDay(now)}</Kicker>
-              <BigNumber value={formatCount(stats.today)} size={300} color={ground.text} />
-              <Text size={60} weight={900}>Reparaturen an einem Tag</Text>
+              <Kicker ground={ground}>{day(now)}</Kicker>
+              <BigNumber value={count(stats.today)} size={300} color={ground.text} />
+              <Text size={60} weight={900}>{t("Reparaturen an einem Tag", "repairs in one day")}</Text>
             </div>
             <Tiles ground={ground} items={[
-              { label: "Bester Tag", value: stats.bestDay ? formatCount(stats.bestDay.total) : "–", sub: stats.bestDay ? formatDay(stats.bestDay.date) : "noch keiner" },
-              { label: "Tagesrekord", value: stats.dayRecord ? formatCount(stats.dayRecord) : "–", sub: stats.dayRecord ? "zu knacken" : "noch offen" },
-              ...(leader ? [{ label: "Vorn heute", value: leader.key, sub: `${formatCount(leader.count)} Reparaturen` }] : []),
-              { label: "Insgesamt", value: formatCount(stats.total), sub: `${goalPercent(stats.total, stats.goal)} % vom Ziel` },
+              { label: t("Bester Tag", "Best day"), value: stats.bestDay ? count(stats.bestDay.total) : "–", sub: stats.bestDay ? day(stats.bestDay.date) : t("noch keiner", "none yet") },
+              { label: t("Tagesrekord", "Daily record"), value: stats.dayRecord ? count(stats.dayRecord) : "–", sub: stats.dayRecord ? t("zu knacken", "to beat") : t("noch offen", "still open") },
+              ...(leader ? [{ label: t("Vorn heute", "Leading today"), value: leader.key, sub: t(`${count(leader.count)} Reparaturen`, `${count(leader.count)} repairs`) }] : []),
+              { label: t("Insgesamt", "In total"), value: count(stats.total), sub: t(`${goalPercent(stats.total, stats.goal)} % vom Ziel`, `${goalPercent(stats.total, stats.goal)}% of the goal`) },
             ]} />
           </div>,
         };
@@ -291,31 +327,31 @@ function kit(format: SharepicFormat) {
       case "milestone": {
         const value = request.milestone ?? autoMilestone(stats.total);
         return {
-          headline: ["Meilenstein!"],
+          headline: [t("Meilenstein!", "Milestone!")],
           body: <div style={{ ...flexCol, gap: px(48) }}>
             <div style={{ ...flexCol, gap: px(4) }}>
-              <BigNumber value={formatCount(value)} size={300} color={ground.text} />
-              <Text size={68} weight={900}>Reparaturen geschafft!</Text>
+              <BigNumber value={count(value)} size={300} color={ground.text} />
+              <Text size={68} weight={900}>{t("Reparaturen geschafft!", "repairs done!")}</Text>
             </div>
             <ProgressBar total={stats.total} goal={stats.goal} ground={ground} />
-            <Text size={44} weight={700} color={ground.muted}>Danke an alle, die mitmachen. Weiter geht’s!</Text>
+            <Text size={44} weight={700} color={ground.muted}>{t("Danke an alle, die mitmachen. Weiter geht’s!", "Thanks to everyone taking part. Let’s keep going!")}</Text>
           </div>,
         };
       }
 
       case "impact":
         return {
-          headline: ["Das hat NRW", "schon gerettet"],
+          headline: t("Das hat NRW|schon gerettet", "What NRW has|saved so far").split("|"),
           body: <div style={{ ...flexCol, gap: px(34) }}>
             {[
-              { value: formatHours(stats.minutesSaved), label: "Stunden Reparaturzeit" },
-              { value: `${formatCount(stats.valueSavedEuros)} €`, label: "an Wert erhalten statt weggeworfen" },
-              { value: `${formatCount(successShare(stats.succeeded, stats.attempted, stats.total))} %`, label: "der Reparaturversuche gelungen" },
+              { value: formatHours(stats.minutesSaved, lang), label: t("Stunden Reparaturzeit", "hours of repair time") },
+              { value: t(`${count(stats.valueSavedEuros)} €`, `€${count(stats.valueSavedEuros)}`), label: t("an Wert erhalten statt weggeworfen", "in value kept instead of thrown away") },
+              { value: t(`${count(successShare(stats.succeeded, stats.attempted, stats.total))} %`, `${count(successShare(stats.succeeded, stats.attempted, stats.total))}%`), label: t("der Reparaturversuche gelungen", "of repair attempts succeeded") },
             ].map((item) => <div key={item.label} style={{ ...flexCol, gap: px(0) }}>
               <BigNumber value={item.value} size={150} color={ground.text} />
               <Text size={46} weight={800}>{item.label}</Text>
             </div>)}
-            <Text size={36} weight={700} color={ground.muted}>Aus {formatCount(stats.total)} gemeldeten Reparaturen</Text>
+            <Text size={36} weight={700} color={ground.muted}>{t(`Aus ${count(stats.total)} gemeldeten Reparaturen`, `From ${count(stats.total)} reported repairs`)}</Text>
           </div>,
         };
 
@@ -323,22 +359,22 @@ function kit(format: SharepicFormat) {
         const reached = stats.total >= stats.goal;
         const tileWidth = Math.floor((INNER - px(24)) / 2);
         return {
-          headline: reached ? ["Ziel", "erreicht!"] : ["Danke, NRW!"],
+          headline: reached ? t("Ziel|erreicht!", "Goal|reached!").split("|") : [t("Danke, NRW!", "Thank you, NRW!")],
           body: <div style={{ ...flexCol, gap: px(40) }}>
             <div style={{ ...flexCol, gap: px(4) }}>
               {period && <Kicker ground={ground}>{period}</Kicker>}
-              <BigNumber value={formatCount(stats.total)} size={240} color={ground.text} />
-              <Text size={56} weight={900}>Reparaturen</Text>
-              <Text size={40} weight={700} color={ground.muted}>{goalPercent(stats.total, stats.goal)} % vom Ziel ({formatCount(stats.goal)})</Text>
+              <BigNumber value={count(stats.total)} size={240} color={ground.text} />
+              <Text size={56} weight={900}>{t("Reparaturen", "repairs")}</Text>
+              <Text size={40} weight={700} color={ground.muted}>{t(`${goalPercent(stats.total, stats.goal)} % vom Ziel (${count(stats.goal)})`, `${goalPercent(stats.total, stats.goal)}% of the goal (${count(stats.goal)})`)}</Text>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: px(24) }}>
-              <Tile ground={ground} width={tileWidth} label="Stunden" value={formatHours(stats.minutesSaved)} sub="repariert" />
-              <Tile ground={ground} width={tileWidth} label="Wert" value={`${formatCount(stats.valueSavedEuros)} €`} sub="erhalten" />
-              <Tile ground={ground} width={tileWidth} label="Top-Kategorie" value={topCategory ? repairCategoryLabel(topCategory.key) : "–"} sub={topCategory ? `${formatCount(topCategory.count)}×` : undefined} />
-              <Tile ground={ground} width={tileWidth} label="Top-Ort" value={topKreis?.key ?? "–"} sub={topKreis ? `${formatCount(topKreis.count)}×` : undefined} />
+              <Tile ground={ground} width={tileWidth} label={t("Stunden", "Hours")} value={formatHours(stats.minutesSaved, lang)} sub={t("repariert", "repaired")} />
+              <Tile ground={ground} width={tileWidth} label={t("Wert", "Value")} value={t(`${count(stats.valueSavedEuros)} €`, `€${count(stats.valueSavedEuros)}`)} sub={t("erhalten", "kept")} />
+              <Tile ground={ground} width={tileWidth} label={t("Top-Kategorie", "Top category")} value={topCategory ? repairCategoryLabel(topCategory.key, lang) : "–"} sub={topCategory ? `${count(topCategory.count)}×` : undefined} />
+              <Tile ground={ground} width={tileWidth} label={t("Top-Ort", "Top place")} value={topKreis?.key ?? "–"} sub={topKreis ? `${count(topKreis.count)}×` : undefined} />
             </div>
           </div>,
-          cta: "Alle Zahlen:",
+          cta: t("Alle Zahlen:", "All the numbers:"),
           path: "/stats",
         };
       }
@@ -350,16 +386,16 @@ function kit(format: SharepicFormat) {
           headline: [name],
           body: <div style={{ ...flexCol, gap: px(48) }}>
             <div style={{ ...flexCol, gap: px(4) }}>
-              <Kicker ground={ground}>Stand in {name}</Kicker>
-              <BigNumber value={formatCount(standing.count)} size={320} color={ground.text} />
-              <Text size={64} weight={900}>Reparaturen</Text>
+              <Kicker ground={ground}>{t(`Stand in ${name}`, `Status in ${name}`)}</Kicker>
+              <BigNumber value={count(standing.count)} size={320} color={ground.text} />
+              <Text size={64} weight={900}>{t("Reparaturen", "repairs")}</Text>
             </div>
             <Tiles ground={ground} items={[
-              { label: "Platz", value: standing.rank ? `${standing.rank}.` : "–", sub: standing.of ? `von ${standing.of} in NRW` : "noch offen" },
-              { label: "Heute", value: formatCount(standing.today), sub: "Reparaturen" },
+              { label: t("Platz", "Rank"), value: standing.rank ? t(`${standing.rank}.`, `#${standing.rank}`) : "–", sub: standing.of ? t(`von ${standing.of} in NRW`, `of ${standing.of} in NRW`) : t("noch offen", "still open") },
+              { label: t("Heute", "Today"), value: count(standing.today), sub: t("Reparaturen", "repairs") },
             ]} />
           </div>,
-          cta: `Mach mit, ${name}:`,
+          cta: t(`Mach mit, ${name}:`, `Join in, ${name}:`),
         };
       }
 
@@ -371,58 +407,63 @@ function kit(format: SharepicFormat) {
         const b = kreisStanding(stats, nameB);
         const max = Math.max(a.count, b.count, 1);
         const diff = Math.abs(a.count - b.count);
-        const verdict = diff === 0 ? "Gleichstand! Wer legt nach?" : `${a.count > b.count ? nameA : nameB} liegt ${formatCount(diff)} Reparaturen vorn.`;
+        const leader = a.count > b.count ? nameA : nameB;
+        const verdict = diff === 0
+          ? t("Gleichstand! Wer legt nach?", "It’s a tie! Who’s next?")
+          : t(`${leader} liegt ${count(diff)} Reparaturen vorn.`, `${leader} leads by ${count(diff)} ${diff === 1 ? "repair" : "repairs"}.`);
         const side = (standing: typeof a) => <div style={{ ...flexCol, gap: px(10) }}>
           <Text size={62} weight={900}>{standing.name}</Text>
           <div style={{ ...flexRow, gap: px(24) }}>
             <div style={{ display: "flex", width: Math.max(16, Math.round((standing.count / max) * (INNER - px(300)))), height: px(64), background: ground.text }} />
-            <div style={{ display: "flex", fontSize: px(88), fontWeight: 900 }}>{formatCount(standing.count)}</div>
+            <div style={{ display: "flex", fontSize: px(88), fontWeight: 900 }}>{count(standing.count)}</div>
           </div>
         </div>;
         return {
-          headline: ["Stadt-Duell"],
+          headline: [t("Stadt-Duell", "City duel")],
           body: <div style={{ ...flexCol, gap: px(40) }}>
             {side(a)}
             <div style={{ display: "flex", alignSelf: "center", padding: "10px 40px 18px", border: `5px solid ${ink}`, background: ground.sticker, color: ground.stickerText, fontSize: px(80), fontWeight: 900, transform: "rotate(-3deg)" }}>VS</div>
             {side(b)}
             <Text size={46} weight={800} style={{ marginTop: px(16) }}>{verdict}</Text>
           </div>,
-          cta: "Hilf deiner Stadt:",
+          cta: t("Hilf deiner Stadt:", "Help your city:"),
         };
       }
 
       case "lottery":
         return {
-          headline: ["Reparieren", "und gewinnen"],
+          headline: t("Reparieren|und gewinnen", "Repair|and win").split("|"),
           body: <div style={{ ...flexCol, gap: px(36) }}>
-            <Text size={48} weight={800}>Jede Reparatur, die du einreichst, kann an der Verlosung teilnehmen.</Text>
+            <Text size={48} weight={800}>{t("Jede Reparatur, die du einreichst, kann an der Verlosung teilnehmen.", "Every repair you submit can enter the prize draw.")}</Text>
             {prizeCount > 0 && <div style={{ ...flexRow, gap: px(28), alignItems: "flex-end" }}>
-              <BigNumber value={formatCount(prizeCount)} size={180} color={ground.text} />
-              <Text size={72} weight={900} style={{ paddingBottom: px(20) }}>Preise</Text>
+              <BigNumber value={count(prizeCount)} size={180} color={ground.text} />
+              <Text size={72} weight={900} style={{ paddingBottom: px(20) }}>{t("Preise", "prizes")}</Text>
             </div>}
-            <Steps ground={ground} steps={["Reparatur eintragen", "Häkchen beim Gewinnspiel setzen", "Ziehung nach dem Rekordmonat abwarten"]} />
+            <Steps ground={ground} steps={lang === "en"
+              ? ["Add your repair", "Tick the prize draw box", "Wait for the draw after the record month"]
+              : ["Reparatur eintragen", "Häkchen beim Gewinnspiel setzen", "Ziehung nach dem Rekordmonat abwarten"]} />
           </div>,
-          cta: "Alle Infos:",
+          cta: t("Alle Infos:", "All the details:"),
           path: "/gewinnspiel",
         };
 
       case "howto":
         return {
-          headline: ["So bist du", "dabei"],
+          headline: t("So bist du|dabei", "How to|join in").split("|"),
           body: <div style={{ ...flexCol, gap: px(56) }}>
-            <Steps ground={ground} steps={posterCopy.de.steps} />
+            <Steps ground={ground} steps={posterCopy[lang].steps} />
             {/* Nur die Story hat einen Link-Sticker, auf den der Pfeil zeigen kann. */}
             {format === "story" && <div style={{ ...flexCol, alignItems: "center", gap: px(28), marginTop: px(20) }}>
-              <Text size={46} weight={900}>Link antippen und loslegen</Text>
+              <Text size={46} weight={900}>{t("Link antippen und loslegen", "Tap the link and get started")}</Text>
               <ArrowDown color={ground.text} />
             </div>}
           </div>,
-          cta: format === "story" ? "Oder direkt:" : undefined,
+          cta: format === "story" ? t("Oder direkt:", "Or go straight to:") : undefined,
         };
     }
   }
 
-  return { px, spec, Headline, motifBody };
+  return { px, spec, t, Headline, FundingStrip, motifBody };
 }
 
 /* --- Karte ---------------------------------------------------------------- */
@@ -430,7 +471,7 @@ function kit(format: SharepicFormat) {
 export function SharepicCard(input: SharepicInput) {
   const { request, now, domain } = input;
   const ground = shareVisualGrounds[request.ground];
-  const { px, spec, Headline, motifBody } = kit(request.format);
+  const { px, spec, t, Headline, FundingStrip, motifBody } = kit(request.format, request.lang);
   const { headline, body, cta, path = "" } = motifBody(input, ground);
   const live = sharepicMotifs[request.motif].live;
   const story = request.format === "story";
@@ -462,11 +503,12 @@ export function SharepicCard(input: SharepicInput) {
       </div>
 
       <div style={{ ...flexCol, gap: px(10) }}>
-        {live && <div style={{ display: "flex", fontSize: px(28), fontWeight: 700, color: ground.muted }}>{formatStand(now)}</div>}
+        {live && <div style={{ display: "flex", fontSize: px(28), fontWeight: 700, color: ground.muted }}>{formatStand(now, request.lang)}</div>}
         <div style={{ ...flexRow, gap: px(18), flexWrap: "wrap", fontSize: px(44), fontWeight: 900 }}>
-          <span>{cta ?? "Mach mit:"}</span>
+          <span>{cta ?? t("Mach mit:", "Join in:")}</span>
           <div style={{ display: "flex", padding: "2px 18px 8px", background: request.ground === "ink" ? yellow : ink, color: request.ground === "ink" ? ink : bg, transform: "rotate(-1deg)" }}>{`${domain}${path}`}</div>
         </div>
+        {input.logos.length > 0 && <div style={{ ...flexCol, marginTop: px(18) }}><FundingStrip logos={input.logos} /></div>}
       </div>
 
       {/* Im unteren Schutzraum nur, was niemand lesen muss. */}
@@ -474,7 +516,7 @@ export function SharepicCard(input: SharepicInput) {
         #reparaturrekord · Circular Week 2026
       </div>}
 
-      {request.demo && <div style={{ position: "absolute", left: 0, top: Math.round(spec.height * 0.4), width: "100%", display: "flex", justifyContent: "center", fontSize: px(200), fontWeight: 900, color: request.ground === "ink" ? "rgba(255, 196, 50, .35)" : "rgba(214, 40, 40, .3)", transform: "rotate(-24deg)" }}>BEISPIEL</div>}
+      {request.demo && <div style={{ position: "absolute", left: 0, top: Math.round(spec.height * 0.4), width: "100%", display: "flex", justifyContent: "center", fontSize: px(200), fontWeight: 900, color: request.ground === "ink" ? "rgba(255, 196, 50, .35)" : "rgba(214, 40, 40, .3)", transform: "rotate(-24deg)" }}>{t("BEISPIEL", "SAMPLE")}</div>}
     </div>
   </div>;
 }

@@ -4,6 +4,7 @@ import {
   countdown,
   formatLastDay,
   formatPeriod,
+  formatStand,
   goalPercent,
   kreisStanding,
   parseHeadline,
@@ -93,6 +94,13 @@ describe("Anfrage", () => {
     expect(formatPeriod(start, end)).toBe("1.–31. Oktober");
     expect(formatPeriod("2026-10-27T23:00:00Z", "2026-11-03T23:00:00Z")).toBe("28. Oktober – 3. November");
   });
+
+  it("schreibt Zeitraum und Stand auch auf Englisch", () => {
+    expect(formatPeriod(start, end, "en")).toBe("1–31 October");
+    expect(formatPeriod("2026-10-27T23:00:00Z", "2026-11-03T23:00:00Z", "en")).toBe("28 October – 3 November");
+    expect(formatStand(new Date("2026-10-12T12:30:00Z"), "en")).toBe("As of 12 October, 14:30");
+    expect(formatStand(new Date("2026-10-12T12:30:00Z"))).toBe("Stand: 12. Oktober, 14:30 Uhr");
+  });
 });
 
 describe("Oeffentliche Sharepics", () => {
@@ -124,6 +132,13 @@ describe("Oeffentliche Sharepics", () => {
     expect(parse("motif=launch&format=riesig").format).toBe("story");
     expect(publicSharepicQuery(parse("motif=launch&format=story"))).toBe("motif=launch&ground=yellow");
     expect(publicSharepicQuery(parse("kreis=Köln&format=portrait&motif=kreis"))).toBe("motif=kreis&ground=mint&format=portrait&kreis=K%C3%B6ln");
+  });
+
+  it("nimmt die Sprache mit, laesst Deutsch als Vorgabe aber weg", () => {
+    expect(parse("motif=launch&lang=en").lang).toBe("en");
+    expect(parse("motif=launch&lang=fr").lang).toBe("de");
+    expect(publicSharepicQuery(parse("lang=de&motif=launch"))).toBe("motif=launch&ground=yellow");
+    expect(publicSharepicQuery(parse("lang=en&format=square&motif=kreis&kreis=Köln"))).toBe("motif=kreis&ground=mint&format=square&lang=en&kreis=K%C3%B6ln");
   });
 
   it("aendert eine kanonische Adresse nicht", () => {
