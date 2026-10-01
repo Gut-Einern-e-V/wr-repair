@@ -909,6 +909,80 @@ export const rhineCourse: LatLon[] = [
 ];
 
 /**
+ * Weitere Fluesse als Orientierungslinien, je Fluss ein oder mehrere Stuecke.
+ *
+ * Gezeichnet wird nur, was innerhalb der vereinfachten Landesgrenze liegt:
+ * Weser und Sieg verlassen das Land zwischendurch, deshalb haben sie zwei
+ * Stuecke. Ems und Rur enden an der Grenze. Die Punkte folgen den Orten am
+ * Fluss und sind so grob wie der Rheinlauf.
+ */
+export const nrwRivers: { name: string; courses: LatLon[][] }[] = [
+  { name: "Rhein", courses: [rhineCourse] },
+  {
+    name: "Ruhr",
+    courses: [[
+      { lat: 51.2, lon: 8.53 }, { lat: 51.35, lon: 8.28 }, { lat: 51.4, lon: 8.06 }, { lat: 51.45, lon: 7.96 },
+      { lat: 51.47, lon: 7.76 }, { lat: 51.44, lon: 7.57 }, { lat: 51.41, lon: 7.47 }, { lat: 51.39, lon: 7.39 },
+      { lat: 51.43, lon: 7.33 }, { lat: 51.4, lon: 7.18 }, { lat: 51.4, lon: 7.02 }, { lat: 51.43, lon: 6.88 },
+      { lat: 51.45, lon: 6.73 },
+    ]],
+  },
+  {
+    name: "Wupper",
+    courses: [[
+      { lat: 51.08, lon: 7.53 }, { lat: 51.15, lon: 7.34 }, { lat: 51.25, lon: 7.3 }, { lat: 51.27, lon: 7.2 },
+      { lat: 51.26, lon: 7.14 }, { lat: 51.24, lon: 7.08 }, { lat: 51.16, lon: 7.13 }, { lat: 51.135, lon: 7.15 },
+      { lat: 51.11, lon: 7.02 }, { lat: 51.07, lon: 7.0 }, { lat: 51.04, lon: 6.97 },
+    ]],
+  },
+  {
+    name: "Lippe",
+    courses: [[
+      { lat: 51.78, lon: 8.82 }, { lat: 51.75, lon: 8.7 }, { lat: 51.67, lon: 8.35 }, { lat: 51.68, lon: 7.82 },
+      { lat: 51.66, lon: 7.63 }, { lat: 51.62, lon: 7.52 }, { lat: 51.65, lon: 7.34 }, { lat: 51.74, lon: 7.18 },
+      { lat: 51.66, lon: 6.96 }, { lat: 51.69, lon: 6.86 }, { lat: 51.65, lon: 6.61 },
+    ]],
+  },
+  {
+    name: "Weser",
+    courses: [
+      [{ lat: 51.66, lon: 9.37 }, { lat: 51.72, lon: 9.39 }, { lat: 51.77, lon: 9.38 }],
+      [{ lat: 52.17, lon: 8.86 }, { lat: 52.2, lon: 8.8 }, { lat: 52.24, lon: 8.92 }, { lat: 52.29, lon: 8.92 }, { lat: 52.38, lon: 8.97 }],
+    ],
+  },
+  {
+    name: "Ems",
+    courses: [[
+      { lat: 51.88, lon: 8.7 }, { lat: 51.85, lon: 8.3 }, { lat: 51.96, lon: 8.23 }, { lat: 51.95, lon: 7.99 },
+      { lat: 51.98, lon: 7.79 }, { lat: 52.09, lon: 7.61 }, { lat: 52.17, lon: 7.53 }, { lat: 52.28, lon: 7.44 },
+    ]],
+  },
+  {
+    name: "Sieg",
+    courses: [
+      [{ lat: 50.93, lon: 8.2 }, { lat: 50.87, lon: 8.02 }, { lat: 50.84, lon: 7.96 }],
+      [{ lat: 50.77, lon: 7.57 }, { lat: 50.77, lon: 7.45 }, { lat: 50.78, lon: 7.28 }, { lat: 50.79, lon: 7.21 }, { lat: 50.77, lon: 7.08 }],
+    ],
+  },
+  {
+    name: "Erft",
+    courses: [[
+      { lat: 50.5, lon: 6.75 }, { lat: 50.55, lon: 6.76 }, { lat: 50.66, lon: 6.79 }, { lat: 50.75, lon: 6.84 },
+      { lat: 50.81, lon: 6.79 }, { lat: 50.87, lon: 6.7 }, { lat: 50.95, lon: 6.64 }, { lat: 51.0, lon: 6.57 },
+      { lat: 51.09, lon: 6.59 }, { lat: 51.18, lon: 6.79 },
+    ]],
+  },
+  {
+    name: "Rur",
+    courses: [[
+      { lat: 50.55, lon: 6.25 }, { lat: 50.63, lon: 6.47 }, { lat: 50.69, lon: 6.48 }, { lat: 50.8, lon: 6.48 },
+      { lat: 50.92, lon: 6.36 }, { lat: 50.98, lon: 6.27 }, { lat: 51.05, lon: 6.22 }, { lat: 51.09, lon: 6.16 },
+      { lat: 51.12, lon: 6.12 },
+    ]],
+  },
+];
+
+/**
  * Ballungsraeume mit relativem Gewicht. Das Gewicht steuert nur, wie dicht die
  * symbolische Punktwolke dort erscheint, und bildet ungefaehr die
  * Bevoelkerungsverteilung ab.

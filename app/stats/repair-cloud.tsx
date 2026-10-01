@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { cellPoint, cloudSlots, hashString, nrwHubs, nrwKreise, nrwOutline, projectToUnitSquare, randomPointInKreis, rhineCourse, seededRandom, symbolicPosition, type CloudSlot, type OriginCell } from "@/lib/nrw-map";
+import { cellPoint, cloudSlots, hashString, nrwHubs, nrwKreise, nrwOutline, nrwRivers, projectToUnitSquare, randomPointInKreis, seededRandom, symbolicPosition, type CloudSlot, type OriginCell } from "@/lib/nrw-map";
 
 /**
  * Punktwolke aller Reparaturen ueber der Karte von Nordrhein-Westfalen.
@@ -101,7 +101,7 @@ const MAX_PARTICLES = 9_000;
 const FLIGHT_STEP = 0.011;
 
 const outlineUnit = nrwOutline.map(projectToUnitSquare);
-const rhineUnit = rhineCourse.map(projectToUnitSquare);
+const riverUnits = nrwRivers.flatMap((river) => river.courses.map((course) => course.map(projectToUnitSquare)));
 const kreiseUnit = nrwKreise.map((kreis) => ({ name: kreis.name, ring: kreis.outline.map(projectToUnitSquare) }));
 
 /**
@@ -580,11 +580,14 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
       context.strokeStyle = "rgba(149, 212, 187, 0.75)";
       context.stroke();
 
-      // Rhein als Orientierungslinie.
-      tracePath(rhineUnit, false);
+      // Rhein und die groesseren Fluesse als Orientierungslinien.
       context.lineWidth = Math.max(1.5, scale / 330);
       context.strokeStyle = "rgba(120, 205, 220, 0.5)";
-      context.stroke();
+      context.lineJoin = "round";
+      for (const river of riverUnits) {
+        tracePath(river, false);
+        context.stroke();
+      }
 
       // Beim Zoom auf ein Bild blenden die Ortsnamen aus, damit der Spotlight
       // nicht auf beschrifteten Punkten liegt. Gezeichnet werden sie erst nach

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cellPoint, cloudSlots, hashString, isInsideNrw, kreisForPoint, kreisTotals, nrwBounds, nrwHubs, nrwKreise, nrwOutline, projectToUnitSquare, randomPointInKreis, rankKreise, rhineCourse, seededRandom, symbolicPosition, unprojectFromUnitSquare } from "./nrw-map";
+import { cellPoint, cloudSlots, hashString, isInsideNrw, kreisForPoint, kreisTotals, nrwBounds, nrwHubs, nrwKreise, nrwOutline, projectToUnitSquare, randomPointInKreis, rankKreise, rhineCourse, nrwRivers, seededRandom, symbolicPosition, unprojectFromUnitSquare } from "./nrw-map";
 
 describe("projectToUnitSquare", () => {
   it("bildet die gesamte Kontur in das Einheitsquadrat ab", () => {
@@ -36,6 +36,16 @@ describe("isInsideNrw", () => {
   it("schliesst den Rheinlauf ein", () => {
     for (const point of rhineCourse) {
       expect(isInsideNrw(point)).toBe(true);
+    }
+  });
+
+  it("schliesst alle Flusslaeufe ein", () => {
+    for (const river of nrwRivers) {
+      for (const course of river.courses) {
+        for (const point of course) {
+          expect(isInsideNrw(point), `${river.name} ${point.lat},${point.lon}`).toBe(true);
+        }
+      }
     }
   });
 });

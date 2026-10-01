@@ -12,10 +12,10 @@ afterEach(() => setSiteUrl(originalSiteUrl));
 
 describe("share links", () => {
   it("prefers the configured site URL so a domain change only happens in one place", () => {
-    setSiteUrl("https://reparatur.fab-bergisch.org/");
-    expect(getSiteUrl("https://preview.example")).toBe("https://reparatur.fab-bergisch.org");
+    setSiteUrl("https://www.reparatur-weltrekord.de/");
+    expect(getSiteUrl("https://preview.example")).toBe("https://www.reparatur-weltrekord.de");
     expect(buildRepairUrl("11111111-2222-4333-8444-555555555555")).toBe(
-      "https://reparatur.fab-bergisch.org/reparatur/11111111-2222-4333-8444-555555555555",
+      "https://www.reparatur-weltrekord.de/reparatur/11111111-2222-4333-8444-555555555555",
     );
   });
 
