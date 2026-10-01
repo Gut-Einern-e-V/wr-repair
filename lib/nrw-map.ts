@@ -912,9 +912,10 @@ export const rhineCourse: LatLon[] = [
  * Weitere Fluesse als Orientierungslinien, je Fluss ein oder mehrere Stuecke.
  *
  * Gezeichnet wird nur, was innerhalb der vereinfachten Landesgrenze liegt:
- * Weser und Sieg verlassen das Land zwischendurch, deshalb haben sie zwei
- * Stuecke. Ems und Rur enden an der Grenze. Die Punkte folgen den Orten am
- * Fluss und sind so grob wie der Rheinlauf.
+ * Die Sieg verlaesst das Land zwischendurch, deshalb hat sie zwei Stuecke.
+ * Ems und Rur enden an der Grenze. Die Weser fehlt bewusst: Von ihr laege nur
+ * ein kurzer Rest am Ostrand im Land, der auf der Karte nicht lesbar ist.
+ * Die Punkte folgen den Orten am Fluss und sind so grob wie der Rheinlauf.
  */
 export const nrwRivers: { name: string; courses: LatLon[][] }[] = [
   { name: "Rhein", courses: [rhineCourse] },
@@ -942,13 +943,6 @@ export const nrwRivers: { name: string; courses: LatLon[][] }[] = [
       { lat: 51.66, lon: 7.63 }, { lat: 51.62, lon: 7.52 }, { lat: 51.65, lon: 7.34 }, { lat: 51.74, lon: 7.18 },
       { lat: 51.66, lon: 6.96 }, { lat: 51.69, lon: 6.86 }, { lat: 51.65, lon: 6.61 },
     ]],
-  },
-  {
-    name: "Weser",
-    courses: [
-      [{ lat: 51.66, lon: 9.37 }, { lat: 51.72, lon: 9.39 }, { lat: 51.77, lon: 9.38 }],
-      [{ lat: 52.17, lon: 8.86 }, { lat: 52.2, lon: 8.8 }, { lat: 52.24, lon: 8.92 }, { lat: 52.29, lon: 8.92 }, { lat: 52.38, lon: 8.97 }],
-    ],
   },
   {
     name: "Ems",
