@@ -25,6 +25,7 @@ export default function BackendHeader({ area, email, logoUrl, canAdminister }: {
           {canAdminister && <Link className={area === "admin" ? "is-current" : ""} href="/admin">Administration</Link>}
         </nav>
         <span className="backend-user">{email}</span>
+        <Link className="text-button" href="/moderator/passwort">Passwort</Link>
         <form action="/api/auth/signout" method="post"><button className="text-button" type="submit">Abmelden</button></form>
       </div>
     </header>

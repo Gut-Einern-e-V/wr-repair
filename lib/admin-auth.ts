@@ -1,5 +1,6 @@
 import "server-only";
 import { createSupabaseServerClient } from "@/lib/supabase/auth";
+import { mustChangePassword } from "@/lib/password-policy";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 export type AppRole = "moderator" | "admin" | "superadmin";
@@ -25,11 +26,20 @@ export async function getCurrentAdmin() {
   return { user, roles: (roleRows ?? []).map((row) => row.role as AppRole) };
 }
 
+/* Mit temporaerem Passwort geht nur der Passwortwechsel selbst
+   (app/api/auth/password, der getCurrentAdmin direkt nutzt). Die Seiten leitet
+   proxy.ts um, die Schnittstellen sperren hier. */
+const passwordChangePending = { authorized: false as const, error: "Bitte wähle zuerst ein eigenes Passwort.", status: 403 };
+
 export async function requireModerator() {
   const currentAdmin = await getCurrentAdmin();
 
   if (!currentAdmin) {
     return { authorized: false as const, error: "Nicht angemeldet.", status: 401 };
+  }
+
+  if (mustChangePassword(currentAdmin.user)) {
+    return passwordChangePending;
   }
 
   if (!currentAdmin.roles.some((role) => ["moderator", "admin", "superadmin"].includes(role))) {
@@ -46,6 +56,10 @@ export async function requireAdmin() {
     return { authorized: false as const, error: "Nicht angemeldet.", status: 401 };
   }
 
+  if (mustChangePassword(currentAdmin.user)) {
+    return passwordChangePending;
+  }
+
   if (!currentAdmin.roles.some((role) => ["admin", "superadmin"].includes(role))) {
     return { authorized: false as const, error: "Dieses Konto hat keine Verwaltungsberechtigung.", status: 403 };
   }
@@ -58,6 +72,10 @@ export async function requireSuperadmin() {
 
   if (!currentAdmin) {
     return { authorized: false as const, error: "Nicht angemeldet.", status: 401 };
+  }
+
+  if (mustChangePassword(currentAdmin.user)) {
+    return passwordChangePending;
   }
 
   if (!currentAdmin.roles.includes("superadmin")) {
