@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { posterBackgrounds } from "@/lib/poster";
 import { shareVisualGroundOrder, type ShareVisualGround } from "@/lib/share-visual";
-import { HEADLINE_MAX_CHARS, HEADLINE_MAX_LINES, sharepicFormatOrder, sharepicFormats, sharepicMotifOrder, sharepicMotifs, type SharepicFormat, type SharepicMotif } from "@/lib/sharepics";
+import { HEADLINE_MAX_CHARS, HEADLINE_MAX_LINES, sharepicFormatOrder, sharepicFormats, sharepicLanguageOrder, sharepicLanguages, sharepicMotifOrder, sharepicMotifs, type SharepicFormat, type SharepicLanguage, type SharepicMotif } from "@/lib/sharepics";
 
 const groups = ["Start", "Laufend", "Finale", "Extras"] as const;
 
@@ -24,6 +24,7 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
   const imagePath = moderation ? "/moderator/sharepics/image" : "/sharepics/image";
   const [motif, setMotif] = useState<SharepicMotif>("launch");
   const [format, setFormat] = useState<SharepicFormat>("story");
+  const [lang, setLang] = useState<SharepicLanguage>("de");
   const [ground, setGround] = useState<ShareVisualGround>(sharepicMotifs.launch.ground);
   const [kreis, setKreis] = useState("");
   const [kreisB, setKreisB] = useState("");
@@ -45,13 +46,14 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
     const params = new URLSearchParams({ motif, ground });
     /* Reihenfolge wie `publicSharepicQuery`, sonst leitet die oeffentliche Route jedes Bild erst um. */
     if (format !== "story") params.set("format", format);
+    if (lang !== "de") params.set("lang", lang);
     if (spec.params.includes("kreis") && kreis) params.set("kreis", kreis);
     if (spec.params.includes("kreisB") && kreisB) params.set("kreisB", kreisB);
     if (moderation && spec.params.includes("milestone") && milestone) params.set("milestone", milestone);
     if (moderation && headline.trim()) params.set("headline", headline);
     if (moderation && demo) params.set("demo", "1");
     return params.toString();
-  }, [motif, format, ground, kreis, kreisB, milestone, headline, demo, spec.params, moderation]);
+  }, [motif, format, lang, ground, kreis, kreisB, milestone, headline, demo, spec.params, moderation]);
 
   /* Tippen soll nicht bei jedem Buchstaben ein neues Bild anfordern. */
   const [previewQuery, setPreviewQuery] = useState(query);
@@ -108,6 +110,16 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
             {sharepicFormatOrder.map((value) => <label key={value}>
               <input type="radio" name="sharepic-format" value={value} checked={format === value} onChange={() => setFormat(value)} />
               <span>{sharepicFormats[value].label}<small>{sharepicFormats[value].hint}</small></span>
+            </label>)}
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>Sprache</legend>
+          <div className="poster-choices">
+            {sharepicLanguageOrder.map((value) => <label key={value}>
+              <input type="radio" name="sharepic-lang" value={value} checked={lang === value} onChange={() => setLang(value)} />
+              <span lang={value}>{sharepicLanguages[value].label}</span>
             </label>)}
           </div>
         </fieldset>

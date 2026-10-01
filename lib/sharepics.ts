@@ -95,9 +95,9 @@ export type SharepicFormatSpec = {
  * von Facebook und LinkedIn zeigen 4:5 und 1:1 ohnehin groesser an.
  */
 export const sharepicFormats: Record<SharepicFormat, SharepicFormatSpec> = {
-  story: { label: "Story", hint: "9:16 · Instagram, Facebook, WhatsApp-Status", width: 1080, height: 1920, safe: { top: 250, bottom: 280 }, scale: 1, rows: 7 },
-  portrait: { label: "Hochformat", hint: "4:5 · Feed bei Instagram, Facebook, LinkedIn", width: 1080, height: 1350, safe: { top: 110, bottom: 100 }, scale: 0.78, rows: 6 },
-  square: { label: "Quadrat", hint: "1:1 · passt in jeden Feed", width: 1080, height: 1080, safe: { top: 90, bottom: 84 }, scale: 0.64, rows: 5 },
+  story: { label: "Story", hint: "9:16 · Instagram, Facebook, WhatsApp-Status", width: 1080, height: 1920, safe: { top: 250, bottom: 280 }, scale: 0.95, rows: 7 },
+  portrait: { label: "Hochformat", hint: "4:5 · Feed bei Instagram, Facebook, LinkedIn", width: 1080, height: 1350, safe: { top: 110, bottom: 100 }, scale: 0.74, rows: 6 },
+  square: { label: "Quadrat", hint: "1:1 · passt in jeden Feed", width: 1080, height: 1080, safe: { top: 90, bottom: 84 }, scale: 0.6, rows: 5 },
 };
 
 export const sharepicFormatOrder = Object.keys(sharepicFormats) as SharepicFormat[];
@@ -106,11 +106,32 @@ export function isSharepicFormat(value: unknown): value is SharepicFormat {
   return typeof value === "string" && value in sharepicFormats;
 }
 
+/* --- Sprache -------------------------------------------------------------- */
+
+/**
+ * Sprache der Texte auf dem Bild. Der Projektname "Reparaturrekord NRW" und
+ * die Ortsnamen bleiben auch auf Englisch deutsch - wie auf den Aufstellern
+ * (lib/poster.ts), weil sie so auf der Domain und allen Materialien stehen.
+ */
+export type SharepicLanguage = "de" | "en";
+
+export const sharepicLanguages: Record<SharepicLanguage, { label: string; locale: string }> = {
+  de: { label: "Deutsch", locale: "de-DE" },
+  en: { label: "English", locale: "en-GB" },
+};
+
+export const sharepicLanguageOrder = Object.keys(sharepicLanguages) as SharepicLanguage[];
+
+export function isSharepicLanguage(value: unknown): value is SharepicLanguage {
+  return typeof value === "string" && value in sharepicLanguages;
+}
+
 /* --- Anfrage -------------------------------------------------------------- */
 
 export type SharepicRequest = {
   motif: SharepicMotif;
   format: SharepicFormat;
+  lang: SharepicLanguage;
   ground: ShareVisualGround;
   kreis: string | null;
   kreisB: string | null;
@@ -151,10 +172,12 @@ export function parseSharepicRequest(params: URLSearchParams): SharepicRequest {
     : sharepicMotifs[motif].ground;
   const milestone = Number.parseInt(params.get("milestone") ?? "", 10);
   const formatParam = params.get("format");
+  const langParam = params.get("lang");
 
   return {
     motif,
     format: isSharepicFormat(formatParam) ? formatParam : "story",
+    lang: isSharepicLanguage(langParam) ? langParam : "de",
     ground,
     kreis: parseName(params.get("kreis")),
     kreisB: parseName(params.get("kreisB")),
@@ -197,14 +220,15 @@ export function publicSharepicQuery(request: SharepicRequest) {
   const params = new URLSearchParams({ motif: request.motif, ground: request.ground });
   /* Die Story ist die Vorgabe und steht deshalb nicht in der Adresse. */
   if (request.format !== "story") params.set("format", request.format);
+  if (request.lang !== "de") params.set("lang", request.lang);
   if (request.kreis) params.set("kreis", request.kreis);
   if (request.kreisB) params.set("kreisB", request.kreisB);
   if (request.download) params.set("download", "1");
   return params.toString();
 }
 
-export function sharepicFileName(motif: SharepicMotif, format: SharepicFormat, now: Date) {
-  return `reparaturrekord-nrw-${motif}${format === "story" ? "" : `-${format}`}-${berlinDay(now)}.png`;
+export function sharepicFileName(motif: SharepicMotif, format: SharepicFormat, lang: SharepicLanguage, now: Date) {
+  return `reparaturrekord-nrw-${motif}${format === "story" ? "" : `-${format}`}${lang === "de" ? "" : `-${lang}`}-${berlinDay(now)}.png`;
 }
 
 /* --- Rechenwege ----------------------------------------------------------- */
@@ -294,49 +318,54 @@ function dayDistance(from: string, to: string) {
 
 /* --- Formate -------------------------------------------------------------- */
 
-const numberFormat = new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 });
+const numberFormats = {
+  de: new Intl.NumberFormat("de-DE", { maximumFractionDigits: 0 }),
+  en: new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 }),
+};
 
-export function formatCount(value: number) {
-  return numberFormat.format(Math.round(value));
+export function formatCount(value: number, lang: SharepicLanguage = "de") {
+  return numberFormats[lang].format(Math.round(value));
 }
 
-export function formatHours(minutes: number) {
-  return formatCount(minutes / 60);
+export function formatHours(minutes: number, lang: SharepicLanguage = "de") {
+  return formatCount(minutes / 60, lang);
 }
 
-const dayMonth = new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", day: "numeric", month: "long" });
-const dayMonthTime = new Intl.DateTimeFormat("de-DE", {
-  timeZone: "Europe/Berlin",
-  day: "numeric",
-  month: "long",
-  hour: "2-digit",
-  minute: "2-digit",
-});
+const dayMonth = {
+  de: new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", day: "numeric", month: "long" }),
+  en: new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Berlin", day: "numeric", month: "long" }),
+};
+const dayMonthTime = {
+  de: new Intl.DateTimeFormat("de-DE", { timeZone: "Europe/Berlin", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }),
+  en: new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Berlin", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" }),
+};
 
-/** "1. Oktober" - ohne Jahr, das steht in der Story ohnehin im Datum. */
-export function formatDay(value: string | Date) {
-  return dayMonth.format(typeof value === "string" ? new Date(value.length === 10 ? `${value}T12:00:00Z` : value) : value);
+/** "1. Oktober" bzw. "1 October" - ohne Jahr, das steht in der Story ohnehin im Datum. */
+export function formatDay(value: string | Date, lang: SharepicLanguage = "de") {
+  return dayMonth[lang].format(typeof value === "string" ? new Date(value.length === 10 ? `${value}T12:00:00Z` : value) : value);
 }
 
 /**
  * Letzter Tag der Aktion. Endet sie um Mitternacht, ist das der Tag davor -
  * sonst stuende auf dem Bild "bis 1. November" fuer eine Oktoberaktion.
  */
-export function formatLastDay(endAt: string) {
-  return formatDay(new Date(Date.parse(endAt) - 1));
+export function formatLastDay(endAt: string, lang: SharepicLanguage = "de") {
+  return formatDay(new Date(Date.parse(endAt) - 1), lang);
 }
 
 /** "1.–31. Oktober", oder "28. Oktober – 3. November" ueber einen Monatswechsel. */
-export function formatPeriod(startAt: string, endAt: string) {
-  const first = formatDay(startAt);
-  const last = formatLastDay(endAt);
+export function formatPeriod(startAt: string, endAt: string, lang: SharepicLanguage = "de") {
+  const first = formatDay(startAt, lang);
+  const last = formatLastDay(endAt, lang);
   const [firstDay, firstMonth] = first.split(" ");
   const [, lastMonth] = last.split(" ");
   return firstMonth === lastMonth ? `${firstDay}–${last}` : `${first} – ${last}`;
 }
 
-export function formatStand(now: Date) {
-  return `Stand: ${dayMonthTime.format(now).replace(" um ", ", ")} Uhr`;
+export function formatStand(now: Date, lang: SharepicLanguage = "de") {
+  return lang === "en"
+    ? `As of ${dayMonthTime.en.format(now).replace(" at ", ", ")}`
+    : `Stand: ${dayMonthTime.de.format(now).replace(" um ", ", ")} Uhr`;
 }
 
 /* --- Beispielzahlen ------------------------------------------------------- */

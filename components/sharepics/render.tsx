@@ -6,6 +6,7 @@ import { readPublicStats, timelineRange, type PublicStats } from "@/lib/public-s
 import { demoStats, sharepicFileName, sharepicFormats, type SharepicRequest } from "@/lib/sharepics";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { sharepicFonts } from "./fonts";
+import { sharepicLogos } from "./logos";
 import { SharepicCard } from "./sharepic-card";
 
 /**
@@ -55,15 +56,17 @@ export async function renderSharepic(sharepic: SharepicRequest, { domain, cacheC
     ? { ...demoStats(now), goal: loaded.stats.goal, dayRecord: loaded.stats.dayRecord ?? 450, campaign: loaded.stats.campaign }
     : loaded.stats;
 
+  const [fonts, logos] = await Promise.all([sharepicFonts(), sharepicLogos()]);
+
   return new ImageResponse(
-    <SharepicCard request={sharepic} stats={stats} now={now} domain={domain} prizeCount={loaded.prizeCount || (sharepic.demo ? 25 : 0)} />,
+    <SharepicCard request={sharepic} stats={stats} now={now} domain={domain} logos={logos} prizeCount={loaded.prizeCount || (sharepic.demo ? 25 : 0)} />,
     {
       width: sharepicFormats[sharepic.format].width,
       height: sharepicFormats[sharepic.format].height,
-      fonts: await sharepicFonts(),
+      fonts,
       headers: {
         "Cache-Control": cacheControl,
-        ...(sharepic.download ? { "Content-Disposition": `attachment; filename="${sharepicFileName(sharepic.motif, sharepic.format, now)}"` } : {}),
+        ...(sharepic.download ? { "Content-Disposition": `attachment; filename="${sharepicFileName(sharepic.motif, sharepic.format, sharepic.lang, now)}"` } : {}),
       },
     },
   );
