@@ -580,9 +580,10 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
       context.strokeStyle = "rgba(149, 212, 187, 0.75)";
       context.stroke();
 
-      // Rhein und die groesseren Fluesse als Orientierungslinien.
-      context.lineWidth = Math.max(1.5, scale / 330);
-      context.strokeStyle = "rgba(120, 205, 220, 0.5)";
+      // Rhein und die groesseren Fluesse als Orientierungslinien. Fein und
+      // zurueckhaltend, damit sie neben Kreisen und Punktwolke nicht auffallen.
+      context.lineWidth = Math.max(1.1, scale / 480);
+      context.strokeStyle = "rgba(120, 180, 200, 0.38)";
       context.lineJoin = "round";
       for (const river of riverUnits) {
         tracePath(river, false);
