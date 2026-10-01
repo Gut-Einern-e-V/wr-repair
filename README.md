@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="https://reparatur.fab-bergisch.org"><strong>reparatur.fab-bergisch.org</strong></a>
+  <a href="https://www.reparatur-weltrekord.de"><strong>www.reparatur-weltrekord.de</strong></a>
   &nbsp;·&nbsp; Next.js 16 &nbsp;·&nbsp; Supabase &nbsp;·&nbsp; Vercel
   &nbsp;·&nbsp; <a href="LICENSE">BSD 2-Clause</a>
 </p>

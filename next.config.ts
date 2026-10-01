@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { buildDomainRedirects } from "./lib/domain-redirects";
 
 /* Die Partnerlogos kommen aus dem oeffentlichen Bucket `partner-logos` und
    laufen durch den Bildoptimierer (components/partner-strip.tsx). Freigegeben
@@ -48,6 +49,12 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/sharepics/image": ["./components/sharepics/logos/*.png"],
     "/moderator/sharepics/image": ["./components/sharepics/logos/*.png"],
+  },
+  /* Alte Domains leiten mit Pfad auf NEXT_PUBLIC_SITE_URL weiter
+     (lib/domain-redirects.ts). Wird beim Build gelesen - nach einer Aenderung
+     neu deployen. */
+  async redirects() {
+    return buildDomainRedirects(process.env.NEXT_PUBLIC_SITE_URL, process.env.LEGACY_SITE_HOSTS);
   },
   async headers() {
     return [

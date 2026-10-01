@@ -17,6 +17,7 @@ Copy `.env.example` to `.env.local` for local work. `.env.local` is intentionall
 | Variable | Visibility | Required environments | Source / purpose |
 | --- | --- | --- | --- |
 | `NEXT_PUBLIC_SITE_URL` | Public | Development, Preview, Production | Application URL. In Preview, use the relevant Vercel preview URL when testing redirects. |
+| `LEGACY_SITE_HOSTS` | Secret | Production | Former hostnames, comma-separated. Each redirects with path and query to `NEXT_PUBLIC_SITE_URL` (308), see `lib/domain-redirects.ts`. Production: `reparatur.fab-bergisch.org,reparatur-weltrekord.de`. Read at build time. |
 | `NEXT_PUBLIC_SUPABASE_URL` | Public | Development, Preview, Production | Supabase Dashboard > Connect > Project URL. |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Public | Development, Preview, Production | Supabase Dashboard > Connect > Publishable key. This key is designed for browser use and is protected by RLS. |
 | `SUPABASE_SERVICE_ROLE_KEY` | Secret | Development, Preview, Production | Supabase Dashboard > Connect > Service role key. Server route handlers only; never use `NEXT_PUBLIC_`. |
@@ -34,6 +35,18 @@ Copy `.env.example` to `.env.local` for local work. `.env.local` is intentionall
 | `SUBMISSION_RATE_SALT` | Secret | Recommended | Salt for the SHA-256 fingerprint the submission counter stores instead of an IP address. Falls back to `SUPABASE_SERVICE_ROLE_KEY`. Changing it resets all running counters. |
 
 Do not set a `NODE_ENV` variable in Vercel. Next.js supplies `production` for builds and runtime automatically.
+
+## Moving to a new domain
+
+Every link the site builds - metadata, sitemap, robots, share links, share images, sharepics, QR stand, structured data, `llms.txt`, API examples - derives from `NEXT_PUBLIC_SITE_URL`. Nothing in the database stores the domain. A move therefore takes these steps; the move to `www.reparatur-weltrekord.de` (October 2026) followed them.
+
+1. Vercel > Settings > Domains: add the new domain and its apex (`reparatur-weltrekord.de` redirecting to `www.`). **Keep the old domain attached to the project** and set it to redirect to the new domain - Vercel keeps the path. If the old domain is removed or its DNS changed, every printed QR code dies.
+2. Vercel > Environment Variables (Production): set `NEXT_PUBLIC_SITE_URL=https://www.reparatur-weltrekord.de`, `LEGACY_SITE_HOSTS=reparatur.fab-bergisch.org,reparatur-weltrekord.de` (the code-side redirect, in case the dashboard redirect is missing). Redeploy - both are read at build time. `ALLOWED_ORIGINS` is not read by any code yet and needs no change.
+3. Friendly Captcha dashboard: add the new hostname. Without it the form fails with `sitekey_invalid`.
+4. Supabase > Authentication > URL Configuration: set the Site URL to the new domain and add it to the redirect URLs. Login is password-only, but invite and password-reset mails from the dashboard link to the Site URL.
+5. Check: `curl -sI https://reparatur.fab-bergisch.org/mitmachen` answers `308` with `location: https://www.reparatur-weltrekord.de/mitmachen`.
+
+Not carried over: login sessions, installed apps and push subscriptions belong to their origin. Moderators sign in again, reinstall the backend apps from the new domain and switch notifications on again there.
 
 ## Provider configuration
 
@@ -60,7 +73,7 @@ Do not set a `NODE_ENV` variable in Vercel. Next.js supplies `production` for bu
 
 The three captcha variables are all `NEXT_PUBLIC_`/build-time or server-read, and the browser half is **inlined at build time**. Changing them in the Vercel dashboard therefore does nothing until the next deployment — redeploy after every change.
 
-1. In the Friendly Captcha dashboard, open the application and add the production hostname (`reparatur.fab-bergisch.org`) next to `localhost` and the `*.vercel.app` preview host. A sitekey used on an unregistered host makes the widget fail with `sitekey_invalid`, which the submission form now prints verbatim.
+1. In the Friendly Captcha dashboard, open the application and add the production hostname (`www.reparatur-weltrekord.de`) next to `localhost` and the `*.vercel.app` preview host. A sitekey used on an unregistered host makes the widget fail with `sitekey_invalid`, which the submission form now prints verbatim.
 2. Set `NEXT_PUBLIC_FRIENDLY_CAPTCHA_SITEKEY`, `FRIENDLY_CAPTCHA_API_KEY` and `NEXT_PUBLIC_CAPTCHA_ENABLED=true` for Production, then redeploy.
 3. Open `/admin`. The "Friendly Captcha" card now reports `Gestoert` while the bypass is active, not just a footnote, so a forgotten `false` cannot hide there.
 4. Submit one real repair from the production domain. The widget solves itself; a failure names its code.

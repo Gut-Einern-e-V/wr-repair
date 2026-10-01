@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import QRCode from "qrcode";
 import { buildQrGlyph } from "./qr-glyph";
 
-const url = "https://reparatur.fab-bergisch.org/mitmachen";
+const url = "https://www.reparatur-weltrekord.de/mitmachen";
 
 /** Zerlegt das `d`-Attribut wieder in die einzelnen Modul-Laufweiten. */
 function readRuns(path: string) {
