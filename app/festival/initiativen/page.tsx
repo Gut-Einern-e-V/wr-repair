@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { BreadcrumbStructuredData } from "@/components/structured-data";
 import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { FESTIVAL_DATE_TEXT, FESTIVAL_SIGNUP_URL, FestivalFacts, FestivalNav, FestivalPending } from "../festival-chrome";
 
@@ -19,6 +20,7 @@ export const metadata = {
    spaeter widerrufenen Zusage nicht. */
 export default function FestivalInitiativesPage() {
   return <main className="page-shell content-page">
+    <BreadcrumbStructuredData trail={[["/festival", "Repair & Share Festival"], ["/festival/initiativen", "Für Initiativen"]]} />
     <SiteHeader />
 
     <section id="inhalt" className="content-hero" aria-labelledby="initiatives-title">

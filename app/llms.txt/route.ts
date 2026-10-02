@@ -27,9 +27,9 @@ function campaignLine(status: string, startAt: Date | null, endAt: Date | null) 
   if (!startAt || !endAt) return "Der Einreichungszeitraum steht noch nicht fest.";
 
   const span = `${dateFormat.format(startAt)} Uhr bis ${dateFormat.format(endAt)} Uhr`;
-  if (status === "before") return `Einreichungen sind noch nicht geoeffnet. Der Zeitraum laeuft vom ${span}.`;
+  if (status === "before") return `Einreichungen sind noch nicht geöffnet. Der Zeitraum läuft vom ${span}.`;
   if (status === "after") return `Der Einreichungszeitraum ist beendet. Er lief vom ${span}.`;
-  return `Einreichungen sind aktuell geoeffnet, noch bis ${dateFormat.format(endAt)} Uhr. Der Zeitraum laeuft vom ${span}.`;
+  return `Einreichungen sind aktuell geöffnet, noch bis ${dateFormat.format(endAt)} Uhr. Der Zeitraum läuft vom ${span}.`;
 }
 
 export async function GET() {
@@ -39,32 +39,33 @@ export async function GET() {
 
   const body = `# Reparaturrekord NRW
 
-> Ein Weltrekordversuch der ${circularWeek.name}, organisiert vom ${operator.shortName}: Einen Monat lang zaehlt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag haelt. Wer etwas repariert hat, traegt es mit Foto und ein paar Angaben ein; nach der Pruefung durch die Moderation zaehlt der Beitrag.
+> Ein Weltrekordversuch der ${circularWeek.name}, organisiert vom ${operator.shortName}: Einen Monat lang zählt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag hält. Wer etwas repariert hat, trägt es mit Foto und ein paar Angaben ein; nach der Prüfung durch die Moderation zählt der Beitrag.
 
-${campaignLine(campaign.status, campaign.startAt, campaign.endAt)} Das Ziel liegt bei ${settings.recordGoal.toLocaleString("de-DE")} gezaehlten Reparaturen.
+${campaignLine(campaign.status, campaign.startAt, campaign.endAt)} Das Ziel liegt bei ${settings.recordGoal.toLocaleString("de-DE")} gezählten Reparaturen.
 
-Teilnehmen kann jede Person in Nordrhein-Westfalen, kostenlos und ohne Konto. Es zaehlt alles, was vorher kaputt oder nur eingeschraenkt nutzbar war - geschraubt, genaeht und geklebt wird in Repair Cafes, Werkstaetten, Schulen, Vereinen und am Kuechentisch. Es geht nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als Alternative zum Neukauf zu staerken.
+Teilnehmen kann jede Person in Nordrhein-Westfalen, kostenlos und ohne Konto. Es zählt alles, was vorher kaputt oder nur eingeschränkt nutzbar war - geschraubt, genäht und geklebt wird in Repair Cafés, Werkstätten, Schulen, Vereinen und am Küchentisch. Es geht nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als Alternative zum Neukauf zu stärken.
 
 ## Hauptseiten
 
-- [Startseite](${siteUrl}/): Worum es geht, aktueller Zaehlerstand und Einstieg in die Eintragung.
-- [Reparatur eintragen](${siteUrl}/mitmachen): Formular fuer die eigene Reparatur, auf das Smartphone ausgelegt.
-- [Live-Stand](${siteUrl}/stats): Aktuelle Zahlen des Rekordversuchs, auch als Buehnenansicht fuer Veranstaltungen.
-- [Repair Cafes in NRW](${siteUrl}/repair-cafes): Orte und Termine der Reparatur-Initiativen im Land.
+- [Startseite](${siteUrl}/): Worum es geht, aktueller Zählerstand und Einstieg in die Eintragung.
+- [Reparatur eintragen](${siteUrl}/mitmachen): Formular für die eigene Reparatur, auf das Smartphone ausgelegt.
+- [Live-Stand](${siteUrl}/stats): Aktuelle Zahlen des Rekordversuchs, auch als Bühnenansicht für Veranstaltungen.
+- [Repair Cafés in NRW](${siteUrl}/repair-cafes): Orte und Termine der Reparatur-Initiativen im Land.
+- [Repair & Share Festival](${siteUrl}/festival): Der Abschlusstag des Rekordmonats am 31. Oktober 2026 in Utopiastadt und Wiesenwerken in Wuppertal, 11 bis 17 Uhr, Eintritt frei. Anreise unter ${siteUrl}/festival/anreise.
 - [Gewinnspiel](${siteUrl}/gewinnspiel): Verlosung unter allen Einreichungen, mit Teilnahmebedingungen.
-- [Ueber das Projekt](${siteUrl}/about): Hintergrund, Ziel und die Regeln der Zaehlung.
-- [Unterstuetzung](${siteUrl}/supporters): Die Organisationen, die den Rekordversuch tragen und foerdern.
-- [Schnittstellen](${siteUrl}/api-doku): Wie sich die Zahlen ohne API-Key abrufen lassen - fuer eigene Anzeigen auf ESP32, Arduino oder Raspberry Pi.
+- [Über das Projekt](${siteUrl}/about): Hintergrund, Ziel und die Regeln der Zählung.
+- [Unterstützung](${siteUrl}/supporters): Die Organisationen, die den Rekordversuch tragen und fördern.
+- [Schnittstellen](${siteUrl}/api-doku): Wie sich die Zahlen ohne API-Key abrufen lassen - für eigene Anzeigen auf ESP32, Arduino oder Raspberry Pi.
 
 ## Reparaturgeschichten
 
-${stories.length ? stories.map((story) => `- [${story.title}](${siteUrl}/stories/${story.slug}): ${story.summary}`).join("\n") : "- Noch keine veroeffentlichten Geschichten."}
+${stories.length ? stories.map((story) => `- [${story.title}](${siteUrl}/stories/${story.slug}): ${story.summary}`).join("\n") : "- Noch keine veröffentlichten Geschichten."}
 
 ## Rechtliches
 
 - [Datenschutz](${siteUrl}/privacy): Welche Daten erhoben werden und wie mit Ortsangaben umgegangen wird.
 - [Impressum](${siteUrl}/imprint): Verantwortlich ist das ${operator.shortName}, ${operator.legalName}, ${operatorAddressLine}. Kontakt: ${CONTACT_EMAIL}.
-- [Barrierefreiheit](${siteUrl}/accessibility): Erklaerung zur Barrierefreiheit der Seite.
+- [Barrierefreiheit](${siteUrl}/accessibility): Erklärung zur Barrierefreiheit der Seite.
 `;
 
   return new Response(body, {

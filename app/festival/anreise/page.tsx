@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { BreadcrumbStructuredData } from "@/components/structured-data";
 import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { FESTIVAL_DATE_TEXT, FestivalFacts, FestivalNav, FestivalPending, FestivalVenues } from "../festival-chrome";
 
@@ -31,6 +32,7 @@ export const metadata = {
    ist schlimmer als eine ungefaehre. */
 export default function FestivalTravelPage() {
   return <main className="page-shell content-page">
+    <BreadcrumbStructuredData trail={[["/festival", "Repair & Share Festival"], ["/festival/anreise", "Anreise"]]} />
     <SiteHeader />
 
     <section id="inhalt" className="content-hero" aria-labelledby="travel-title">

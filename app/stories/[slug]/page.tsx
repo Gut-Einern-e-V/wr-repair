@@ -3,7 +3,7 @@ import NextImage from "next/image";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
-import { StoryStructuredData } from "@/components/structured-data";
+import { BreadcrumbStructuredData, StoryStructuredData } from "@/components/structured-data";
 import { getStories, getStory, type StoryImage } from "@/lib/stories";
 
 type StoryPageProps = { params: Promise<{ slug: string }> };
@@ -40,6 +40,7 @@ export default async function StoryPage({ params }: StoryPageProps) {
   if (!story) notFound();
   return <main className="page-shell content-page">
     <StoryStructuredData story={story} />
+    <BreadcrumbStructuredData trail={[["/stories", "Reparaturgeschichten"], [`/stories/${story.slug}`, story.title]]} />
     <SiteHeader />
     <article id="inhalt" className="article-shell">
       <Link className="back-link" href="/stories">&#8592; Alle Geschichten</Link><p className="eyebrow">{story.category} / {story.readingTime}</p><h1>{story.title}</h1><p className="article-lead">{story.summary}</p>

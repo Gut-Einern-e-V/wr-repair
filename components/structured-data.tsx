@@ -1,6 +1,7 @@
 import { getSiteUrl } from "@/lib/share";
 import { CONTACT_EMAIL, circularWeek, operator } from "@/lib/organisation";
 import type { Story } from "@/lib/stories";
+import { FESTIVAL_DATE_ISO, FESTIVAL_FAB_URL, festivalVenues } from "@/app/festival/festival-chrome";
 
 /**
  * Strukturierte Daten nach schema.org (Issue #67).
@@ -94,5 +95,82 @@ export function StoryStructuredData({ story }: { story: Story }) {
        Organisation meinen. */
     author: { "@type": "Organization", "@id": `${siteUrl}/${ORGANIZATION_ID}`, name: operator.legalName, url: operator.website },
     publisher: { "@id": `${siteUrl}/${ORGANIZATION_ID}` },
+  }} />;
+}
+
+/* Ende Oktober gilt wieder Winterzeit: Die Umstellung ist 2026 am 25. Oktober,
+   das Festival am 31. liegt also in MEZ. */
+const FESTIVAL_START = `${FESTIVAL_DATE_ISO}T11:00:00+01:00`;
+const FESTIVAL_END = `${FESTIVAL_DATE_ISO}T17:00:00+01:00`;
+
+/**
+ * Das Repair & Share Festival als Veranstaltung.
+ *
+ * Damit kann Google das Festival in der Suche als Termin mit Datum und Ort
+ * zeigen. Zwei Orte, weil das Festival auf zwei Gelaenden stattfindet - beide
+ * stehen so, wie sie auch auf der Anreiseseite stehen. Ein `organizer` fehlt
+ * mit Absicht: Wer das Festival ausrichtet, steht auf dieser Website nirgends
+ * verbindlich, und eine geratene Angabe waere schlimmer als keine.
+ */
+export function FestivalStructuredData() {
+  const siteUrl = getSiteUrl() || "http://localhost:3000";
+
+  return <JsonLd data={{
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: "Repair & Share Festival",
+    description: "Der Abschlusstag des Reparaturrekords NRW: Reparatur-Café XXL, Reparieren auf der Bühne, Secondhand, Workshops, Kinderwerkstatt und die letzten Reparaturen für den Weltrekord. Eintritt frei.",
+    startDate: FESTIVAL_START,
+    endDate: FESTIVAL_END,
+    eventStatus: "https://schema.org/EventScheduled",
+    eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+    isAccessibleForFree: true,
+    inLanguage: "de-DE",
+    url: `${siteUrl}/festival`,
+    image: [`${siteUrl}/opengraph-image`],
+    sameAs: FESTIVAL_FAB_URL,
+    location: festivalVenues.map((venue) => ({
+      "@type": "Place",
+      name: venue.name,
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: venue.street,
+        postalCode: venue.town.split(" ")[0],
+        addressLocality: venue.town.split(" ").slice(1).join(" "),
+        addressRegion: "Nordrhein-Westfalen",
+        addressCountry: "DE",
+      },
+      geo: { "@type": "GeoCoordinates", latitude: venue.lat, longitude: venue.lon },
+    })),
+    offers: {
+      "@type": "Offer",
+      price: 0,
+      priceCurrency: "EUR",
+      availability: "https://schema.org/InStock",
+      url: `${siteUrl}/festival`,
+    },
+  }} />;
+}
+
+/**
+ * Brotkrumen fuer Unterseiten (Festival, Geschichten).
+ *
+ * Google zeigt dann statt der nackten Adresse den Pfad "Reparaturrekord NRW ›
+ * Festival › Anreise" im Suchergebnis. Die Startseite steht immer vorne und
+ * wird deshalb nicht mit uebergeben.
+ */
+export function BreadcrumbStructuredData({ trail }: { trail: readonly (readonly [path: string, name: string])[] }) {
+  const siteUrl = getSiteUrl() || "http://localhost:3000";
+  const items = [["/", "Reparaturrekord NRW"] as const, ...trail];
+
+  return <JsonLd data={{
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map(([path, name], index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name,
+      item: `${siteUrl}${path === "/" ? "/" : path}`,
+    })),
   }} />;
 }
