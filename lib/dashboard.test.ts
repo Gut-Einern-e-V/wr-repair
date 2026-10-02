@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, dayRecordState, formatDayLabel, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, rankKreisDay, readCells, isFreshlyApproved, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
+import { campaignElapsed, changedDigitIndices, changedSlotIndices, countdownTo, dayRecordState, formatDayLabel, formatRemaining, paceVerdict, formatRelativeTime, goalLaps, goalOverflow, goalPercent, goalProgress, formatMinutes, rankKreisDay, readCells, isFreshlyApproved, deltaChangesSnapshot, mergeDashboardDelta, recentHighlights, requiredPerHour, FRESH_APPROVAL_MS, MAX_HIGHLIGHTS, TICKER_MAX_AGE_MS, type DashboardDelta, type DashboardSnapshot } from "./dashboard";
 
 function highlight(id: string, category = "tools", kreis: string | null = null) {
   return {
@@ -46,9 +46,33 @@ describe("mergeDashboardDelta", () => {
     today: 6,
     added: [highlight("c"), highlight("d", "bicycle")],
     categories: { tools: 1, bicycle: 1 },
+    metrics: null,
     cursor: "2026-10-01T10:05:00.000Z",
     generatedAt: "2026-10-01T10:05:00.000Z",
   };
+
+  const metrics = { attempted: 15, succeeded: 12, withStory: 3, minutesSaved: 180, valueSavedEuros: 650 };
+
+  it("uebernimmt die Kennzahlen aus dem Delta (Issue #142)", () => {
+    const merged = mergeDashboardDelta(snapshot, { ...delta, metrics });
+
+    expect(merged).toMatchObject(metrics);
+  });
+
+  it("haelt die Kennzahlen des Snapshots, wenn das Delta keine liefert", () => {
+    const merged = mergeDashboardDelta(snapshot, delta);
+
+    expect(merged).toMatchObject({ attempted: 12, succeeded: 10, minutesSaved: 120, valueSavedEuros: 500 });
+  });
+
+  it("zaehlt bei einem gescheiterten Versuch nur den Versuch, nicht den Warenwert", () => {
+    // Ein gescheiterter Versuch steht nicht im Delta: kein Eintrag, kein
+    // hoeherer Stand. Nur `attempted` waechst, der Warenwert bleibt.
+    const failed: DashboardDelta = { ...delta, total: 10, today: 4, added: [], categories: {}, metrics: { attempted: 13, succeeded: 10, withStory: 2, minutesSaved: 120, valueSavedEuros: 500 } };
+
+    expect(deltaChangesSnapshot(snapshot, failed)).toBe(true);
+    expect(mergeDashboardDelta(snapshot, failed)).toMatchObject({ total: 10, attempted: 13, valueSavedEuros: 500 });
+  });
 
   it("stellt neue Eintraege nach vorne und zaehlt Kategorien hoch", () => {
     const merged = mergeDashboardDelta(snapshot, delta);
@@ -121,6 +145,30 @@ describe("mergeDashboardDelta", () => {
 
     expect(merged.highlights).toHaveLength(MAX_HIGHLIGHTS);
     expect(merged.highlights[0].id).toBe("new-0");
+  });
+});
+
+describe("deltaChangesSnapshot", () => {
+  const quiet: DashboardDelta = {
+    total: 10,
+    today: 4,
+    added: [],
+    categories: {},
+    metrics: { attempted: 12, succeeded: 10, withStory: 2, minutesSaved: 120, valueSavedEuros: 500 },
+    cursor: snapshot.cursor,
+    generatedAt: "2026-10-01T10:05:00.000Z",
+  };
+
+  it("meldet nichts, solange sich nichts bewegt", () => {
+    expect(deltaChangesSnapshot(snapshot, quiet)).toBe(false);
+    expect(deltaChangesSnapshot(snapshot, { ...quiet, metrics: null, today: null })).toBe(false);
+  });
+
+  it("meldet neue Eintraege, einen neuen Stand und geaenderte Summen", () => {
+    expect(deltaChangesSnapshot(snapshot, { ...quiet, added: [highlight("c")] })).toBe(true);
+    expect(deltaChangesSnapshot(snapshot, { ...quiet, total: 11 })).toBe(true);
+    // Eine nachtraeglich korrigierte Angabe aendert nur die Summe.
+    expect(deltaChangesSnapshot(snapshot, { ...quiet, metrics: { ...quiet.metrics!, valueSavedEuros: 420 } })).toBe(true);
   });
 });
 

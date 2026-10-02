@@ -1,7 +1,7 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { publicRateLimit } from "@/lib/rate-limit";
 import { acceptsSubmissions, getAppSettings } from "@/lib/app-settings";
-import { MAX_HIGHLIGHTS, readCells, type DashboardDelta, type DashboardHighlight, type DashboardKreisDay, type DashboardSnapshot } from "@/lib/dashboard";
+import { MAX_HIGHLIGHTS, readCells, type DashboardDelta, type DashboardHighlight, type DashboardMetrics, type DashboardKreisDay, type DashboardSnapshot } from "@/lib/dashboard";
 
 /**
  * Datenquelle des Buehnen-Dashboards.
@@ -173,6 +173,24 @@ function toBestKreisDay(value: unknown): DashboardKreisDay | null {
   return { date: record.date, kreis: record.kreis, total };
 }
 
+/**
+ * Kennzahlen aus `dashboard_metrics()`. `null`, wenn sie fehlen - etwa solange
+ * Migration 202610020001 nicht ausgerollt ist: Dann behaelt der Client die
+ * Werte des letzten Snapshots, statt sie auf null zu ziehen.
+ */
+function toMetrics(value: unknown): DashboardMetrics | null {
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  return {
+    attempted: toNumber(record.attempted),
+    succeeded: toNumber(record.succeeded),
+    withStory: toNumber(record.withStory),
+    minutesSaved: toNumber(record.minutesSaved),
+    valueSavedEuros: toNumber(record.valueSavedEuros),
+  };
+}
+
 async function loadSnapshot(
   supabase: SupabaseAdmin,
   campaign: DashboardSnapshot["campaign"],
@@ -233,6 +251,10 @@ async function loadDelta(supabase: SupabaseAdmin, since: string, withImages: boo
   // `dashboard_today()`).
   const { data: todayCount, error: todayError } = await supabase.rpc("dashboard_today");
 
+  // Summen der Kennzahl-Kacheln (Issue #142). Ohne sie stuenden Warenwert und
+  // Erfolgsquote bis zum naechsten Snapshot still, waehrend der Zaehler laeuft.
+  const { data: metricsData, error: metricsError } = await supabase.rpc("dashboard_metrics");
+
   const { data, error } = await supabase
     .from("repairs")
     .select(highlightColumns)
@@ -258,6 +280,7 @@ async function loadDelta(supabase: SupabaseAdmin, since: string, withImages: boo
     today: todayError ? null : toNumber(todayCount),
     added: [...highlights].reverse(),
     categories,
+    metrics: toMetrics(metricsError ? null : metricsData),
     cursor: rows.at(-1)?.moderated_at ?? since,
     generatedAt: new Date().toISOString(),
   };
