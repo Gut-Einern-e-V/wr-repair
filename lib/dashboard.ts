@@ -184,9 +184,32 @@ export type DashboardDelta = {
   today: number | null;
   added: DashboardHighlight[];
   categories: Record<string, number>;
+  /**
+   * Die Summen der Kennzahl-Kacheln, damit sie im Delta-Takt mitlaufen statt
+   * nur mit dem Snapshot (Issue #142). `null` heisst: gerade nicht zu ermitteln
+   * oder Migration 202610020001 noch nicht ausgerollt - dann bleiben die
+   * Kacheln beim Stand des letzten Snapshots.
+   */
+  metrics: DashboardMetrics | null;
   cursor: string | null;
   generatedAt: string;
 };
+
+/** Die Summen hinter den Kennzahl-Kacheln, siehe `dashboard_metrics()`. */
+export type DashboardMetrics = Pick<DashboardSnapshot, "attempted" | "succeeded" | "withStory" | "minutesSaved" | "valueSavedEuros">;
+
+/**
+ * Ob ein Delta die Anzeige veraendert. Ein gescheiterter Versuch bringt weder
+ * einen Eintrag noch einen hoeheren Stand, bewegt aber die Erfolgsquote - und
+ * eine nachtraeglich korrigierte Angabe aendert nur die Summen.
+ */
+export function deltaChangesSnapshot(snapshot: DashboardSnapshot, delta: DashboardDelta): boolean {
+  if (delta.added.length > 0 || delta.total !== snapshot.total) return true;
+  if (delta.today !== null && delta.today !== snapshot.today) return true;
+  if (!delta.metrics) return false;
+  return (Object.keys(delta.metrics) as (keyof DashboardMetrics)[])
+    .some((key) => delta.metrics?.[key] !== snapshot[key]);
+}
 
 /** Anzahl der Highlights, die fuer den Spotlight vorgehalten werden. */
 export const MAX_HIGHLIGHTS = 24;
@@ -290,6 +313,10 @@ export function mergeDashboardDelta(snapshot: DashboardSnapshot, delta: Dashboar
     categories: added.length === delta.added.length
       ? mergeCounts(snapshot.categories, delta.categories)
       : snapshot.categories,
+    // Die Summen kommen fertig aus der Datenbank und werden uebernommen, nicht
+    // hochgezaehlt: Ein gescheiterter Versuch steht nie im Delta, und eine
+    // korrigierte Angabe darf die Summe auch senken.
+    ...(delta.metrics ?? {}),
     kreise,
     todayKreise,
     highlights: [...added, ...snapshot.highlights].slice(0, MAX_HIGHLIGHTS),

@@ -120,12 +120,15 @@ Alle Zahlen und alle Einzeleinträge beziehen sich auf dieselbe Auswahl: freigeg
   "today": 25,
   "added": [ { "id": "…", "category": "toys", "…": "wie oben" } ],
   "categories": { "toys": 2 },
+  "metrics": { "attempted": 201, "succeeded": 186, "withStory": 40, "minutesSaved": 9120, "valueSavedEuros": 18450 },
   "cursor": "2026-10-17T09:44:10.000Z",
   "generatedAt": "2026-10-17T09:44:12.771Z"
 }
 ```
 
 `added` enthält höchstens 50 Einträge, neueste zuerst, und nur Freigaben **nach** dem gesendeten Zeitstempel. Wie `highlights` im Snapshot enthält es ausschließlich Reparaturen, die für den Rekord zählen — sonst zöge am großen Zähler ein Eintrag vorbei, den er selbst nicht mitzählt. `categories` zählt nur diese Einträge, nicht die ganze Aktion — die Gesamtzahlen kommen aus `total` und dem nächsten Snapshot. `today` kann `null` sein, wenn der Tagesstand gerade nicht zu ermitteln war; dann den bisherigen Wert stehen lassen.
+
+`metrics` sind die aktuellen Summen der ganzen Aktion, mit derselben Bedeutung wie die gleichnamigen Felder im Snapshot: Zeit, Warenwert und Geschichten nur aus gelungenen Reparaturen, `attempted` aus allen freigegebenen. Die Werte ersetzen die bisherigen, statt auf sie addiert zu werden. Ein gescheiterter Versuch erhöht nur `attempted`. `metrics` kann `null` sein; dann die Werte des letzten Snapshots stehen lassen.
 
 Kommen mehr als 50 Freigaben zwischen zwei Abfragen zusammen, liefert die Antwort die ältesten 50 und einen entsprechend älteren Cursor. Die nächste Abfrage holt den Rest — es geht nichts verloren, es dauert nur ein paar Runden.
 

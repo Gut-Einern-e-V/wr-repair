@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
 import { CategoryMotif } from "@/components/category-motif";
-import { goalLaps, mergeDashboardDelta, type DashboardDelta, type DashboardSnapshot } from "@/lib/dashboard";
+import { deltaChangesSnapshot, goalLaps, mergeDashboardDelta, type DashboardDelta, type DashboardSnapshot } from "@/lib/dashboard";
 import { rankKreise } from "@/lib/nrw-map";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { RepairCloud } from "./repair-cloud";
@@ -81,12 +81,14 @@ export default function LiveDashboard() {
   // Die Intervall-Callbacks werden nur einmal registriert und lesen den
   // aktuellen Stand deshalb ueber eine Ref statt ueber die Closure.
   const totalRef = useRef(0);
+  const snapshotRef = useRef<DashboardSnapshot | null>(null);
   /* Die Spotlight-Schleife wird nur einmal aufgesetzt und darf die Liste
      deshalb nicht aus der Closure lesen - sonst zeigt sie nach dem ersten
      Delta noch die Reparaturen von vorhin. */
   const highlightsRef = useRef<DashboardSnapshot["highlights"]>([]);
   useEffect(() => {
     totalRef.current = snapshot?.total ?? 0;
+    snapshotRef.current = snapshot;
     highlightsRef.current = snapshot?.highlights ?? [];
   }, [snapshot]);
   /* Die Karte zeichnet eine Linie vom Punkt zur Karteikarte; dafuer muss sie
@@ -143,7 +145,9 @@ export default function LiveDashboard() {
         if (!response.ok) return;
 
         const delta = await response.json() as DashboardDelta;
-        if (delta.added.length === 0 && delta.total === totalRef.current) return;
+        // Auch ein gescheiterter Versuch zaehlt als Aenderung: Er bringt keinen
+        // Eintrag, bewegt aber die Erfolgsquote (Issue #142).
+        if (!snapshotRef.current || !deltaChangesSnapshot(snapshotRef.current, delta)) return;
 
         cursorRef.current = delta.cursor;
         if (delta.added.length > 0) {
