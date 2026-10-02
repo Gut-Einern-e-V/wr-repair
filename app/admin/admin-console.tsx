@@ -52,12 +52,12 @@ export default function AdminConsole({ email, roles, initialSettings }: { email:
       <section className="moderator-intro">
         <p className="brand-kicker">Administration</p>
         <h1 className="sticker-head"><span className="sticker">Rekord</span><span className="sticker">steuern</span></h1>
-        <p className="moderator-lead">Zeitrahmen, Gebiet, Ziel, Schnittstellen, Team und Systemzustand an einer Stelle. Zum Pruefen der Einreichungen geht es in die <Link href="/moderator">Moderation</Link>.</p>
+        <p className="moderator-lead">Zeitrahmen, Gebiet, Ziel, Schnittstellen, Team und Systemzustand an einer Stelle. Zum Prüfen der Einreichungen geht es in die <Link href="/moderator">Moderation</Link>.</p>
       </section>
 
       {!settings.persisted && (
         <div className="admin-body">
-          <p className="form-error" role="alert">Die Einstellungstabelle ist nicht erreichbar. Bis die Migration <code>202608270001_admin_settings.sql</code> eingespielt ist, gelten ausschliesslich die Umgebungsvariablen und Aenderungen hier schlagen fehl.</p>
+          <p className="form-error" role="alert">Die Einstellungstabelle ist nicht erreichbar. Bis die Migration <code>202608270001_admin_settings.sql</code> eingespielt ist, gelten ausschließlich die Umgebungsvariablen und Änderungen hier schlagen fehl.</p>
         </div>
       )}
 
@@ -78,7 +78,7 @@ export default function AdminConsole({ email, roles, initialSettings }: { email:
             <SystemStatus />
             <div className="admin-links">
               <a className="button button-secondary" href="/api/admin/repairs/export">Einreichungen als CSV exportieren</a>
-              <Link className="button button-secondary" href="/stats">Buehnen-Dashboard oeffnen</Link>
+              <Link className="button button-secondary" href="/stats">Bühnen-Dashboard öffnen</Link>
               <Link className="button button-secondary" href="/moderator">Zur Moderation</Link>
             </div>
           </>

@@ -20,7 +20,7 @@ Beschriftung:
 | Anderes                     | `other.png`                    |
 | Computer und Zubehör/Handys | `computers_and_phones.png`     |
 | Fahrrad                     | `bicycle.png`                  |
-| Foto-/Video und Autogerät   | `photo_video_car.png`          |
+| Foto-/Video-/Audiogerät     | `photo_video_car.png`          |
 | Haushaltsgeräte             | `household_appliances.png`     |
 | Möbel                       | `furniture.png`                |
 | Schärfen/Schleifen          | `sharpening.png`               |

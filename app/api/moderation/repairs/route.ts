@@ -28,16 +28,16 @@ export async function GET(request: Request) {
   const oldestFirst = params.get("sort") !== "newest";
 
   if (!statuses.has(status)) {
-    return Response.json({ error: "Ungueltiger Statusfilter." }, { status: 400 });
+    return Response.json({ error: "Ungültiger Statusfilter." }, { status: 400 });
   }
   if (category && !categoriesSet.has(category)) {
-    return Response.json({ error: "Ungueltiger Kategoriefilter." }, { status: 400 });
+    return Response.json({ error: "Ungültiger Kategoriefilter." }, { status: 400 });
   }
   if (search.length > 120) {
     return Response.json({ error: "Der Suchbegriff ist zu lang." }, { status: 400 });
   }
   if (consent && consent !== "yes" && consent !== "no") {
-    return Response.json({ error: "Ungueltiger Zustimmungsfilter." }, { status: 400 });
+    return Response.json({ error: "Ungültiger Zustimmungsfilter." }, { status: 400 });
   }
 
   const supabase = createSupabaseAdminClient();

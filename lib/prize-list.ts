@@ -33,13 +33,13 @@ export function isPrizeListBinding(window: Pick<SubmissionWindow, "status">): bo
 /** Warum ein Preis jetzt nicht mehr entfernt werden darf - oder null. */
 export function prizeRemovalRefusal(binding: boolean): string | null {
   if (!binding) return null;
-  return "Die Teilnahme laeuft bereits. Ein veroeffentlichter Preis darf jetzt nicht mehr entfernt werden - so steht es in den Teilnahmebedingungen. Preise hinzufuegen und beschreiben geht weiterhin.";
+  return "Die Teilnahme läuft bereits. Ein veröffentlichter Preis darf jetzt nicht mehr entfernt werden - so steht es in den Teilnahmebedingungen. Preise hinzufügen und beschreiben geht weiterhin.";
 }
 
 /** Warum eine Aenderung an einem Preis jetzt nicht mehr zulaessig ist - oder null. */
 export function prizeQuantityRefusal(binding: boolean, previousQuantity: number, nextQuantity: number): string | null {
   if (!binding || nextQuantity >= previousQuantity) return null;
-  return `Die Teilnahme laeuft bereits. Die Anzahl eines veroeffentlichten Preises darf jetzt nicht mehr verringert werden (bisher ${previousQuantity}, gewuenscht ${nextQuantity}). Erhoehen geht weiterhin.`;
+  return `Die Teilnahme läuft bereits. Die Anzahl eines veröffentlichten Preises darf jetzt nicht mehr verringert werden (bisher ${previousQuantity}, gewünscht ${nextQuantity}). Erhöhen geht weiterhin.`;
 }
 
 /**

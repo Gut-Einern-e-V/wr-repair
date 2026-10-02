@@ -997,7 +997,7 @@ export function RepairSubmissionForm({
       {previewUrl && (
         // A blob URL is local to the browser and cannot use Next.js image optimization.
         // eslint-disable-next-line @next/next/no-img-element
-        <img className="image-preview" src={previewUrl} alt="Vorschau des ausgewaehlten Reparaturbildes" />
+        <img className="image-preview" src={previewUrl} alt="Vorschau des ausgewählten Reparaturbildes" />
       )}
       {compressionMessage && <p className="form-notice" role="status">{compressionMessage}</p>}
       {fileError && <p className="form-error" role="alert">{fileError}</p>}

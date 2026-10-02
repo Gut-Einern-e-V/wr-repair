@@ -5,7 +5,7 @@ import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { CONTACT_EMAIL, circularWeek, mailto, operator, projectCredits } from "@/lib/organisation";
 import { ministry } from "@/lib/funding";
 
-const CONTACT = mailto(CONTACT_EMAIL, "Reparaturrekord NRW unterstuetzen");
+const CONTACT = mailto(CONTACT_EMAIL, "Reparaturrekord NRW unterstützen");
 
 export const metadata = {
   title: "Unterstützung",

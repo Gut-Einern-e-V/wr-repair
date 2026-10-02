@@ -61,30 +61,30 @@ type StatusResponse = {
    liest jemand, der wissen will, ob die Aktion laeuft - nicht jemand, der die
    Codebasis kennt. */
 const stageLabels: Record<string, string> = {
-  gate: "Limitpruefung",
+  gate: "Limitprüfung",
   captcha: "Spam-Schutz",
   insert: "Speichern",
   image: "Bild-Upload",
   lottery: "Gewinnspiel",
   notify: "Benachrichtigung",
-  blocked: "Zaehlung ausserhalb",
-  screening: "Bildpruefung",
+  blocked: "Zählung außerhalb",
+  screening: "Bildprüfung",
 };
 
 const reasonLabels: Record<string, string> = {
   captcha_unavailable: "Friendly Captcha hat nicht geantwortet; die Einreichung wurde trotzdem angenommen.",
-  captcha_invalid: "Friendly Captcha hat das Loesungswort abgelehnt. Steht dahinter response_duplicate, war es ein zweiter Versuch mit demselben Wort.",
+  captcha_invalid: "Friendly Captcha hat das Lösungswort abgelehnt. Steht dahinter response_duplicate, war es ein zweiter Versuch mit demselben Wort.",
   captcha_unfinished: "Abgeschickt, bevor der Spam-Schutz fertig gerechnet hatte. Das Formular wartet seit Issue #107 darauf.",
   captcha_unconfigured: "FRIENDLY_CAPTCHA_API_KEY oder der Sitekey fehlt in der Umgebung. Bis dahin kommt niemand durch.",
-  token_missing: "Einreichung ohne Loesungswort - das Widget hat nicht geladen, oder es war ein Skript.",
+  token_missing: "Einreichung ohne Lösungswort - das Widget hat nicht geladen, oder es war ein Skript.",
   insert_failed: "Der Datenbankschreibvorgang ist fehlgeschlagen.",
   upload_failed: "Das Foto konnte nicht gespeichert werden; die Einreichung blieb ohne Bild.",
-  link_failed: "Das Foto liegt im Speicher, liess sich aber nicht mit der Einreichung verknuepfen.",
+  link_failed: "Das Foto liegt im Speicher, ließ sich aber nicht mit der Einreichung verknüpfen.",
   push_failed: "Die Moderation konnte nicht benachrichtigt werden.",
-  count_failed: "Die Zaehlung einer Einreichung von ausserhalb ist fehlgeschlagen.",
-  image_blocked: "Sightengine hat das Foto als eindeutig sexuell oder verstoerend eingestuft; die Einreichung wurde mit diesem Foto nicht angenommen. Die Angaben stehen bei den abgebrochenen Einreichungen, das Foto nirgends.",
-  screening_unavailable: "Sightengine hat nicht geantwortet oder das Kontingent ist aufgebraucht; die Einreichung wurde ungeprueft angenommen.",
-  screening_save_failed: "Das Ergebnis der Bildpruefung liess sich nicht speichern; fehlt Migration 202609300001?",
+  count_failed: "Die Zählung einer Einreichung von außerhalb ist fehlgeschlagen.",
+  image_blocked: "Sightengine hat das Foto als eindeutig sexuell oder verstörend eingestuft; die Einreichung wurde mit diesem Foto nicht angenommen. Die Angaben stehen bei den abgebrochenen Einreichungen, das Foto nirgends.",
+  screening_unavailable: "Sightengine hat nicht geantwortet oder das Kontingent ist aufgebraucht; die Einreichung wurde ungeprüft angenommen.",
+  screening_save_failed: "Das Ergebnis der Bildprüfung ließ sich nicht speichern; fehlt Migration 202609300001?",
   idempotency_unavailable: "Wiederholungsversuche waren nicht erkennbar; die Migration 202608310001 fehlte. Ein zweiter Versuch konnte eine doppelte Reparatur anlegen.",
 };
 
@@ -114,8 +114,8 @@ function QuotaBar({ label, quota, hint }: { label: string; quota: Quota; hint?: 
 export default function SystemStatus() {
   const { data, error, isLoading, reload } = useJsonResource<StatusResponse>("/api/admin/status", "Der Systemstatus konnte nicht geladen werden.");
 
-  if (isLoading) return <p className="queue-empty">Systemstatus wird geprueft.</p>;
-  if (!data) return <p className="form-error" role="alert">{error || "Kein Systemstatus verfuegbar."}</p>;
+  if (isLoading) return <p className="queue-empty">Systemstatus wird geprüft.</p>;
+  if (!data) return <p className="form-error" role="alert">{error || "Kein Systemstatus verfügbar."}</p>;
 
   return (
     <div className="admin-stack">
@@ -123,7 +123,7 @@ export default function SystemStatus() {
         {data.services.map((service) => (
           <div className={`service-card ${service.ok ? "is-ok" : "is-down"}`} key={service.id}>
             <p className="section-index">{service.label}</p>
-            <strong>{service.ok ? "Erreichbar" : "Gestoert"}</strong>
+            <strong>{service.ok ? "Erreichbar" : "Gestört"}</strong>
             <p className="quota-note">{service.ms !== null ? `${service.ms} ms` : "Konfiguration"}{service.detail ? ` · ${service.detail}` : ""}</p>
           </div>
         ))}
@@ -145,7 +145,7 @@ export default function SystemStatus() {
       ) : <p className="form-error" role="alert">{data.usageError}</p>}
 
       <div className="admin-stack">
-        <p className="section-index">Einreichungen: letzte Vorfaelle</p>
+        <p className="section-index">Einreichungen: letzte Vorfälle</p>
         {data.submissionFailuresError ? (
           <p className="form-error" role="alert">{data.submissionFailuresError}</p>
         ) : data.submissionFailures.length === 0 ? (
@@ -193,7 +193,7 @@ export default function SystemStatus() {
                 </strong>
                 <span>{reasonLabels[entry.reason] ?? entry.reason}</span>
                 <dl className="admin-facts">
-                  <div><dt>Geraet</dt><dd>{entry.brandModel ?? "–"}</dd></div>
+                  <div><dt>Gerät</dt><dd>{entry.brandModel ?? "–"}</dd></div>
                   <div><dt>Reparatur</dt><dd>{performedByLabel(entry.performedBy)}</dd></div>
                   <div><dt>Dauer</dt><dd>{entry.durationMinutes ? `${entry.durationMinutes} Minuten` : "–"}</dd></div>
                   <div><dt>Wert</dt><dd>{entry.itemValueEuros === null ? "–" : `${entry.itemValueEuros.toLocaleString("de-DE")} Euro`}</dd></div>
@@ -209,11 +209,11 @@ export default function SystemStatus() {
             ))}
           </ul>
         )}
-        <p className="quota-note">Aufgehoben wird nur, was eine Reparatur beschreibt - kein Foto, kein Name, keine Mail-Adresse, keine IP. Die Zeilen loeschen sich nach 30 Tagen selbst.</p>
+        <p className="quota-note">Aufgehoben wird nur, was eine Reparatur beschreibt - kein Foto, kein Name, keine Mail-Adresse, keine IP. Die Zeilen löschen sich nach 30 Tagen selbst.</p>
       </div>
 
-      <p className="quota-note">Geprueft am {new Date(data.checkedAt).toLocaleString("de-DE")}. Die Grenzwerte stammen aus <code>SUPABASE_STORAGE_QUOTA_MB</code> und <code>SUPABASE_DB_QUOTA_MB</code>; ohne Angabe gelten die Free-Tier-Werte.</p>
-      <button className="button button-secondary" type="button" onClick={reload}>Neu pruefen</button>
+      <p className="quota-note">Geprüft am {new Date(data.checkedAt).toLocaleString("de-DE")}. Die Grenzwerte stammen aus <code>SUPABASE_STORAGE_QUOTA_MB</code> und <code>SUPABASE_DB_QUOTA_MB</code>; ohne Angabe gelten die Free-Tier-Werte.</p>
+      <button className="button button-secondary" type="button" onClick={reload}>Neu prüfen</button>
     </div>
   );
 }

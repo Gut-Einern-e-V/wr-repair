@@ -23,7 +23,7 @@ export async function POST(request: Request, context: { params: Promise<{ repair
     .eq("claimed_by", access.currentAdmin.user.id);
 
   if (error) {
-    return Response.json({ error: "Der Anspruch konnte nicht zurueckgegeben werden." }, { status: 502 });
+    return Response.json({ error: "Der Anspruch konnte nicht zurückgegeben werden." }, { status: 502 });
   }
 
   return Response.json({ ok: true });

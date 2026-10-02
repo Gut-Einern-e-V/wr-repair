@@ -59,12 +59,12 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return errorResponse("Ungueltige Anfrage.", 400);
+    return errorResponse("Ungültige Anfrage.", 400);
   }
 
   const subscription = parseSubscription((body as { subscription?: unknown })?.subscription);
   if (!subscription) {
-    return errorResponse("Das Abo ist unvollstaendig.", 400);
+    return errorResponse("Das Abo ist unvollständig.", 400);
   }
 
   let supabase;
@@ -105,7 +105,7 @@ export async function DELETE(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return errorResponse("Ungueltige Anfrage.", 400);
+    return errorResponse("Ungültige Anfrage.", 400);
   }
 
   const endpoint = (body as { endpoint?: unknown })?.endpoint;

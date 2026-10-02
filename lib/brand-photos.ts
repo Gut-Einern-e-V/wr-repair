@@ -23,17 +23,17 @@ export const brandPhotos = {
   },
   reuse: {
     src: "/photos/weiterverwenden-pexels-wolrider-33087361.jpg",
-    alt: "Zwei Menschen vor einem alten Auto, dessen Karosserie mit gehaekelten Decken bezogen ist.",
+    alt: "Zwei Menschen vor einem alten Auto, dessen Karosserie mit gehäkelten Decken bezogen ist.",
     credit: "Foto: Wolrider / Pexels",
   },
   secondLife: {
     src: "/photos/zweites-leben-ki-generiert.jpg",
-    alt: "Aeltere Frau im Vintage-Trainingsanzug haelt lachend einen wieder funktionierenden Handheld-Spielkonsole in die Kamera.",
+    alt: "Ältere Frau im Vintage-Trainingsanzug hält lachend einen wieder funktionierenden Handheld-Spielkonsole in die Kamera.",
     credit: "Bild: KI-generiert",
   },
   celebrate: {
     src: "/photos/gemeinsam-feiern-ki-generiert.jpg",
-    alt: "Zwei Menschen unterschiedlichen Alters stehen in Lederjacken lachend vor einer Festivalbuehne.",
+    alt: "Zwei Menschen unterschiedlichen Alters stehen in Lederjacken lachend vor einer Festivalbühne.",
     credit: "Bild: KI-generiert",
   },
 } satisfies Record<string, BrandPhoto>;

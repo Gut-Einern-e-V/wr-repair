@@ -279,9 +279,9 @@ export default function LiveDashboard() {
         <p className="standby-mark">Reparaturrekord NRW</p>
         <p className="standby-message" role="status">
           {status === "closed"
-            ? "Das Live-Dashboard laeuft waehrend des Weltrekordversuchs."
+            ? "Das Live-Dashboard läuft während des Weltrekordversuchs."
             : status === "error"
-              ? "Die Live-Daten sind gerade nicht verfuegbar."
+              ? "Die Live-Daten sind gerade nicht verfügbar."
               : "Live-Daten werden geladen."}
         </p>
       </main>
@@ -361,8 +361,8 @@ export default function LiveDashboard() {
             Text ueber der Karte, und der Umriss von NRW reicht dort bis unten. */}
         <p className="stage-note">
           {snapshot.cells.length > 0
-            ? "Jeder Punkt steht fuer eine Reparatur."
-            : "Jeder Punkt steht fuer eine Reparatur. Die Standorte sind aus Datenschutzgruenden stilisiert."}
+            ? "Jeder Punkt steht für eine Reparatur."
+            : "Jeder Punkt steht für eine Reparatur. Die Standorte sind aus Datenschutzgründen stilisiert."}
           <span className="stage-credit">Kartendaten © OpenStreetMap-Mitwirkende</span>
         </p>
 

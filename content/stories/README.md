@@ -65,7 +65,7 @@ Umlaute und `ß` bitte direkt schreiben (`Nähmaschine`, nicht `Naehmaschine`).
 Die Dateien sind UTF-8.
 
 Kategorien aus dem Formular (`lib/repair-catalog.ts`): Anderes, Computer und
-Zubehör/Handys, Fahrrad, Foto-/Video und Autogerät, Haushaltsgeräte, Möbel,
+Zubehör/Handys, Fahrrad, Foto-/Video-/Audiogerät, Haushaltsgeräte, Möbel,
 Schärfen/Schleifen, Schmuck/Brillen, Spielzeug, Textilien, Uhren, Werkzeug.
 
 ## 3. Text schreiben

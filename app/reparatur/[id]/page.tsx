@@ -64,7 +64,7 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
         {repair.imageUrl && (
           <p className="form-notice">
             Soll das Foto nicht mehr zu sehen sein – etwa weil jemand darauf erkennbar ist?{" "}
-            <a href={mailto(CONTACT_EMAIL, `Foto loeschen (${repair.id})`)}>Schreib uns</a>, wir löschen es.
+            <a href={mailto(CONTACT_EMAIL, `Foto löschen (${repair.id})`)}>Schreib uns</a>, wir löschen es.
             Deine Reparatur zählt danach weiter.
           </p>
         )}

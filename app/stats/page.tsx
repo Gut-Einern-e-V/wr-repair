@@ -58,7 +58,7 @@ export default function StatsPage() {
       <p className="standby-mark">Reparaturrekord NRW</p>
       <p className="standby-message" role="status">
         {failed
-          ? "Die Live-Daten sind gerade nicht verfuegbar."
+          ? "Die Live-Daten sind gerade nicht verfügbar."
           : campaign
             ? "Der Live-Stand wird mit dem Start des Weltrekordversuchs freigeschaltet."
             : "Live-Daten werden geladen."}

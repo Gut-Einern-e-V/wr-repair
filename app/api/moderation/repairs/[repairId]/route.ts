@@ -67,7 +67,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ repa
 
   const { error: deleteError } = await supabase.from("repairs").delete().eq("id", repairId);
   if (deleteError) {
-    return Response.json({ error: "Einreichung konnte nicht geloescht werden." }, { status: 502 });
+    return Response.json({ error: "Einreichung konnte nicht gelöscht werden." }, { status: 502 });
   }
 
   return Response.json({ ok: true });
@@ -85,23 +85,23 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
 
   const allowedStatuses = access.isAdmin ? adminStatuses : statuses;
   if (body.status !== undefined && (!allowedStatuses.has(body.status) || !isOptionalString(body.moderatorComment, 1000))) {
-    return Response.json({ error: "Ungueltige Moderationsdaten." }, { status: 400 });
+    return Response.json({ error: "Ungültige Moderationsdaten." }, { status: 400 });
   }
 
   if (!body.status && !body.metadata) {
-    return Response.json({ error: "Keine Aenderung angegeben." }, { status: 400 });
+    return Response.json({ error: "Keine Änderung angegeben." }, { status: 400 });
   }
 
   /* Freigeben und dabei das Foto loeschen - ein Handgriff statt zwei
      (Issue #49). Nur mit einer Freigabe zusammen sinnvoll: Ohne Entscheidung
      ist es die reine Loeschung, und die hat eine eigene Route. */
   if (body.deleteImage !== undefined && (typeof body.deleteImage !== "boolean" || (body.deleteImage && body.status !== "approved"))) {
-    return Response.json({ error: "Das Foto laesst sich nur zusammen mit einer Freigabe loeschen." }, { status: 400 });
+    return Response.json({ error: "Das Foto lässt sich nur zusammen mit einer Freigabe löschen." }, { status: 400 });
   }
 
   const metadata = body.metadata;
   if (metadata !== undefined && (typeof metadata !== "object" || Array.isArray(metadata))) {
-    return Response.json({ error: "Ungueltige Metadaten." }, { status: 400 });
+    return Response.json({ error: "Ungültige Metadaten." }, { status: 400 });
   }
 
   if (metadata && (
@@ -115,7 +115,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
     || !isOptionalString(metadata.story, 2000)
     || (metadata.repairSucceeded !== undefined && typeof metadata.repairSucceeded !== "boolean")
   )) {
-    return Response.json({ error: "Ungueltige Metadaten." }, { status: 400 });
+    return Response.json({ error: "Ungültige Metadaten." }, { status: 400 });
   }
 
   const supabase = createSupabaseAdminClient();
@@ -140,7 +140,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
   }
 
   if (body.status === "approved" && !repair.consent_publication) {
-    return Response.json({ error: "Ohne Veroeffentlichungszustimmung kann die Einreichung nicht freigegeben werden." }, { status: 400 });
+    return Response.json({ error: "Ohne Veröffentlichungszustimmung kann die Einreichung nicht freigegeben werden." }, { status: 400 });
   }
 
   /* Das Bild geht vor der Freigabe, nicht danach: Wuerde erst freigegeben und
@@ -151,7 +151,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ repai
      (dann sollte es weg sein) oder abgelehnt (dann waere es ohnehin
      geloescht worden). */
   if (body.deleteImage && repair.image_path && !await removeRepairImage(supabase, repairId, repair.image_path)) {
-    return Response.json({ error: "Das Bild konnte nicht aus dem Speicher geloescht werden. Die Einreichung bleibt offen." }, { status: 502 });
+    return Response.json({ error: "Das Bild konnte nicht aus dem Speicher gelöscht werden. Die Einreichung bleibt offen." }, { status: 502 });
   }
 
   if (metadata) {

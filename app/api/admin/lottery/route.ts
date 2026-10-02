@@ -24,7 +24,7 @@ export async function GET() {
 
   const overview = await readLotteryOverview(createSupabaseAdminClient());
   if (!overview) {
-    return Response.json({ error: "Der Stand der Verlosung konnte nicht geladen werden. Wurde die Migration ausgefuehrt?" }, { status: 502 });
+    return Response.json({ error: "Der Stand der Verlosung konnte nicht geladen werden. Wurde die Migration ausgeführt?" }, { status: 502 });
   }
 
   return Response.json(overview);
@@ -47,12 +47,12 @@ export async function POST(request: Request) {
      und zeigt jeden Zug fuer sich. */
   if (body.action === "draw") {
     if (typeof body.prizeId !== "string" || !body.prizeId) {
-      return Response.json({ error: "Es fehlt, fuer welchen Preis gezogen werden soll." }, { status: 400 });
+      return Response.json({ error: "Es fehlt, für welchen Preis gezogen werden soll." }, { status: 400 });
     }
 
     const wanted = body.count === undefined ? "all" as const : Number(body.count);
     if (wanted !== "all" && (!Number.isInteger(wanted) || wanted < 1 || wanted > 999)) {
-      return Response.json({ error: "Die Anzahl der Zuege muss eine ganze Zahl ab 1 sein." }, { status: 400 });
+      return Response.json({ error: "Die Anzahl der Züge muss eine ganze Zahl ab 1 sein." }, { status: 400 });
     }
 
     const result = await drawForPrize(supabase, body.prizeId, wanted);
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
      Gewinner*in stehen liessen, den jemand vergessen koennte. */
   if (body.action === "redraw") {
     if (typeof body.entryId !== "string" || !body.entryId) {
-      return Response.json({ error: "Es fehlt, welche Ziehung zurueckgenommen werden soll." }, { status: 400 });
+      return Response.json({ error: "Es fehlt, welche Ziehung zurückgenommen werden soll." }, { status: 400 });
     }
 
     const withdrawn = await withdrawWin(supabase, body.entryId);
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       /* Die Ruecknahme steht schon. Das ist kein Fehlschlag des Ganzen: Der
          Preis ist wieder offen und kann spaeter gezogen werden, sobald es
          wieder Lose gibt. Die Meldung sagt genau das. */
-      return Response.json({ ok: true, winners: [], notice: `Die Ziehung wurde zurueckgenommen. Neu gezogen wurde noch nicht: ${result.error}` });
+      return Response.json({ ok: true, winners: [], notice: `Die Ziehung wurde zurückgenommen. Neu gezogen wurde noch nicht: ${result.error}` });
     }
 
     return Response.json({ ok: true, winners: result.winners });
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   /* Zuruecknehmen ohne neuen Zug - wenn ein Gewinn ersatzlos entfaellt. */
   if (body.action === "withdraw") {
     if (typeof body.entryId !== "string" || !body.entryId) {
-      return Response.json({ error: "Es fehlt, welche Ziehung zurueckgenommen werden soll." }, { status: 400 });
+      return Response.json({ error: "Es fehlt, welche Ziehung zurückgenommen werden soll." }, { status: 400 });
     }
 
     const withdrawn = await withdrawWin(supabase, body.entryId);

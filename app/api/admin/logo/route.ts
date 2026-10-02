@@ -17,7 +17,7 @@ export async function POST(request: Request) {
   const logo = formData.get("logo");
 
   if (!(logo instanceof File) || !logoTypes.has(logo.type) || logo.size === 0 || logo.size > maxLogoBytes) {
-    return Response.json({ error: "Bitte waehle ein PNG, WebP, JPG oder SVG bis 1 MB." }, { status: 400 });
+    return Response.json({ error: "Bitte wähle ein PNG, WebP, JPG oder SVG bis 1 MB." }, { status: 400 });
   }
 
   const supabase = createSupabaseAdminClient();
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     .upload(logoPath, logo, { contentType: logo.type, upsert: false });
 
   if (uploadError) {
-    return Response.json({ error: "Das Logo konnte nicht hochgeladen werden. Wurde die Migration ausgefuehrt?" }, { status: 502 });
+    return Response.json({ error: "Das Logo konnte nicht hochgeladen werden. Wurde die Migration ausgeführt?" }, { status: 502 });
   }
 
   const { error } = await supabase.from("campaign_settings").upsert({

@@ -79,7 +79,7 @@ export async function requireSuperadmin() {
   }
 
   if (!currentAdmin.roles.includes("superadmin")) {
-    return { authorized: false as const, error: "Nur Superadmins duerfen Benutzer verwalten.", status: 403 };
+    return { authorized: false as const, error: "Nur Superadmins dürfen Benutzer verwalten.", status: 403 };
   }
 
   return { authorized: true as const, currentAdmin };

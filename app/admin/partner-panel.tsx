@@ -33,7 +33,7 @@ export default function PartnerPanel({ onStatus, onError }: { onStatus: (message
       }
 
       form.reset();
-      onStatus("Partner wurde hinzugefuegt.");
+      onStatus("Partner wurde hinzugefügt.");
       reload();
     } finally {
       setBusy("");
@@ -90,7 +90,7 @@ export default function PartnerPanel({ onStatus, onError }: { onStatus: (message
         {error && <p className="form-error" role="alert">{error}</p>}
         {isLoading ? <p className="queue-empty">Partner werden geladen.</p> : (
           <div className="sortable-list">
-            {partners.length === 0 && <p className="queue-empty">Noch keine zusaetzlichen Partner.</p>}
+            {partners.length === 0 && <p className="queue-empty">Noch keine zusätzlichen Partner.</p>}
             {partners.map((partner, index) => (
               <div className="sortable-row" key={partner.id}>
                 <OrderControls

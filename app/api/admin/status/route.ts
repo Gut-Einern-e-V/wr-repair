@@ -192,12 +192,12 @@ export async function GET() {
          reicht, steht im Einreichungsprotokoll (screening_unavailable). */
       {
         id: "screening",
-        label: "Bildpruefung (Sightengine)",
+        label: "Bildprüfung (Sightengine)",
         ok: isScreeningConfigured(),
         ms: null,
         detail: isScreeningConfigured()
           ? null
-          : "SIGHTENGINE_API_USER oder SIGHTENGINE_API_SECRET fehlt. Fotos gehen ungeprueft in die Moderation.",
+          : "SIGHTENGINE_API_USER oder SIGHTENGINE_API_SECRET fehlt. Fotos gehen ungeprüft in die Moderation.",
       },
     ],
     usage: usage
@@ -209,7 +209,7 @@ export async function GET() {
           partners: Number(usage.partners ?? 0),
         }
       : null,
-    usageError: usageProbe.ok ? null : "Die Belegung konnte nicht gelesen werden. Wurde die Migration ausgefuehrt?",
+    usageError: usageProbe.ok ? null : "Die Belegung konnte nicht gelesen werden. Wurde die Migration ausgeführt?",
     submissionFailures: failureProbe.ok
       ? failureProbe.value.map((row) => ({
           id: row.id,
@@ -225,7 +225,7 @@ export async function GET() {
           incomplete: Boolean(row.repair_id),
         }))
       : [],
-    submissionFailuresError: failureProbe.ok ? null : "Das Einreichungsprotokoll konnte nicht gelesen werden. Wurde die Migration ausgefuehrt?",
+    submissionFailuresError: failureProbe.ok ? null : "Das Einreichungsprotokoll konnte nicht gelesen werden. Wurde die Migration ausgeführt?",
     abandonedSubmissions: abandonedProbe.ok
       ? abandonedProbe.value.map((row) => ({
           id: row.id,
@@ -247,7 +247,7 @@ export async function GET() {
           wantsLottery: row.wants_lottery,
         }))
       : [],
-    abandonedSubmissionsError: abandonedProbe.ok ? null : "Die abgebrochenen Einreichungen konnten nicht gelesen werden. Wurde die Migration 202609170002 ausgefuehrt?",
+    abandonedSubmissionsError: abandonedProbe.ok ? null : "Die abgebrochenen Einreichungen konnten nicht gelesen werden. Wurde die Migration 202609170002 ausgeführt?",
     checkedAt: new Date().toISOString(),
   }, { headers: { "Cache-Control": "no-store" } });
 }

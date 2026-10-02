@@ -128,7 +128,7 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
       try {
         const response = await fetch("/api/stats");
         if (!response.ok) {
-          throw new Error("Statistik nicht verfuegbar");
+          throw new Error("Statistik nicht verfügbar");
         }
 
         const stats = await response.json() as RepairStats;
@@ -150,7 +150,7 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
     async function loadCampaign() {
       try {
         const response = await fetch("/api/campaign", { cache: "no-store" });
-        if (!response.ok) throw new Error("Kampagnenstatus nicht verfuegbar");
+        if (!response.ok) throw new Error("Kampagnenstatus nicht verfügbar");
         const data = await response.json() as CampaignDates & { goal?: number; testRun?: boolean };
         setCampaign({ startAt: data.startAt, endAt: data.endAt });
         if (typeof data.goal === "number" && data.goal > 0) setCampaignGoal(data.goal);

@@ -30,7 +30,7 @@ async function load(): Promise<SharepicLogos> {
   const directory = path.join(process.cwd(), "components", "sharepics", "logos");
   return Promise.all(fundingGroups.flatMap((group) => group.logos.map(async (logo) => {
     const entry = files[logo.src];
-    if (!entry) throw new Error(`Keine Graustufenfassung fuer ${logo.src}`);
+    if (!entry) throw new Error(`Keine Graustufenfassung für ${logo.src}`);
     const data = await readFile(path.join(directory, entry.file), "base64");
     return { key: entry.file, group: group.key, src: `data:image/png;base64,${data}`, width: entry.width, height: entry.height };
   })));

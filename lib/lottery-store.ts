@@ -424,7 +424,7 @@ export async function withdrawWin(supabase: SupabaseClient, entryId: string) {
     .in("id", ids);
 
   if (updateError) {
-    return { ok: false as const, status: 502, error: "Die Ziehung konnte nicht zurueckgenommen werden." };
+    return { ok: false as const, status: 502, error: "Die Ziehung konnte nicht zurückgenommen werden." };
   }
 
   return { ok: true as const, prizeId };

@@ -222,7 +222,7 @@ export async function requireModerationAccess() {
   if (!isAdmin && !acceptsSubmissions(await getAppSettings())) {
     return {
       ok: false as const,
-      response: Response.json({ error: "Moderation ist nur waehrend des Einreichungszeitraums moeglich." }, { status: 403 }),
+      response: Response.json({ error: "Moderation ist nur während des Einreichungszeitraums möglich." }, { status: 403 }),
     };
   }
 

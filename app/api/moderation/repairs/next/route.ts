@@ -30,7 +30,7 @@ export async function POST(request: Request) {
   const skip = Array.isArray(body.skip) ? body.skip : [];
 
   if (skip.length > MAX_SKIP || skip.some((id) => typeof id !== "string" || !uuidPattern.test(id))) {
-    return Response.json({ error: "Ungueltige Liste zurueckgestellter Einreichungen." }, { status: 400 });
+    return Response.json({ error: "Ungültige Liste zurückgestellter Einreichungen." }, { status: 400 });
   }
 
   const supabase = createSupabaseAdminClient();
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
   const claimed = data as unknown as ModerationRow | null;
 
   if (error) {
-    return Response.json({ error: "Die naechste Einreichung konnte nicht geladen werden." }, { status: 502 });
+    return Response.json({ error: "Die nächste Einreichung konnte nicht geladen werden." }, { status: 502 });
   }
 
   // Wie voll die Warteschlange ist, sehen nur Admins (Issue #10). Gezaehlt wird
