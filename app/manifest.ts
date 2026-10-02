@@ -58,7 +58,7 @@ export default function manifest(): MetadataRoute.Manifest {
       {
         name: "Live-Stand",
         short_name: "Live-Stand",
-        description: "Aktueller Zaehlerstand des Rekordversuchs.",
+        description: "Aktueller Zählerstand des Rekordversuchs.",
         url: "/stats",
         icons: [{ src: "/icons/shortcut-stand-192.png", sizes: "192x192", type: "image/png" }],
       },

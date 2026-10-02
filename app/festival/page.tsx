@@ -1,6 +1,7 @@
 import Link from "next/link";
 import NextImage from "next/image";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { BreadcrumbStructuredData, FestivalStructuredData } from "@/components/structured-data";
 import { brandPhotos } from "@/lib/brand-photos";
 import { FESTIVAL_DATE_ISO, FESTIVAL_DATE_TEXT, FESTIVAL_FAB_URL, FESTIVAL_SIGNUP_URL, FestivalFacts, FestivalNav, FestivalPending } from "./festival-chrome";
 
@@ -50,6 +51,8 @@ const questions = [
 export default function FestivalPage() {
   return <main className="page-shell content-page">
     <SiteHeader />
+    <FestivalStructuredData />
+    <BreadcrumbStructuredData trail={[["/festival", "Repair & Share Festival"]]} />
 
     <section id="inhalt" className="content-hero" aria-labelledby="festival-title">
       <div>

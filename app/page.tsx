@@ -3,6 +3,11 @@ import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { SiteStructuredData } from "@/components/structured-data";
 import { getStoryTeasers } from "@/lib/stories";
 
+/* Der Kanonische aus dem Layout ist relativ ("./") und wird fuer die
+   Startseite zu `/index` aufgeloest - eine Adresse, die Next zwar ausliefert,
+   die aber niemand verlinkt. Hier steht deshalb ausdruecklich die Wurzel. */
+export const metadata = { alternates: { canonical: "/" } };
+
 /* Die Startseite wird statisch vorgerendert: Die Blog-Uebersicht kommt aus den
    Markdown-Dateien in content/stories/ und wird beim Build eingelesen. Neue
    Beitraege erscheinen mit dem naechsten Deploy, ein Seitenaufruf loest dafuer

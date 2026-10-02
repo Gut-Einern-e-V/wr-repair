@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     default: "Reparaturrekord NRW | Circular Week 2026",
     template: "%s | Reparaturrekord NRW",
   },
-  description: "Einen Monat lang zaehlt Nordrhein-Westfalen jede Reparatur: Repariere etwas, trage es ein und werde Teil des Reparatur-Weltrekords.",
+  description: "Einen Monat lang zählt Nordrhein-Westfalen jede Reparatur: Repariere etwas, trage es ein und werde Teil des Reparatur-Weltrekords.",
   applicationName: "Reparaturrekord NRW",
   /* `creator` ist, wer die Seite gemacht hat, `publisher`, wer sie
      herausgibt - seit Issue #78 sind das zwei verschiedene Haeuser: Die
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     locale: "de_DE",
     siteName: "Reparaturrekord NRW",
     title: "Reparaturrekord NRW",
-    description: "Einen Monat lang zaehlt Nordrhein-Westfalen jede Reparatur. Mach mit beim Reparatur-Weltrekord.",
+    description: "Einen Monat lang zählt Nordrhein-Westfalen jede Reparatur. Mach mit beim Reparatur-Weltrekord.",
     url: "/",
   },
   twitter: { card: "summary_large_image" },

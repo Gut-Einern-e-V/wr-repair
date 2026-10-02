@@ -2,7 +2,10 @@ import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { CONTACT_EMAIL, mailto, operator, operatorAddressLine } from "@/lib/organisation";
 
-export const metadata = { title: "Datenschutz" };
+export const metadata = {
+  title: "Datenschutz",
+  description: "Welche Daten der Reparaturrekord NRW verarbeitet, warum Ortsangaben nur verschoben gespeichert werden und wie du Fotos und Einwilligungen jederzeit zurücknehmen kannst.",
+};
 
 export default function PrivacyPage() {
   return <main className="page-shell content-page"><SiteHeader /><article id="inhalt" className="legal-page">
