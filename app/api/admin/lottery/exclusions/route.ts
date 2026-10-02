@@ -38,12 +38,12 @@ export async function POST(request: Request) {
 
   if (!validPattern(pattern)) {
     return Response.json(
-      { error: "Trage eine ganze Adresse ein (anna@example.org) oder eine Domain mit fuehrendem @ (@example.org)." },
+      { error: "Trage eine ganze Adresse ein (anna@example.org) oder eine Domain mit führendem @ (@example.org)." },
       { status: 400 },
     );
   }
   if (note.length > 200) {
-    return Response.json({ error: "Die Notiz darf hoechstens 200 Zeichen haben." }, { status: 400 });
+    return Response.json({ error: "Die Notiz darf höchstens 200 Zeichen haben." }, { status: 400 });
   }
 
   const supabase = createSupabaseAdminClient();
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     if (error.code === "23505") {
       return Response.json({ error: `${pattern} steht schon auf der Liste.` }, { status: 409 });
     }
-    return Response.json({ error: "Der Ausschluss konnte nicht gespeichert werden. Wurde die Migration ausgefuehrt?" }, { status: 502 });
+    return Response.json({ error: "Der Ausschluss konnte nicht gespeichert werden. Wurde die Migration ausgeführt?" }, { status: 502 });
   }
 
   return Response.json({ ok: true }, { status: 201 });

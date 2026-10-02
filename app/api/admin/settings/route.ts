@@ -106,7 +106,7 @@ export async function PUT(request: Request) {
 
   if (body.startAt !== undefined || body.endAt !== undefined) {
     if (!validDate(body.startAt) || !validDate(body.endAt) || new Date(body.startAt) >= new Date(body.endAt)) {
-      return Response.json({ error: "Bitte waehle einen gueltigen Beginn und ein gueltiges Ende." }, { status: 400 });
+      return Response.json({ error: "Bitte wähle einen gültigen Beginn und ein gültiges Ende." }, { status: 400 });
     }
     update.submission_start_at = new Date(body.startAt).toISOString();
     update.submission_end_at = new Date(body.endAt).toISOString();
@@ -159,7 +159,7 @@ export async function PUT(request: Request) {
 
     const perMinute = Number(rateLimit.perMinute);
     if (!Number.isInteger(perMinute) || perMinute < 1 || perMinute > 100_000) {
-      return Response.json({ error: "Die Anfragen pro Minute muessen eine ganze Zahl zwischen 1 und 100.000 sein." }, { status: 400 });
+      return Response.json({ error: "Die Anfragen pro Minute müssen eine ganze Zahl zwischen 1 und 100.000 sein." }, { status: 400 });
     }
 
     /* Die Freigabeliste kommt zusammen mit dem Schalter, weil die Karte im
@@ -171,7 +171,7 @@ export async function PUT(request: Request) {
       return Response.json({ error: "Die Freigabeliste muss eine Liste von Adressen sein." }, { status: 400 });
     }
     if (rateLimit.allowlist.length > MAX_ALLOWLIST_ENTRIES) {
-      return Response.json({ error: `Die Freigabeliste fasst hoechstens ${MAX_ALLOWLIST_ENTRIES} Eintraege.` }, { status: 400 });
+      return Response.json({ error: `Die Freigabeliste fasst höchstens ${MAX_ALLOWLIST_ENTRIES} Einträge.` }, { status: 400 });
     }
 
     const allowlist: string[] = [];
@@ -179,7 +179,7 @@ export async function PUT(request: Request) {
       const rule = typeof entry === "string" ? entry.trim() : "";
       if (!isValidIpRule(rule)) {
         return Response.json(
-          { error: `"${rule}" ist keine IP-Adresse und kein Praefix. Beispiele: 203.0.113.4, 203.0.113.0/24, 2001:db8::/32.` },
+          { error: `"${rule}" ist keine IP-Adresse und kein Präfix. Beispiele: 203.0.113.4, 203.0.113.0/24, 2001:db8::/32.` },
           { status: 400 },
         );
       }
@@ -206,7 +206,7 @@ export async function PUT(request: Request) {
       return Response.json({ error: "Name, Anschrift und Kontaktadresse des Veranstalters sind zu lang." }, { status: 400 });
     }
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      return Response.json({ error: "Die Kontaktadresse des Veranstalters ist keine gueltige E-Mail-Adresse." }, { status: 400 });
+      return Response.json({ error: "Die Kontaktadresse des Veranstalters ist keine gültige E-Mail-Adresse." }, { status: 400 });
     }
 
     update.lottery_organizer_name = name || null;
@@ -218,16 +218,16 @@ export async function PUT(request: Request) {
     const region = body.region;
 
     if (typeof region.enabled !== "boolean") {
-      return Response.json({ error: "Bitte gib an, ob die Gebietspruefung aktiv ist." }, { status: 400 });
+      return Response.json({ error: "Bitte gib an, ob die Gebietsprüfung aktiv ist." }, { status: 400 });
     }
     if (typeof region.label !== "string" || !region.label.trim() || region.label.trim().length > 120) {
-      return Response.json({ error: "Der Gebietsname darf nicht leer sein und hoechstens 120 Zeichen haben." }, { status: 400 });
+      return Response.json({ error: "Der Gebietsname darf nicht leer sein und höchstens 120 Zeichen haben." }, { status: 400 });
     }
     if (typeof region.ipCountry !== "string" || !/^[A-Za-z]{2}$/.test(region.ipCountry.trim())) {
-      return Response.json({ error: "Das Laenderkuerzel muss aus zwei Buchstaben bestehen, zum Beispiel DE." }, { status: 400 });
+      return Response.json({ error: "Das Länderkürzel muss aus zwei Buchstaben bestehen, zum Beispiel DE." }, { status: 400 });
     }
     if (typeof region.ipRegion !== "string" || region.ipRegion.trim().length > 10) {
-      return Response.json({ error: "Das Regionskuerzel ist zu lang." }, { status: 400 });
+      return Response.json({ error: "Das Regionskürzel ist zu lang." }, { status: 400 });
     }
 
     const latMin = coordinate(region.latMin, 90);
@@ -237,7 +237,7 @@ export async function PUT(request: Request) {
     const box = [latMin, latMax, lonMin, lonMax];
 
     if (box.some((value) => value === undefined)) {
-      return Response.json({ error: "Die Koordinaten des Gebiets sind ungueltig." }, { status: 400 });
+      return Response.json({ error: "Die Koordinaten des Gebiets sind ungültig." }, { status: 400 });
     }
     // Either a complete box or none at all; half a box would silently disable the GPS fallback.
     const filled = box.filter((value) => value !== null).length;
@@ -245,7 +245,7 @@ export async function PUT(request: Request) {
       return Response.json({ error: "Bitte gib alle vier Eckwerte des Gebiets an oder lasse alle leer." }, { status: 400 });
     }
     if (filled === 4 && ((latMin as number) >= (latMax as number) || (lonMin as number) >= (lonMax as number))) {
-      return Response.json({ error: "Die Minimalwerte des Gebiets muessen kleiner als die Maximalwerte sein." }, { status: 400 });
+      return Response.json({ error: "Die Minimalwerte des Gebiets müssen kleiner als die Maximalwerte sein." }, { status: 400 });
     }
 
     update.region_enabled = region.enabled;
@@ -259,14 +259,14 @@ export async function PUT(request: Request) {
   }
 
   if (Object.keys(update).length <= 2) {
-    return Response.json({ error: "Keine Aenderung angegeben." }, { status: 400 });
+    return Response.json({ error: "Keine Änderung angegeben." }, { status: 400 });
   }
 
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase.from("campaign_settings").upsert(update);
 
   if (error) {
-    return Response.json({ error: "Die Einstellungen konnten nicht gespeichert werden. Wurde die Migration ausgefuehrt?" }, { status: 502 });
+    return Response.json({ error: "Die Einstellungen konnten nicht gespeichert werden. Wurde die Migration ausgeführt?" }, { status: 502 });
   }
 
   const row = await readSettingsRow();

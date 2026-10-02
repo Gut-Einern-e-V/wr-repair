@@ -57,7 +57,7 @@ export default function TeamSettings({ onStatus, onError }: { onStatus: (message
     const payload = await response.json() as { error?: string };
 
     if (!response.ok) {
-      onError(payload.error ?? "Rolle konnte nicht geaendert werden.");
+      onError(payload.error ?? "Rolle konnte nicht geändert werden.");
       return;
     }
 
@@ -92,11 +92,11 @@ export default function TeamSettings({ onStatus, onError }: { onStatus: (message
     const payload = await response.json() as { error?: string };
 
     if (!response.ok) {
-      onError(payload.error ?? "Konto konnte nicht geloescht werden.");
+      onError(payload.error ?? "Konto konnte nicht gelöscht werden.");
       return;
     }
 
-    onStatus("Konto wurde geloescht.");
+    onStatus("Konto wurde gelöscht.");
     reload();
   }
 
@@ -145,7 +145,7 @@ export default function TeamSettings({ onStatus, onError }: { onStatus: (message
         </div>
       )}
       <p className="onboarding-hint"><a href={MODERATION_GUIDE_PATH} target="_blank" rel="noopener">Anleitung für neue Moderator*innen (PDF)</a> – Login, Benachrichtigungen auf iPhone, Android und Computer, Prüfen.</p>
-      {data && !canManageAdmins && <p className="form-notice">Als Admin kannst du Konten fuer die Moderation anlegen. Admin- und Superadmin-Rechte vergibt eine Superadministration.</p>}
+      {data && !canManageAdmins && <p className="form-notice">Als Admin kannst du Konten für die Moderation anlegen. Admin- und Superadmin-Rechte vergibt eine Superadministration.</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
 
       {isLoading ? <p className="queue-empty">Team wird geladen.</p> : (

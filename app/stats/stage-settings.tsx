@@ -61,10 +61,10 @@ export function StageSettings({ showSpotlight, onToggleSpotlight, beamer, onTogg
         </button>
         <p>
           Beamer-Modus setzt den Hintergrund auf reines Schwarz. Ein DLP-Projektor
-          laesst dort das Licht ganz aus - das ergibt den hoechsten Kontrast.
+          lässt dort das Licht ganz aus - das ergibt den höchsten Kontrast.
         </p>
         <p className="stage-settings-keys">
-          <kbd>F</kbd> Zaehler gross · <kbd>B</kbd> Einzelbilder · <kbd>Esc</kbd> zurueck
+          <kbd>F</kbd> Zähler groß · <kbd>B</kbd> Einzelbilder · <kbd>Esc</kbd> zurück
         </p>
       </div>
     </details>

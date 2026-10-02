@@ -52,7 +52,7 @@ function LoginForm() {
         <label>E-Mail<input name="email" type="email" autoComplete="email" required /></label>
         <label>Passwort<input name="password" type="password" autoComplete="current-password" required /></label>
         {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="button button-primary" type="submit" disabled={isSubmitting}>{isSubmitting ? "Prueft ..." : "Einloggen"}</button>
+        <button className="button button-primary" type="submit" disabled={isSubmitting}>{isSubmitting ? "Prüft ..." : "Einloggen"}</button>
         {/* Kein Link per Mail: Das Projekt verschickt keine Mails (lib/password-policy.ts). */}
         <p className="auth-hint auth-secondary">Passwort vergessen? Wende dich an die Person, die dein Konto angelegt hat. Sie setzt dir ein neues temporäres Passwort.</p>
       </form>
@@ -62,7 +62,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<main className="auth-page"><p className="section-index">Laedt ...</p></main>}>
+    <Suspense fallback={<main className="auth-page"><p className="section-index">Lädt ...</p></main>}>
       <LoginForm />
     </Suspense>
   );

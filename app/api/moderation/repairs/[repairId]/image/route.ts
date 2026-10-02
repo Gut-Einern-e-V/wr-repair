@@ -46,7 +46,7 @@ export async function DELETE(request: Request, context: { params: Promise<{ repa
   }
 
   if (!await removeRepairImage(supabase, repairId, repair.image_path)) {
-    return Response.json({ error: "Das Bild konnte nicht aus dem Speicher geloescht werden." }, { status: 502 });
+    return Response.json({ error: "Das Bild konnte nicht aus dem Speicher gelöscht werden." }, { status: 502 });
   }
 
   return Response.json({ ok: true });

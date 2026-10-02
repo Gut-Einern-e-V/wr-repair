@@ -19,7 +19,7 @@ export function QuickSubmission() {
     async function loadCampaign() {
       try {
         const response = await fetch("/api/campaign", { cache: "no-store" });
-        if (!response.ok) throw new Error("Kampagnenstatus nicht verfuegbar");
+        if (!response.ok) throw new Error("Kampagnenstatus nicht verfügbar");
         setCampaign(await response.json() as CampaignStatus);
       } catch {
         setCampaign({ status: "invalid", startAt: null });

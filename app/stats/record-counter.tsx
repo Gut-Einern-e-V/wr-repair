@@ -43,9 +43,9 @@ export function RecordCounter({ total, goal, celebrating, fullscreen, onToggleFu
         className="counter-cloud"
         type="button"
         onClick={onToggleFullscreen}
-        aria-label={fullscreen ? "Vollbild des Zaehlers verlassen" : "Zaehler im Vollbild zeigen"}
+        aria-label={fullscreen ? "Vollbild des Zählers verlassen" : "Zähler im Vollbild zeigen"}
         aria-pressed={fullscreen}
-        title={fullscreen ? "Vollbild verlassen (Esc)" : "Zaehler im Vollbild zeigen (F)"}
+        title={fullscreen ? "Vollbild verlassen (Esc)" : "Zähler im Vollbild zeigen (F)"}
       >
         <CounterCloud celebrating={celebrating} fullscreen={fullscreen} reached={reached} value={total} />
         <span className="counter-readout" aria-live="polite">{total.toLocaleString("de-DE")} Reparaturen</span>

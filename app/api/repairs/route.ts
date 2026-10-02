@@ -172,7 +172,7 @@ export async function POST(request: Request) {
   /* Zeitraum *oder* Testlauf (Issue #102) - dieselbe Entscheidung wie im
      Formular, damit ein offenes Formular nie auf eine absagende Route trifft. */
   if (!acceptsSubmissions(settings)) {
-    return withTimings(errorResponse("Einreichungen sind derzeit nicht geoeffnet.", 403));
+    return withTimings(errorResponse("Einreichungen sind derzeit nicht geöffnet.", 403));
   }
 
   if (!gate.allowed) {
@@ -261,19 +261,19 @@ export async function POST(request: Request) {
     && typeof lotteryEmail === "string" && lotteryEmail.trim().length > 0;
 
   if (typeof category !== "string" || !(repairCategoryValues as string[]).includes(category)) {
-    return withTimings(errorResponse("Bitte waehle eine gueltige Kategorie.", 400));
+    return withTimings(errorResponse("Bitte wähle eine gültige Kategorie.", 400));
   }
 
   if (typeof performedBy !== "string" || !validPerformedBy.has(performedBy)) {
-    return withTimings(errorResponse("Bitte gib an, wer die Reparatur durchgefuehrt hat.", 400));
+    return withTimings(errorResponse("Bitte gib an, wer die Reparatur durchgeführt hat.", 400));
   }
 
   if (consent !== "true") {
-    return withTimings(errorResponse("Die Zustimmung zur Veroeffentlichung ist erforderlich.", 400));
+    return withTimings(errorResponse("Die Zustimmung zur Veröffentlichung ist erforderlich.", 400));
   }
 
   if (wantsLottery && lotteryPrivacy !== "true") {
-    return withTimings(errorResponse("Bitte stimme der Datenschutzerklaerung fuer die Verlosung zu.", 400));
+    return withTimings(errorResponse("Bitte stimme der Datenschutzerklärung für die Verlosung zu.", 400));
   }
 
   /* Dieselben Grenzen wie die maxLength-Angaben im Formular. Ohne sie nimmt
@@ -285,7 +285,7 @@ export async function POST(request: Request) {
   }
 
   if (wantsLottery && (tooLong(lotteryName, 200) || tooLong(lotteryEmail, 254) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(lotteryEmail).trim()))) {
-    return withTimings(errorResponse("Bitte pruefe Name und E-Mail-Adresse fuer die Verlosung.", 400));
+    return withTimings(errorResponse("Bitte prüfe Name und E-Mail-Adresse für die Verlosung.", 400));
   }
 
   if (image instanceof File && image.size > 0) {
@@ -294,7 +294,7 @@ export async function POST(request: Request) {
     }
 
     if (image.size > MAX_IMAGE_BYTES) {
-      return withTimings(errorResponse("Das Bild darf maximal 200 KB gross sein.", 400));
+      return withTimings(errorResponse("Das Bild darf maximal 200 KB groß sein.", 400));
     }
   }
 
@@ -309,7 +309,7 @@ export async function POST(request: Request) {
     originalImageBytes = await image.arrayBuffer();
     const stripped = stripImageMetadata(new Uint8Array(originalImageBytes), image.type as StrippableImageType);
     if (!stripped) {
-      return withTimings(errorResponse("Das Bild konnte nicht gelesen werden. Bitte waehle ein anderes Foto.", 400));
+      return withTimings(errorResponse("Das Bild konnte nicht gelesen werden. Bitte wähle ein anderes Foto.", 400));
     }
     uploadImage = new File([stripped as Uint8Array<ArrayBuffer>], image.name, { type: image.type });
   }
@@ -364,7 +364,7 @@ export async function POST(request: Request) {
         reason: "token_missing",
         detail: "Einreichung ohne Captcha-Token - Widget defekt oder Skript?",
       }));
-      return withTimings(errorResponse("Bitte bestaetige zuerst den Spam-Schutz.", 403));
+      return withTimings(errorResponse("Bitte bestätige zuerst den Spam-Schutz.", 403));
     }
 
     /* Das Widget legt in dasselbe Feld auch seinen Zustand ab: ".SOLVING",
@@ -376,7 +376,7 @@ export async function POST(request: Request) {
        dieser Zweig bleibt fuer alte Sitzungen und faengt sie mit einer
        Meldung ab, die sagt, was zu tun ist. */
     if (!isCaptchaSolution(captchaToken)) {
-      const detail = `Widget-Zustand statt Loesungswort: ${captchaToken.slice(0, 40)}`;
+      const detail = `Widget-Zustand statt Lösungswort: ${captchaToken.slice(0, 40)}`;
       after(async () => {
         await logSubmissionFailureOnce(supabase, request, { stage: "captcha", reason: "captcha_unfinished", detail });
         await logAbandonedSubmission(supabase, request, abandoned("captcha", "captcha_unfinished", detail));
@@ -409,12 +409,12 @@ export async function POST(request: Request) {
          an Spam; genau dafuer steht die Anzahl im Admin-Backend. Und weil
          hinter so einer Absage eine echte Reparatur stecken kann, wird sie
          nicht nur gezaehlt, sondern aufgehoben (Issue #107). */
-      const detail = captcha.detail ?? "siteverify meldet ungueltig";
+      const detail = captcha.detail ?? "siteverify meldet ungültig";
       after(async () => {
         await logSubmissionFailureOnce(supabase, request, { stage: "captcha", reason: "captcha_invalid", detail });
         await logAbandonedSubmission(supabase, request, abandoned("captcha", "captcha_invalid", detail));
       });
-      return withTimings(captchaResponse("Der Spam-Schutz konnte nicht bestaetigt werden. Bitte sende gleich noch einmal - deine Angaben bleiben stehen."));
+      return withTimings(captchaResponse("Der Spam-Schutz konnte nicht bestätigt werden. Bitte sende gleich noch einmal - deine Angaben bleiben stehen."));
     }
 
     /* Zeitueberschreitung oder Stoerung bei Friendly Captcha: annehmen und
@@ -477,7 +477,7 @@ export async function POST(request: Request) {
     });
 
     return withTimings(Response.json(
-      { error: "Diese Reparatur zaehlt leider nicht fuer den Rekord.", outsideRegion: outsideRegionHelp(request, settings.region.label) },
+      { error: "Diese Reparatur zählt leider nicht für den Rekord.", outsideRegion: outsideRegionHelp(request, settings.region.label) },
       { status: 403 },
     ));
   }
@@ -509,7 +509,7 @@ export async function POST(request: Request) {
          ist. Wer danach ohne Foto oder mit einem anderen sendet, braucht ein
          frisches - sonst endet der zweite Versuch am Spam-Schutz. */
       return withTimings(Response.json({
-        error: "Dieses Foto koennen wir leider nicht annehmen. Bitte waehle ein anderes Foto oder sende die Reparatur ohne Foto - deine Angaben bleiben stehen.",
+        error: "Dieses Foto können wir leider nicht annehmen. Bitte wähle ein anderes Foto oder sende die Reparatur ohne Foto - deine Angaben bleiben stehen.",
         captchaStale: true,
       }, { status: 422 }));
     }

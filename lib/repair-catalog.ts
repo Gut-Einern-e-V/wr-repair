@@ -2,7 +2,7 @@ export const repairCategories = [
   { label: "Anderes", value: "other", labelEn: "Other" },
   { label: "Computer und Zubehör/Handys", value: "computers_and_phones", labelEn: "Computers & phones" },
   { label: "Fahrrad", value: "bicycle", labelEn: "Bikes" },
-  { label: "Foto-/Video und Autogerät", value: "photo_video_car", labelEn: "Photo, video & car" },
+  { label: "Foto-/Video-/Audiogerät", value: "photo_video_car", labelEn: "Photo, video & audio" },
   { label: "Haushaltsgeräte", value: "household_appliances", labelEn: "Household appliances" },
   { label: "Möbel", value: "furniture", labelEn: "Furniture" },
   { label: "Schärfen/Schleifen", value: "sharpening", labelEn: "Sharpening" },

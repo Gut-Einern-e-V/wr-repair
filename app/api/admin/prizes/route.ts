@@ -71,17 +71,17 @@ type PrizeFields = {
 function readFields(form: FormData): { fields: PrizeFields } | { error: string } {
   const title = String(form.get("title") ?? "").trim();
   if (!title || title.length > 160) {
-    return { error: "Der Titel des Preises darf nicht leer sein und hoechstens 160 Zeichen haben." };
+    return { error: "Der Titel des Preises darf nicht leer sein und höchstens 160 Zeichen haben." };
   }
 
   const description = String(form.get("description") ?? "").trim();
   if (description.length > 600) {
-    return { error: "Die Beschreibung darf hoechstens 600 Zeichen haben." };
+    return { error: "Die Beschreibung darf höchstens 600 Zeichen haben." };
   }
 
   const sponsorName = String(form.get("sponsorName") ?? "").trim();
   if (sponsorName.length > 160) {
-    return { error: "Der Name der stiftenden Stelle darf hoechstens 160 Zeichen haben." };
+    return { error: "Der Name der stiftenden Stelle darf höchstens 160 Zeichen haben." };
   }
 
   const sponsorKind = String(form.get("sponsorKind") ?? "organisation").trim();
@@ -145,7 +145,7 @@ async function storeImage(supabase: ReturnType<typeof createSupabaseAdminClient>
  */
 async function placeRefusal(supabase: ReturnType<typeof createSupabaseAdminClient>, places: PrizePlaces, ownId?: string) {
   const { data, error } = await supabase.from("lottery_prizes").select("id, title, place_from, place_to");
-  if (error) return "Die Plaetze der anderen Preise konnten nicht gelesen werden. Wurde die Migration ausgefuehrt?";
+  if (error) return "Die Plätze der anderen Preise konnten nicht gelesen werden. Wurde die Migration ausgeführt?";
 
   const others = (data ?? []).map((row) => ({ id: row.id as string, title: row.title as string, placeFrom: Number(row.place_from), placeTo: Number(row.place_to) }));
   const conflict = placeConflict(places, others, ownId);
@@ -160,7 +160,7 @@ function saveFailure(error: { code?: string; message: string }) {
   if (error.code === EXCLUSION_VIOLATION) {
     return Response.json({ error: "Einer dieser Plätze ist gerade an einen anderen Preis vergeben worden. Bitte die Liste neu laden." }, { status: 409 });
   }
-  return Response.json({ error: "Der Preis konnte nicht gespeichert werden. Wurde die Migration ausgefuehrt?", detail: error.message }, { status: 502 });
+  return Response.json({ error: "Der Preis konnte nicht gespeichert werden. Wurde die Migration ausgeführt?", detail: error.message }, { status: 502 });
 }
 
 /**
@@ -191,7 +191,7 @@ export async function GET() {
 
   const { rows, error } = await readPrizes(createSupabaseAdminClient());
   if (!rows) {
-    return Response.json({ error: "Die Preise konnten nicht geladen werden. Wurde die Migration ausgefuehrt?", detail: error?.message }, { status: 502 });
+    return Response.json({ error: "Die Preise konnten nicht geladen werden. Wurde die Migration ausgeführt?", detail: error?.message }, { status: 502 });
   }
 
   return Response.json({
@@ -351,9 +351,9 @@ export async function DELETE(request: Request) {
     .select("id", { count: "exact", head: true })
     .eq("prize_id", prizeId);
 
-  if (countError) return Response.json({ error: "Der Preis konnte nicht geprueft werden." }, { status: 502 });
+  if (countError) return Response.json({ error: "Der Preis konnte nicht geprüft werden." }, { status: 502 });
   if ((count ?? 0) > 0) {
-    return Response.json({ error: "Auf diesen Preis wurde bereits gezogen. Nimm zuerst die Ziehung zurueck." }, { status: 409 });
+    return Response.json({ error: "Auf diesen Preis wurde bereits gezogen. Nimm zuerst die Ziehung zurück." }, { status: 409 });
   }
 
   const { data: prize } = await supabase.from("lottery_prizes").select("logo_path, image_path").eq("id", prizeId).maybeSingle();

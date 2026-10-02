@@ -130,7 +130,7 @@ export default async function AboutPage() {
       <div className="banner-photo" aria-hidden="true"><NextImage src={brandPhotos.celebrate.src} alt="" fill sizes="(max-width: 1120px) 100vw, 1120px" /></div>
       <p>Reparaturrekord NRW ist Teil der <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>.</p>
       <div className="project-contact-actions">
-        <a className="button button-secondary" href={mailto(CONTACT_EMAIL, "Reparaturrekord NRW unterstuetzen")}>Projekt unterstützen <span aria-hidden="true">&#8594;</span></a>
+        <a className="button button-secondary" href={mailto(CONTACT_EMAIL, "Reparaturrekord NRW unterstützen")}>Projekt unterstützen <span aria-hidden="true">&#8594;</span></a>
         <Link className="text-button" href="/supporters">Alle, die uns unterstützen <span aria-hidden="true">&#8594;</span></Link>
       </div>
     </section>

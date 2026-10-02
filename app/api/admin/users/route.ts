@@ -72,7 +72,7 @@ export async function POST(request: Request) {
   }
 
   if (!isSuperadmin && role !== "moderator") {
-    return errorResponse("Nur Superadmins duerfen Admin- oder Superadmin-Konten anlegen.", 403);
+    return errorResponse("Nur Superadmins dürfen Admin- oder Superadmin-Konten anlegen.", 403);
   }
 
   const supabase = createSupabaseAdminClient();
@@ -108,11 +108,11 @@ export async function PATCH(request: Request) {
   const isSuperadmin = authorization.currentAdmin.roles.includes("superadmin");
   const body = await request.json() as { userId?: string; role?: AppRole };
   if (!body.userId || !body.role || !roles.has(body.role)) {
-    return errorResponse("Ungueltige Konto- oder Rollenangabe.", 400);
+    return errorResponse("Ungültige Konto- oder Rollenangabe.", 400);
   }
 
   if (body.userId === authorization.currentAdmin.user.id) {
-    return errorResponse("Die eigene Rolle kann nicht in dieser Ansicht geaendert werden.", 400);
+    return errorResponse("Die eigene Rolle kann nicht in dieser Ansicht geändert werden.", 400);
   }
 
   const supabase = createSupabaseAdminClient();
@@ -122,7 +122,7 @@ export async function PATCH(request: Request) {
     // admin rights, which would otherwise be a way to escalate their own.
     const currentRoles = await loadRoles(supabase, body.userId);
     if (body.role !== "moderator" || currentRoles.some((role) => role !== "moderator")) {
-      return errorResponse("Nur Superadmins duerfen Admin-Rollen vergeben oder entziehen.", 403);
+      return errorResponse("Nur Superadmins dürfen Admin-Rollen vergeben oder entziehen.", 403);
     }
   }
 
@@ -130,7 +130,7 @@ export async function PATCH(request: Request) {
   const { error: insertError } = await supabase.from("user_roles").insert({ user_id: body.userId, role: body.role });
 
   if (deleteError || insertError) {
-    return errorResponse("Die Rolle konnte nicht geaendert werden.", 502);
+    return errorResponse("Die Rolle konnte nicht geändert werden.", 502);
   }
 
   return Response.json({ ok: true });
@@ -148,13 +148,13 @@ export async function DELETE(request: Request) {
   }
 
   if (userId === authorization.currentAdmin.user.id) {
-    return errorResponse("Das eigene Konto kann hier nicht geloescht werden.", 400);
+    return errorResponse("Das eigene Konto kann hier nicht gelöscht werden.", 400);
   }
 
   const supabase = createSupabaseAdminClient();
   const { error } = await supabase.auth.admin.deleteUser(userId);
   if (error) {
-    return errorResponse("Das Konto konnte nicht geloescht werden.", 502);
+    return errorResponse("Das Konto konnte nicht gelöscht werden.", 502);
   }
 
   return Response.json({ ok: true });

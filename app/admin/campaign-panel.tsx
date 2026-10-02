@@ -64,7 +64,7 @@ export type AdminSettings = {
   stored: { window: boolean; recordGoal: boolean; dayRecord: boolean; testRun: boolean; rateLimit: boolean; region: boolean; logo: boolean; lotteryOrganizer: boolean };
 };
 
-const windowStatusLabels = { before: "Noch nicht gestartet", open: "Laeuft", after: "Beendet", invalid: "Nicht konfiguriert" } as const;
+const windowStatusLabels = { before: "Noch nicht gestartet", open: "Läuft", after: "Beendet", invalid: "Nicht konfiguriert" } as const;
 
 function toLocalInput(value: string | null) {
   if (!value) return "";
@@ -139,7 +139,7 @@ export default function CampaignPanel({
     const end = new Date(endAt);
 
     if (Number.isNaN(start.valueOf()) || Number.isNaN(end.valueOf()) || start >= end) {
-      onError("Bitte waehle einen Beginn vor dem Ende.");
+      onError("Bitte wähle einen Beginn vor dem Ende.");
       return;
     }
 
@@ -166,7 +166,7 @@ export default function CampaignPanel({
 
     // Ein leeres Feld ist eine gueltige Angabe: Es loescht den hinterlegten Wert.
     if (!trimmed) {
-      const cleared = await save("dayRecord", { dayRecord: null }, "Der Tagesrekord wurde entfernt. Es zaehlt der beste eigene Ortstag.");
+      const cleared = await save("dayRecord", { dayRecord: null }, "Der Tagesrekord wurde entfernt. Es zählt der beste eigene Ortstag.");
       if (cleared) onSaved({ dayRecord: null, stored: { ...settings.stored, dayRecord: false } });
       return;
     }
@@ -195,7 +195,7 @@ export default function CampaignPanel({
       "testRun",
       { testRun: next },
       next
-        ? "Testlauf laeuft. Die Einreichung ist unabhaengig vom Zeitraum offen und alle oeffentlichen Seiten weisen darauf hin."
+        ? "Testlauf läuft. Die Einreichung ist unabhängig vom Zeitraum offen und alle öffentlichen Seiten weisen darauf hin."
         : "Testlauf beendet. Es gilt wieder allein der Teilnahmezeitraum.",
     );
     if (ok) onSaved({ testRun: next, stored: { ...settings.stored, testRun: true } });
@@ -215,7 +215,7 @@ export default function CampaignPanel({
     if (!rule) return;
 
     if (!isValidIpRule(rule)) {
-      onError(`"${rule}" ist keine IP-Adresse und kein Praefix. Beispiele: 203.0.113.4, 203.0.113.0/24, 2001:db8::/32.`);
+      onError(`"${rule}" ist keine IP-Adresse und kein Präfix. Beispiele: 203.0.113.4, 203.0.113.0/24, 2001:db8::/32.`);
       return;
     }
     if (rateLimit.allowlist.includes(rule)) {
@@ -223,18 +223,18 @@ export default function CampaignPanel({
       return;
     }
     if (rateLimit.allowlist.length >= MAX_ALLOWLIST_ENTRIES) {
-      onError(`Die Freigabeliste fasst hoechstens ${MAX_ALLOWLIST_ENTRIES} Eintraege.`);
+      onError(`Die Freigabeliste fasst höchstens ${MAX_ALLOWLIST_ENTRIES} Einträge.`);
       return;
     }
 
     setRateLimit({ ...rateLimit, allowlist: [...rateLimit.allowlist, rule] });
     setNewAddress("");
-    onStatus(`${rule} ist eingetragen. Zum Uebernehmen noch speichern.`);
+    onStatus(`${rule} ist eingetragen. Zum Übernehmen noch speichern.`);
   }
 
   function removeAddress(rule: string) {
     setRateLimit({ ...rateLimit, allowlist: rateLimit.allowlist.filter((entry) => entry !== rule) });
-    onStatus(`${rule} ist entfernt. Zum Uebernehmen noch speichern.`);
+    onStatus(`${rule} ist entfernt. Zum Übernehmen noch speichern.`);
   }
 
   async function saveRateLimit(event: FormEvent<HTMLFormElement>) {
@@ -242,7 +242,7 @@ export default function CampaignPanel({
     const parsed = Number.parseInt(perMinute, 10);
 
     if (!Number.isFinite(parsed) || parsed < 1 || parsed > 100_000) {
-      onError("Die Anfragen pro Minute muessen eine ganze Zahl zwischen 1 und 100.000 sein.");
+      onError("Die Anfragen pro Minute müssen eine ganze Zahl zwischen 1 und 100.000 sein.");
       return;
     }
 
@@ -252,7 +252,7 @@ export default function CampaignPanel({
       "rateLimit",
       { rateLimit: next },
       next.enabled
-        ? `Die Drosselung laeuft mit ${parsed.toLocaleString("de-DE")} Anfragen pro Minute und IP-Adresse, ${freed}.`
+        ? `Die Drosselung läuft mit ${parsed.toLocaleString("de-DE")} Anfragen pro Minute und IP-Adresse, ${freed}.`
         : `Die Drosselung ist aus, es gelten die Vorgaben der Routen. ${next.allowlist.length > 0 ? `Davon ausgenommen: ${freed}.` : ""}`.trim(),
     );
     if (ok) setRateLimit(next);
@@ -269,7 +269,7 @@ export default function CampaignPanel({
     };
 
     if (Object.values(parsedBox).some((value) => value !== null && Number.isNaN(value))) {
-      onError("Die Koordinaten muessen Zahlen sein, zum Beispiel 51.25.");
+      onError("Die Koordinaten müssen Zahlen sein, zum Beispiel 51.25.");
       return;
     }
 
@@ -322,7 +322,7 @@ export default function CampaignPanel({
     <div className="admin-stack">
       <section className="admin-card" aria-labelledby="window-heading">
         <div className="admin-card-head"><h3 id="window-heading">Zeitrahmen</h3><span className={`status-chip is-${settings.windowStatus === "open" ? "approved" : "pending"}`}>{windowStatusLabels[settings.windowStatus]}</span></div>
-        <p>Ausserhalb dieses Zeitraums nimmt die Seite keine Einreichungen an und das Buehnen-Dashboard bleibt geschlossen. Admins behalten den Zugriff auf die Moderation.</p>
+        <p>Außerhalb dieses Zeitraums nimmt die Seite keine Einreichungen an und das Bühnen-Dashboard bleibt geschlossen. Admins behalten den Zugriff auf die Moderation.</p>
         <form className="campaign-form" onSubmit={saveWindow}>
           <label>Beginn<input name="startAt" type="datetime-local" required value={startAt} onChange={(event) => setStartAt(event.target.value)} /></label>
           <label>Ende<input name="endAt" type="datetime-local" required value={endAt} onChange={(event) => setEndAt(event.target.value)} /></label>
@@ -334,9 +334,9 @@ export default function CampaignPanel({
       {/* Direkt unter dem Zeitrahmen, weil der Testlauf ihn aushebelt: Wer
           hier schaltet, soll oben sehen, was sonst gelten wuerde (Issue #102). */}
       <section className={`admin-card${settings.testRun ? " is-test-run" : ""}`} aria-labelledby="test-run-heading">
-        <div className="admin-card-head"><h3 id="test-run-heading">Testlauf</h3><span className={`status-chip is-${settings.testRun ? "pending" : "approved"}`}>{settings.testRun ? "Testlauf laeuft" : "Normalbetrieb"}</span></div>
-        <p>Fuer die Probe vor einer Veranstaltung: Die Einreichung ist offen, auch wenn der Zeitrahmen oben noch nicht laeuft oder schon beendet ist. Startseite und Formular tragen dann einen deutlichen Hinweis, und beim Absenden steht, dass die Einreichung nicht fuer den Rekord zaehlt.</p>
-        <p className="quota-note"><b>Wichtig:</b> Der Schalter haelt Einreichungen nicht selbst aus dem Rekord heraus. Sie landen wie immer in der Moderation, tragen dort aber den Tag <code>testlauf</code> &ndash; nach dem Testlauf gehoeren sie abgelehnt, sonst zaehlen sie mit. Solange der Testlauf laeuft, ist die Einreichung fuer alle offen, nicht nur fuer euer Team.</p>
+        <div className="admin-card-head"><h3 id="test-run-heading">Testlauf</h3><span className={`status-chip is-${settings.testRun ? "pending" : "approved"}`}>{settings.testRun ? "Testlauf läuft" : "Normalbetrieb"}</span></div>
+        <p>Für die Probe vor einer Veranstaltung: Die Einreichung ist offen, auch wenn der Zeitrahmen oben noch nicht läuft oder schon beendet ist. Startseite und Formular tragen dann einen deutlichen Hinweis, und beim Absenden steht, dass die Einreichung nicht für den Rekord zählt.</p>
+        <p className="quota-note"><b>Wichtig:</b> Der Schalter hält Einreichungen nicht selbst aus dem Rekord heraus. Sie landen wie immer in der Moderation, tragen dort aber den Tag <code>testlauf</code> &ndash; nach dem Testlauf gehören sie abgelehnt, sonst zählen sie mit. Solange der Testlauf läuft, ist die Einreichung für alle offen, nicht nur für euer Team.</p>
         <div className="campaign-form">
           <button
             className={`button ${settings.testRun ? "button-secondary" : "button-primary"}`}
@@ -351,7 +351,7 @@ export default function CampaignPanel({
 
       <section className="admin-card" aria-labelledby="goal-heading">
         <div className="admin-card-head"><h3 id="goal-heading">Ziel</h3><span className="section-index">{settings.recordGoal.toLocaleString("de-DE")} Reparaturen</span></div>
-        <p>Die Zielzahl steuert Fortschritt, Soll-Ist-Vergleich und Rangliste im Buehnen-Dashboard.</p>
+        <p>Die Zielzahl steuert Fortschritt, Soll-Ist-Vergleich und Rangliste im Bühnen-Dashboard.</p>
         <form className="campaign-form" onSubmit={saveGoal}>
           <label>Neues Ziel<input name="recordGoal" type="number" min={1} step={1} required value={goal} onChange={(event) => setGoal(event.target.value)} /></label>
           <button className="button button-primary" type="submit" disabled={isSaving === "goal"}>{isSaving === "goal" ? "Speichert ..." : "Ziel speichern"}</button>
@@ -361,28 +361,28 @@ export default function CampaignPanel({
 
       <section className="admin-card" aria-labelledby="day-record-heading">
         <div className="admin-card-head"><h3 id="day-record-heading">Tagesrekord je Ort</h3><span className="section-index">{settings.dayRecord ? `${settings.dayRecord.toLocaleString("de-DE")} an einem Tag und Ort` : "Nicht hinterlegt"}</span></div>
-        <p>Die bisher hoechste Zahl an Reparaturen an einem einzigen Tag <b>und Ort</b> - der Wert aus der Tabellenkalkulation (Exeter 2019: 268). Das Buehnen-Dashboard laesst den Kreis oder die kreisfreie Stadt mit dem hoechsten Tagesstand dagegen laufen, nicht ganz NRW: Landesweit gezaehlt faellt die Marke an jedem gut besuchten Samstag, ohne dass irgendwo etwas Vergleichbares passiert waere. Gezaehlt wird nach Einreichungstag, nicht nach Freigabe. Ueberbietet ein Ort an einem Tag dieser Aktion den Wert, gilt automatisch der neue.</p>
+        <p>Die bisher höchste Zahl an Reparaturen an einem einzigen Tag <b>und Ort</b> - der Wert aus der Tabellenkalkulation (Exeter 2019: 268). Das Bühnen-Dashboard lässt den Kreis oder die kreisfreie Stadt mit dem höchsten Tagesstand dagegen laufen, nicht ganz NRW: Landesweit gezählt fällt die Marke an jedem gut besuchten Samstag, ohne dass irgendwo etwas Vergleichbares passiert wäre. Gezählt wird nach Einreichungstag, nicht nach Freigabe. Überbietet ein Ort an einem Tag dieser Aktion den Wert, gilt automatisch der neue.</p>
         <form className="campaign-form" onSubmit={saveDayRecord}>
           <label>Bisheriger Tagesrekord je Ort<input name="dayRecord" type="number" min={1} step={1} value={dayRecord} placeholder="leer lassen" onChange={(event) => setDayRecord(event.target.value)} /></label>
           <button className="button button-primary" type="submit" disabled={isSaving === "dayRecord"}>{isSaving === "dayRecord" ? "Speichert ..." : "Tagesrekord speichern"}</button>
         </form>
-        {!settings.stored.dayRecord && <p className="quota-note">Ohne Wert zeigt die Buehne allein den besten Ortstag dieser Aktion.</p>}
+        {!settings.stored.dayRecord && <p className="quota-note">Ohne Wert zeigt die Bühne allein den besten Ortstag dieser Aktion.</p>}
       </section>
 
       <section className="admin-card" aria-labelledby="rate-limit-heading">
-        <div className="admin-card-head"><h3 id="rate-limit-heading">Oeffentliche Schnittstellen</h3><span className={`status-chip is-${rateLimit.enabled ? "pending" : "approved"}`}>{rateLimit.enabled ? `Gedrosselt: ${rateLimit.perMinute.toLocaleString("de-DE")}/min` : "Normalbetrieb"}</span></div>
-        <p>Die Leseroute unter <code>/api/*</code> ist ohne Schluessel abrufbar und dokumentiert (siehe <a href="/api-doku" target="_blank" rel="noreferrer">Schnittstellen-Doku</a>). Im Normalbetrieb gelten die grosszuegigen Vorgaben der einzelnen Routen &ndash; 240 Anfragen pro Minute und IP-Adresse fuer die Buehnendaten, 120 fuer die Statistik. Wird ein Kontingent bei Vercel oder Supabase knapp, senkt dieser Schalter die Grenze fuer alle oeffentlichen Leseroute auf denselben Wert, sofort und ohne Deployment.</p>
+        <div className="admin-card-head"><h3 id="rate-limit-heading">Öffentliche Schnittstellen</h3><span className={`status-chip is-${rateLimit.enabled ? "pending" : "approved"}`}>{rateLimit.enabled ? `Gedrosselt: ${rateLimit.perMinute.toLocaleString("de-DE")}/min` : "Normalbetrieb"}</span></div>
+        <p>Die Leseroute unter <code>/api/*</code> ist ohne Schlüssel abrufbar und dokumentiert (siehe <a href="/api-doku" target="_blank" rel="noreferrer">Schnittstellen-Doku</a>). Im Normalbetrieb gelten die großzügigen Vorgaben der einzelnen Routen &ndash; 240 Anfragen pro Minute und IP-Adresse für die Bühnendaten, 120 für die Statistik. Wird ein Kontingent bei Vercel oder Supabase knapp, senkt dieser Schalter die Grenze für alle öffentlichen Leseroute auf denselben Wert, sofort und ohne Deployment.</p>
         <form className="campaign-form" onSubmit={saveRateLimit}>
           <label className="checkbox-label"><input type="checkbox" checked={rateLimit.enabled} onChange={(event) => setRateLimit({ ...rateLimit, enabled: event.target.checked })} /> Drosselung aktiv</label>
           <label>Anfragen pro Minute und IP<input name="perMinute" type="number" min={1} max={100000} step={1} required value={perMinute} onChange={(event) => setPerMinute(event.target.value)} /></label>
           <button className="button button-primary" type="submit" disabled={isSaving === "rateLimit"}>{isSaving === "rateLimit" ? "Speichert ..." : "Drosselung speichern"}</button>
         </form>
-        <p className="quota-note">Die Grenze wirkt je Serverinstanz und ist damit eine Bremse, keine harte Obergrenze &ndash; das Einreichungslimit zaehlt dagegen in der Datenbank. Zu niedrig eingestellt trifft es zuerst Veranstaltungen: Dort stecken alle Geraete hinter einer IP-Adresse. Unter 30 pro Minute faellt der Kreis-Vorschlag im Formular aus.</p>
+        <p className="quota-note">Die Grenze wirkt je Serverinstanz und ist damit eine Bremse, keine harte Obergrenze &ndash; das Einreichungslimit zählt dagegen in der Datenbank. Zu niedrig eingestellt trifft es zuerst Veranstaltungen: Dort stecken alle Geräte hinter einer IP-Adresse. Unter 30 pro Minute fällt der Kreis-Vorschlag im Formular aus.</p>
 
         {/* Freigabeliste. Steht in derselben Karte, weil sie nur zusammen mit
             der Grenze einen Sinn hat, und speichert mit demselben Knopf. */}
         <h4 className="admin-subhead" id="allowlist-heading">Immer freigegebene Adressen</h4>
-        <p>Feste Anzeigen sollen nie anschlagen: der Rechner am Beamer, das Infodisplay im Foyer. Wer hier steht, fragt ohne Grenze ab &ndash; auch im Schonmodus. <b>Gilt nur fuer die Leseroute:</b> Die Einreichung bleibt gedrosselt, ihr Limit ist die Bremse gegen ein Skript ohne Captcha.</p>
+        <p>Feste Anzeigen sollen nie anschlagen: der Rechner am Beamer, das Infodisplay im Foyer. Wer hier steht, fragt ohne Grenze ab &ndash; auch im Schonmodus. <b>Gilt nur für die Leseroute:</b> Die Einreichung bleibt gedrosselt, ihr Limit ist die Bremse gegen ein Skript ohne Captcha.</p>
         {rateLimit.allowlist.length > 0
           ? <ul className="allowlist" aria-labelledby="allowlist-heading">
               {rateLimit.allowlist.map((rule) => (
@@ -393,9 +393,9 @@ export default function CampaignPanel({
                 </li>
               ))}
             </ul>
-          : <p className="quota-note">Noch keine Adresse freigegeben &ndash; es gelten die Grenzen oben fuer alle.</p>}
+          : <p className="quota-note">Noch keine Adresse freigegeben &ndash; es gelten die Grenzen oben für alle.</p>}
         <div className="campaign-form is-wide">
-          <label>Adresse oder Praefix<input
+          <label>Adresse oder Präfix<input
             name="allowlistEntry"
             value={newAddress}
             placeholder="203.0.113.4 oder 203.0.113.0/24"
@@ -408,7 +408,7 @@ export default function CampaignPanel({
               addAddress(newAddress);
             }}
           /></label>
-          <button className="button button-secondary" type="button" onClick={() => addAddress(newAddress)}>Zur Liste hinzufuegen</button>
+          <button className="button button-secondary" type="button" onClick={() => addAddress(newAddress)}>Zur Liste hinzufügen</button>
           {!rateLimit.allowlist.includes(settings.clientIp) && isValidIpRule(settings.clientIp) && (
             <button className="button button-secondary" type="button" onClick={() => addAddress(settings.clientIp)}>
               Diesen Rechner eintragen ({settings.clientIp})
@@ -418,26 +418,26 @@ export default function CampaignPanel({
         <p className="quota-note">
           {isValidIpRule(settings.clientIp)
             ? <>Dieses Backend wird gerade von <code>{settings.clientIp}</code> aufgerufen. </>
-            : <>Fuer diesen Aufruf ist keine Adresse erkennbar &ndash; das ist lokal normal, in der Bereitstellung liefert Vercel sie. </>}
-          Ein Praefix wie <code>203.0.113.0/24</code> oder <code>2001:db8::/32</code> ueberlebt den Adresswechsel des Anschlusses: Viele Provider vergeben taeglich eine neue Adresse aus demselben Netz. Aenderungen werden erst mit <b>Drosselung speichern</b> uebernommen.
+            : <>Für diesen Aufruf ist keine Adresse erkennbar &ndash; das ist lokal normal, in der Bereitstellung liefert Vercel sie. </>}
+          Ein Präfix wie <code>203.0.113.0/24</code> oder <code>2001:db8::/32</code> überlebt den Adresswechsel des Anschlusses: Viele Provider vergeben täglich eine neue Adresse aus demselben Netz. Änderungen werden erst mit <b>Drosselung speichern</b> übernommen.
         </p>
       </section>
 
       <section className="admin-card" aria-labelledby="region-heading">
-        <div className="admin-card-head"><h3 id="region-heading">Gebiet</h3><span className="section-index">{region.enabled ? region.label : "Keine Pruefung"}</span></div>
-        <p>Die Einreichung wird ueber den Vercel-Geo-Header geprueft; das Koordinatenfenster dient als Rueckfall aus den EXIF-Daten des Bildes.</p>
+        <div className="admin-card-head"><h3 id="region-heading">Gebiet</h3><span className="section-index">{region.enabled ? region.label : "Keine Prüfung"}</span></div>
+        <p>Die Einreichung wird über den Vercel-Geo-Header geprüft; das Koordinatenfenster dient als Rückfall aus den EXIF-Daten des Bildes.</p>
         <form className="campaign-form is-wide" onSubmit={saveRegion}>
-          <label className="checkbox-label"><input type="checkbox" checked={region.enabled} onChange={(event) => setRegion({ ...region, enabled: event.target.checked })} /> Gebietspruefung aktiv</label>
+          <label className="checkbox-label"><input type="checkbox" checked={region.enabled} onChange={(event) => setRegion({ ...region, enabled: event.target.checked })} /> Gebietsprüfung aktiv</label>
           <label>Gebietsname<input value={region.label} maxLength={120} required onChange={(event) => setRegion({ ...region, label: event.target.value })} /></label>
           <label>Land, zwei Buchstaben<input value={region.ipCountry} maxLength={2} required onChange={(event) => setRegion({ ...region, ipCountry: event.target.value.toUpperCase() })} /></label>
           <label>Region, optional<input value={region.ipRegion} maxLength={10} placeholder="z. B. NW" onChange={(event) => setRegion({ ...region, ipRegion: event.target.value.toUpperCase() })} /></label>
           <label>Breite von<input value={box.latMin} inputMode="decimal" onChange={(event) => setBox({ ...box, latMin: event.target.value })} /></label>
           <label>Breite bis<input value={box.latMax} inputMode="decimal" onChange={(event) => setBox({ ...box, latMax: event.target.value })} /></label>
-          <label>Laenge von<input value={box.lonMin} inputMode="decimal" onChange={(event) => setBox({ ...box, lonMin: event.target.value })} /></label>
-          <label>Laenge bis<input value={box.lonMax} inputMode="decimal" onChange={(event) => setBox({ ...box, lonMax: event.target.value })} /></label>
+          <label>Länge von<input value={box.lonMin} inputMode="decimal" onChange={(event) => setBox({ ...box, lonMin: event.target.value })} /></label>
+          <label>Länge bis<input value={box.lonMax} inputMode="decimal" onChange={(event) => setBox({ ...box, lonMax: event.target.value })} /></label>
           <button className="button button-primary" type="submit" disabled={isSaving === "region"}>{isSaving === "region" ? "Speichert ..." : "Gebiet speichern"}</button>
         </form>
-        <p className="quota-note">Alle vier Koordinaten leer lassen schaltet den EXIF-Rueckfall ab. {!settings.stored.region && "Aktuell gelten die REGION_*-Umgebungsvariablen."}</p>
+        <p className="quota-note">Alle vier Koordinaten leer lassen schaltet den EXIF-Rückfall ab. {!settings.stored.region && "Aktuell gelten die REGION_*-Umgebungsvariablen."}</p>
       </section>
 
       <section className="admin-card" aria-labelledby="logo-heading">
@@ -452,7 +452,7 @@ export default function CampaignPanel({
         )}
         <form className="partner-form" onSubmit={uploadLogo}>
           <label>Neues Logo<input name="logo" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" required /><small>PNG, WebP, JPG oder SVG, maximal 1 MB.</small></label>
-          <button className="button button-primary" type="submit" disabled={isSaving === "logo"}>{isSaving === "logo" ? "Laedt ..." : "Logo hochladen"}</button>
+          <button className="button button-primary" type="submit" disabled={isSaving === "logo"}>{isSaving === "logo" ? "Lädt ..." : "Logo hochladen"}</button>
         </form>
       </section>
     </div>

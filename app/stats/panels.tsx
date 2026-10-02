@@ -64,7 +64,7 @@ export function CategoryTreemap({ categories }: { categories: Record<string, num
   return (
     <div className="category-map" ref={boxRef}>
       {rects.length === 0 && total === 0 && (
-        <p className="category-map-empty">Die ersten Reparaturen erscheinen hier, sobald sie geprueft sind.</p>
+        <p className="category-map-empty">Die ersten Reparaturen erscheinen hier, sobald sie geprüft sind.</p>
       )}
       {rects.map((rect) => {
         // Beschriftung nur, wo sie hineinpasst - sonst bleibt die Farbflaeche
@@ -118,7 +118,7 @@ export function DeadlineCountdown({ campaign, total, goal, nowMs }: { campaign: 
   const countdown = countdownTo(campaign.endAt, nowMs);
 
   if (!countdown) {
-    return <p className="stage-countdown-note">Der Zeitraum fuer Einreichungen wird gerade eingerichtet.</p>;
+    return <p className="stage-countdown-note">Der Zeitraum für Einreichungen wird gerade eingerichtet.</p>;
   }
 
   if (countdown.expired) {
@@ -219,9 +219,9 @@ export function DayRecord({ snapshot }: { snapshot: DashboardSnapshot }) {
 
         <p className="stage-dayrecord-line">
           {state.record === 0
-            ? <>Der erste gezaehlte Tag - was heute an einem Ort zusammenkommt, ist die Marke.</>
+            ? <>Der erste gezählte Tag - was heute an einem Ort zusammenkommt, ist die Marke.</>
             : state.broken
-              ? <>Neuer Tagesrekord an einem Ort, <b>{state.lead.toLocaleString("de-DE")}</b> ueber den bisherigen <b>{state.record.toLocaleString("de-DE")}</b></>
+              ? <>Neuer Tagesrekord an einem Ort, <b>{state.lead.toLocaleString("de-DE")}</b> über den bisherigen <b>{state.record.toLocaleString("de-DE")}</b></>
               : state.missing === 0
                 ? <>Gleichauf mit dem Tagesrekord von <b>{state.record.toLocaleString("de-DE")}</b> an einem Ort{origin && <> {origin}</>}</>
                 : <>Noch <b>{state.missing.toLocaleString("de-DE")}</b> bis zum Tagesrekord von <b>{state.record.toLocaleString("de-DE")}</b> an einem Ort{origin && <> {origin}</>}</>}

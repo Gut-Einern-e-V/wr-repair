@@ -21,7 +21,7 @@ export async function GET() {
 
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.from("partners").select("id, name, website_url, logo_path, sort_order").order("sort_order").order("created_at");
-  if (error) return Response.json({ error: "Partner konnten nicht geladen werden. Wurde die Migration ausgefuehrt?" }, { status: 502 });
+  if (error) return Response.json({ error: "Partner konnten nicht geladen werden. Wurde die Migration ausgeführt?" }, { status: 502 });
 
   /* Mit Logo, damit die Liste im Backend dieselbe Reihenfolge zeigt wie die
      Seite - beim Sortieren erkennt man ein Logo schneller als einen Namen
