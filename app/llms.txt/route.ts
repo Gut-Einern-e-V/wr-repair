@@ -43,7 +43,7 @@ export async function GET() {
 
 ${campaignLine(campaign.status, campaign.startAt, campaign.endAt)} Das Ziel liegt bei ${settings.recordGoal.toLocaleString("de-DE")} gezählten Reparaturen.
 
-Teilnehmen kann jede Person in Nordrhein-Westfalen, kostenlos und ohne Konto. Es zählt alles, was vorher kaputt oder nur eingeschränkt nutzbar war - geschraubt, genäht und geklebt wird in Repair Cafés, Werkstätten, Schulen, Vereinen und am Küchentisch. Es geht nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als Alternative zum Neukauf zu stärken.
+Teilnehmen kann jede Person in Nordrhein-Westfalen, kostenlos und ohne Konto. Es zählt alles, was vorher kaputt oder nur eingeschränkt nutzbar war - geschraubt, genäht und geklebt wird in Repair Cafés, Fachbetrieben und Werkstätten, Schulen, Vereinen und am Küchentisch. Es geht nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als Alternative zum Neukauf zu stärken.
 
 ## Hauptseiten
 
@@ -52,6 +52,7 @@ Teilnehmen kann jede Person in Nordrhein-Westfalen, kostenlos und ohne Konto. Es
 - [Live-Stand](${siteUrl}/stats): Aktuelle Zahlen des Rekordversuchs, auch als Bühnenansicht für Veranstaltungen.
 - [Repair Cafés in NRW](${siteUrl}/repair-cafes): Orte und Termine der Reparatur-Initiativen im Land.
 - [Repair & Share Festival](${siteUrl}/festival): Der Abschlusstag des Rekordmonats am 31. Oktober 2026 in Utopiastadt und Wiesenwerken in Wuppertal, 11 bis 17 Uhr, Eintritt frei. Anreise unter ${siteUrl}/festival/anreise.
+- [Für Reparaturbetriebe](${siteUrl}/reparaturbetriebe): Wie Fahrradläden, Handywerkstätten, Schuhmachereien und andere Fachbetriebe mitmachen - Aufsteller mit QR-Code an die Theke, eintragen tut die Kundschaft. Auch Reparaturen vom Fachbetrieb zählen.
 - [Gewinnspiel](${siteUrl}/gewinnspiel): Verlosung unter allen Einreichungen, mit Teilnahmebedingungen.
 - [Über das Projekt](${siteUrl}/about): Hintergrund, Ziel und die Regeln der Zählung.
 - [Unterstützung](${siteUrl}/supporters): Die Organisationen, die den Rekordversuch tragen und fördern.

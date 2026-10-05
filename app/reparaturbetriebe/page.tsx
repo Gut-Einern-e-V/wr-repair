@@ -108,10 +108,11 @@ export default function RepairBusinessPage() {
     <section className="content-section two-column-copy" aria-labelledby="business-more-title">
       <div>
         <p className="section-index">Wenn es mehr sein darf</p>
-        <h2 id="business-more-title">Drei Wege über den Aufsteller hinaus.</h2>
+        <h2 id="business-more-title">Vier Wege über den Aufsteller hinaus.</h2>
       </div>
       <div>
         <ul>
+          <li><strong>Zeigen, dass ihr mitmacht.</strong> Im <Link href="/sharepics">Sharepic-Generator</Link> gibt es das Motiv „Für Betriebe“ – fürs Schaufenster, für Instagram oder den Status.</li>
           <li><strong>Einen Preis stiften.</strong> Ein Gutschein, Werkzeug oder Material aus eurem Sortiment geht in die Verlosung – mit eurem Namen und Logo auf der <Link href="/gewinnspiel">Gewinnspielseite</Link>.</li>
           <li><strong>Unterstützer werden.</strong> Wer das Projekt mit Reichweite, Räumen oder Material trägt, steht mit auf der Seite <Link href="/supporters">Unterstützung</Link>.</li>
           <li><strong>Zum Festival kommen.</strong> Beim Repair &amp; Share Festival zum Abschluss des Rekordmonats treffen sich alle, die reparieren – <Link href="/festival">Infos zum Tag</Link>.</li>

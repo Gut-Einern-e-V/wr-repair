@@ -460,6 +460,22 @@ function kit(format: SharepicFormat, lang: SharepicLanguage) {
           </div>,
           cta: format === "story" ? t("Oder direkt:", "Or go straight to:") : undefined,
         };
+
+      /* Fuer Werkstaetten und Laeden (Issue #146): ins Schaufenster oder in
+         den eigenen Feed. Die Kundschaft traegt selbst ein - deshalb fuehrt
+         der Link direkt ins Formular und nicht auf die Seite fuer Betriebe. */
+      case "business":
+        return {
+          headline: t("Bei uns zählt|jede Reparatur", "Every repair|counts here").split("|"),
+          body: <div style={{ ...flexCol, gap: px(36) }}>
+            <Text size={48} weight={800}>{t("Wir machen mit beim Reparaturrekord NRW. Was wir für dich reparieren, kann mitzählen.", "We’re part of the Repair Record NRW. What we fix for you can count.")}</Text>
+            <Steps ground={ground} steps={lang === "en"
+              ? ["Pick up your repair", "Open the link below", "Add your repair – done"]
+              : ["Reparatur bei uns abholen", "Den Link unten öffnen", "Reparatur eintragen – fertig"]} />
+          </div>,
+          cta: t("Hier eintragen:", "Add it here:"),
+          path: "/mitmachen",
+        };
     }
   }
 

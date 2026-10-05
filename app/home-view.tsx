@@ -37,19 +37,19 @@ const heroCopy: Record<CampaignPhase, {
 }> = {
   invalid: {
     kicker: "Den ganzen Oktober lang reparieren …",
-    intro: "Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.",
+    intro: "Ganz NRW zeigt, was noch funktioniert – am Küchentisch, im Repair Café oder in der Fachwerkstatt. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.",
     counterLabel: "Reparaturen in Nordrhein-Westfalen",
     categoryLead: "Ein Klick auf eine Kategorie öffnet direkt das Einreichungsformular – die Kategorie ist dann schon ausgewählt. Die Zahl darunter zeigt, wie viele Reparaturen dort bisher gezählt wurden.",
   },
   open: {
     kicker: "Den ganzen Oktober lang reparieren …",
-    intro: "Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.",
+    intro: "Ganz NRW zeigt, was noch funktioniert – am Küchentisch, im Repair Café oder in der Fachwerkstatt. Reiche deine Reparatur ein und mache aus einem Gegenstand eine Geschichte.",
     counterLabel: "Reparaturen in Nordrhein-Westfalen",
     categoryLead: "Ein Klick auf eine Kategorie öffnet direkt das Einreichungsformular – die Kategorie ist dann schon ausgewählt. Die Zahl darunter zeigt, wie viele Reparaturen dort bisher gezählt wurden.",
   },
   before: {
     kicker: "Bald zählt jede Reparatur …",
-    intro: "Ganz NRW zeigt, was noch funktioniert. Sammle schon jetzt, was bei dir auf eine Reparatur wartet – eintragen kannst du es, sobald der Zeitraum beginnt.",
+    intro: "Ganz NRW zeigt, was noch funktioniert – am Küchentisch, im Repair Café oder in der Fachwerkstatt. Sammle schon jetzt, was bei dir auf eine Reparatur wartet – eintragen kannst du es, sobald der Zeitraum beginnt.",
     counterLabel: "Reparaturen in Nordrhein-Westfalen",
     categoryLead: "Das wird gezählt. Sobald der Zeitraum läuft, öffnet ein Klick auf eine Kategorie direkt das Einreichungsformular.",
   },
@@ -318,11 +318,17 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
             Vorher waren das drei Kacheln mit grossem Bild oben - dieselbe
             Form wie die Geschichten weiter unten, sodass die Startseite
             zweimal dasselbe zu zeigen schien. Die Fotos bleiben, nur die
-            Gestalt der Karte unterscheidet sich jetzt. */}
+            Gestalt der Karte unterscheidet sich jetzt.
+
+            Die zweite Karte ist der haeufigste Weg zu einer Reparatur, der
+            bis Issue #146 fehlte: reparieren lassen. Wer sein Fahrrad aus dem
+            Laden holt, soll hier lesen, dass das genauso zaehlt. Mit vier
+            Karten steht das Raster zwei mal zwei statt drei nebeneinander. */}
         <div className="participation-options">
           <article><div className="participation-photo"><NextImage src={brandPhotos.secondLife.src} alt={brandPhotos.secondLife.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Einreichen</p><h3>Selbst repariert?</h3><p>Mach ein Foto, wähle die Kategorie und erzähle in wenigen Sätzen, was wieder funktioniert.</p><button className="text-button" type="button" onClick={() => startSubmission()}>Reparatur einreichen <span aria-hidden="true">&#8594;</span></button></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.workshop.src} alt={brandPhotos.workshop.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Eintragen</p><h3>Reparieren lassen?</h3><p>Auch die Reparatur vom Fachbetrieb zählt &ndash; vom Fahrradladen bis zur Schuhmacherei. Trag sie ein, sobald du das Stück wieder abgeholt hast.</p><button className="text-button" type="button" onClick={() => startSubmission()}>Reparatur eintragen <span aria-hidden="true">&#8594;</span></button></article>
           <article><div className="participation-photo"><NextImage src={brandPhotos.bicycle.src} alt={brandPhotos.bicycle.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Mitmachen</p><h3>Du brauchst Hilfe?</h3><p>In Repair Cafés und offenen Werkstätten findest du Menschen, Werkzeuge und Zeit für die nächste Reparatur &ndash; in ganz NRW und kostenlos.</p><Link className="text-button" href="/repair-cafes">Repair Café finden <span aria-hidden="true">&#8594;</span></Link></article>
-          <article><div className="participation-photo"><NextImage src={brandPhotos.celebrate.src} alt={brandPhotos.celebrate.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Unterstützen</p><h3>Ihr seid eine Einrichtung?</h3><p>Werkstätten, Schulen, Vereine und Initiativen tragen sich in den Verteiler ein und bekommen Plakate, Kommunikationsmaterial und alle Infos zum Rekordmonat.</p><a className="text-button" href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">In den Verteiler eintragen <span aria-hidden="true">&#8599;</span></a></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.celebrate.src} alt={brandPhotos.celebrate.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Unterstützen</p><h3>Ihr seid Reparatur-Profis?</h3><p>Dann helft eurer Kundschaft, zum Rekord beizutragen. Unternehmen, Handwerksbetriebe, Schulen, Vereine oder Initiativen tragen sich in den Verteiler ein und bekommen Plakate, Kommunikationsmaterial und alle Infos zum Rekordmonat.</p><p className="link-row"><a className="text-button" href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">In den Verteiler eintragen <span aria-hidden="true">&#8599;</span></a><Link className="text-button" href="/reparaturbetriebe">Für Reparaturbetriebe <span aria-hidden="true">&#8594;</span></Link></p></article>
         </div>
       </section>
 
@@ -392,7 +398,7 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
           {faqEntries.map((entry) => (
             <details key={entry.question}>
               <summary>{entry.question}<i aria-hidden="true">+</i></summary>
-              <p>{entry.answer}</p>
+              <p>{entry.answer}{entry.link && <> <Link href={entry.link.href}>{entry.link.label}</Link></>}</p>
             </details>
           ))}
         </div>
