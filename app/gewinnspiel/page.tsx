@@ -144,10 +144,13 @@ async function loadPrizes() {
  * Adresse und nicht nur "meldet sich gerne bei uns": Wer erst nach einem
  * Kontakt suchen muss, schreibt nicht.
  */
+/* Betriebe sind hier eigens angesprochen (Issue #146): Sie haben, was sich
+   verlosen laesst - Werkzeug, Gutscheine, eine Stunde an der Werkbank -, und
+   ihr Name steht danach mit Logo beim Preis. */
 function ContributeNote() {
   return <p className="prize-contribute">
-    Du möchtest auch etwas beisteuern – Werkzeug, einen Gutschein, eine Reparaturstunde?{" "}
-    <a href={mailto(CONTACT_EMAIL, "Preis für das Gewinnspiel")}>Schreib uns</a>, wir nehmen es gerne mit auf.
+    Ihr habt einen Reparaturbetrieb, eine Werkstatt oder einen Laden? Stiftet Werkzeug, einen Gutschein oder eine Reparaturstunde – euer Name und Logo stehen dann beim Preis.{" "}
+    <a href={mailto(CONTACT_EMAIL, "Preis für das Gewinnspiel")}>Schreibt uns</a>, wir nehmen es gerne mit auf. Mehr dazu, wie Betriebe mitmachen, steht auf der Seite <Link href="/reparaturbetriebe">für Reparaturbetriebe</Link>.
   </p>;
 }
 

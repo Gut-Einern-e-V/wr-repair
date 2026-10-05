@@ -66,12 +66,21 @@ export function goalRecord(goal: number | null): RepairRecord | null {
   };
 }
 
-export type FaqEntry = { question: string; answer: string };
+export type FaqEntry = { question: string; answer: string; link?: { href: string; label: string } };
 
 export const faqEntries: FaqEntry[] = [
   {
     question: "Wer darf mitmachen?",
     answer: "Alle, die in Nordrhein-Westfalen etwas repariert haben – privat, im Repair Café, in der Schule, im Verein oder in der Werkstatt. Fachkenntnisse brauchst du dafür nicht.",
+  },
+  {
+    question: "Zählt auch eine Reparatur vom Fachbetrieb?",
+    answer: "Ja. Wenn der Fahrradladen, die Handywerkstatt oder die Schuhmacherei etwas für dich repariert hat, zählt das genauso. Trag die Reparatur selbst ein – am besten mit einem Foto vom reparierten Stück.",
+  },
+  {
+    question: "Ich habe einen Reparaturbetrieb – wie mache ich mit?",
+    answer: "Stellt einen Aufsteller mit QR-Code an die Theke und weist eure Kundschaft bei der Abholung darauf hin. Eintragen tut die Kundschaft selbst. Kostet nichts, braucht keine Anmeldung.",
+    link: { href: "/reparaturbetriebe", label: "Alles für Betriebe" },
   },
   {
     question: "Was zählt als Reparatur?",

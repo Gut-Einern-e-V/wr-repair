@@ -30,7 +30,8 @@ export type SharepicMotif =
   | "kreis"
   | "duel"
   | "lottery"
-  | "howto";
+  | "howto"
+  | "business";
 
 /** Was ein Motiv ausser Grundfarbe und Ueberschrift noch einstellen laesst. */
 export type SharepicParam = "kreis" | "kreisB" | "milestone";
@@ -58,6 +59,7 @@ export const sharepicMotifs: Record<SharepicMotif, SharepicMotifSpec> = {
   duel: { label: "Stadt-Duell", hint: "Zwei Orte gegeneinander", group: "Extras", params: ["kreis", "kreisB"], ground: "yellow", live: true },
   lottery: { label: "Gewinnspiel", hint: "Reparieren und gewinnen", group: "Extras", params: [], ground: "mint", live: false },
   howto: { label: "So geht’s", hint: "Drei Schritte, Platz für den Link", group: "Extras", params: [], ground: "paper", live: false },
+  business: { label: "Für Betriebe", hint: "Bei uns zählt jede Reparatur", group: "Extras", params: [], ground: "yellow", live: false },
 };
 
 export const sharepicMotifOrder = Object.keys(sharepicMotifs) as SharepicMotif[];

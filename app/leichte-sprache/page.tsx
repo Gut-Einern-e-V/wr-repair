@@ -98,6 +98,10 @@ export default async function EasyLanguagePage() {
         <p>Dann zählt deine Reparatur zum Rekord.</p>
         <p>Mitmachen kostet nichts.</p>
         <p>Du kannst so oft mitmachen, wie du willst.</p>
+        <p>Hat jemand anderes deine Sache repariert?</p>
+        <p>Zum Beispiel ein <W>Fahrrad·laden</W>?</p>
+        <p>Das zählt auch.</p>
+        <p>Dann trägst du die Reparatur ein.</p>
         <p>Wichtig:</p>
         <p>Du musst in Nordrhein-Westfalen reparieren.</p>
         <p>Im Formular kannst du auch beim <W>Gewinn·spiel</W> mitmachen.</p>
@@ -125,6 +129,12 @@ export default async function EasyLanguagePage() {
         <p>Ihr repariert sie zusammen.</p>
         <p>Das kostet nichts.</p>
         <p><Link className="easy-link" href="/repair-cafes">Ein <W>Repair·Café</W> in deiner Nähe finden</Link></p>
+        <p>Du kannst deine Sache auch in einen Laden bringen.</p>
+        <p>Zum Beispiel zum <W>Schuh·macher</W>.</p>
+        <p>Dort repariert sie ein <W>Fach·betrieb</W>.</p>
+        <p className="easy-define">Ein <W>Fach·betrieb</W> ist:<br />Eine Firma.<br />Dort reparieren Menschen als Beruf.</p>
+        <p>Das kostet meistens Geld.</p>
+        <p>Diese Reparatur zählt auch zum Rekord.</p>
       </section>
 
       <section aria-labelledby="easy-navigation">
@@ -139,6 +149,7 @@ export default async function EasyLanguagePage() {
           <li><Link href="/mitmachen">Einreichen</Link><br />Hier trägst du deine Reparatur ein.</li>
           <li><Link href="/stories">Geschichten</Link><br />Hier erzählen Menschen von ihrer Reparatur.</li>
           <li><Link href="/repair-cafes">Repair Cafés</Link><br />Hier findest du Hilfe beim Reparieren.</li>
+          <li><Link href="/reparaturbetriebe">Für <W>Reparatur·betriebe</W></Link><br />Hier steht: So machen Läden und Werkstätten mit.</li>
           <li><Link href="/about">Projekt</Link><br />Hier steht, wer wir sind.</li>
         </ul>
       </section>
