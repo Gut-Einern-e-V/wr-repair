@@ -56,8 +56,7 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
 /* Kopfzeile ------------------------------------------------------------- */
 .dashboard-bar {
   grid-area: bar;
-  /* Ueber den Panels: Beide erzeugen durch `backdrop-filter` einen eigenen
-     Stapelkontext, und das spaeter im Baum stehende rechte Panel legte sich
+  /* Ueber den Panels: Das spaeter im Baum stehende rechte Panel legte sich
      sonst ueber das aufgeklappte Einstellungsmenue. */
   position: relative;
   z-index: 30;
@@ -65,8 +64,11 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   align-items: center;
   justify-content: space-between;
   padding: 0 26px;
-  background: linear-gradient(180deg, rgba(var(--ground), .72), rgba(var(--ground), 0));
-  backdrop-filter: blur(6px);
+  /* Kein `backdrop-filter`: Unter der Leiste aendert sich die Karte in jedem
+     Frame, der Browser muesste die Unschaerfe also 60-mal je Sekunde neu
+     rechnen - auf einem schwachen Beamer-Rechner einer der teuersten Posten
+     der ganzen Buehne. Etwas mehr Deckung ersetzt sie. */
+  background: linear-gradient(180deg, rgba(var(--ground), .8), rgba(var(--ground), 0));
 }
 .dashboard-bar p { margin: 0; font: 500 12px var(--mono); letter-spacing: .12em; text-transform: uppercase; }
 
@@ -158,22 +160,22 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   gap: 18px;
   min-height: 0;
   padding: 24px 26px;
-  backdrop-filter: blur(8px);
 }
 /* Statt einer Kante ein weicher Verlauf zur Buehne hin: Die Karte darf unter dem
-   Panel auslaufen, ohne dass eine Linie sie abschneidet. */
+   Panel auslaufen, ohne dass eine Linie sie abschneidet. Ohne Unschaerfe aus
+   demselben Grund wie bei der Kopfzeile, dafuer etwas deckender. */
 .panel-left {
   grid-area: left;
   /* Auf einer flachen Buehne reicht die Hoehe nicht immer fuer Zaehler,
      Kennzahlen und Rangliste. Dann wird unten abgeschnitten - das ist auf einem
      Beamer besser als ein verschobenes Raster. */
   overflow: hidden;
-  background: linear-gradient(90deg, rgba(var(--ground), .82) 0%, rgba(var(--ground), .72) 65%, rgba(var(--ground), 0) 100%);
+  background: linear-gradient(90deg, rgba(var(--ground), .88) 0%, rgba(var(--ground), .8) 65%, rgba(var(--ground), 0) 100%);
 }
 .panel-right {
   grid-area: right;
   overflow: hidden;
-  background: linear-gradient(270deg, rgba(var(--ground), .82) 0%, rgba(var(--ground), .72) 65%, rgba(var(--ground), 0) 100%);
+  background: linear-gradient(270deg, rgba(var(--ground), .88) 0%, rgba(var(--ground), .8) 65%, rgba(var(--ground), 0) 100%);
 }
 .panel-label { margin: 0; color: var(--stage-dim); font: 500 11px var(--mono); letter-spacing: .14em; text-transform: uppercase; }
 
@@ -211,8 +213,9 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
 
 /* Vollbild ---------------------------------------------------------------
    Der Zaehler wird dafuer aus dem Panel heraus in diese Ebene gerendert (siehe
-   page.tsx): Ein `backdrop-filter` macht das Panel zum Bezugsrahmen fuer feste
-   Positionierung, ein `inset: 0` darin waere also nur so gross wie die Spalte.
+   page.tsx): Das Panel schneidet mit `overflow: hidden` ab, und jeder kuenftige
+   Filter oder Transform darauf machte es zum Bezugsrahmen fuer feste
+   Positionierung - ein `inset: 0` darin waere dann nur so gross wie die Spalte.
    Die Wolke bemerkt die neue Groesse ueber ihren ResizeObserver. */
 .counter-overlay {
   position: fixed;

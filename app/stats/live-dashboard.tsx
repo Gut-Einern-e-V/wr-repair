@@ -325,9 +325,9 @@ export default function LiveDashboard() {
         </header>
 
         <section className="dashboard-panel panel-left">
-          {/* Im Vollbild zieht der Zaehler nach unten aus dem Panel heraus. Er
-              kann nicht einfach `position: fixed` bekommen: Das `backdrop-filter`
-              des Panels macht dieses selbst zum Bezugsrahmen. */}
+          {/* Im Vollbild zieht der Zaehler nach unten aus dem Panel heraus,
+              statt sich auf `position: fixed` zu verlassen: Ein Filter oder
+              Transform auf dem Panel machte dieses selbst zum Bezugsrahmen. */}
           {!counterFullscreen && (
             <RecordCounter
               celebrating={celebrating}
