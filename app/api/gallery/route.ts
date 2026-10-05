@@ -1,4 +1,4 @@
-import { getAppSettings } from "@/lib/app-settings";
+import { getCachedAppSettings } from "@/lib/app-settings";
 import { publicRateLimit } from "@/lib/rate-limit";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -14,7 +14,7 @@ const MAX_GALLERY_ITEMS = 6;
 const GALLERY_LIMIT_PER_MINUTE = 120;
 
 export async function GET(request: Request) {
-  const { publicThrottle } = await getAppSettings();
+  const { publicThrottle } = await getCachedAppSettings();
   const limit = publicRateLimit(request, "gallery", publicThrottle, GALLERY_LIMIT_PER_MINUTE);
   if (!limit.allowed) {
     return Response.json(

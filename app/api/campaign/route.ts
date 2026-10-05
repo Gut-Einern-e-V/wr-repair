@@ -1,4 +1,4 @@
-import { getAppSettings } from "@/lib/app-settings";
+import { getCachedAppSettings } from "@/lib/app-settings";
 import { publicRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ export const dynamic = "force-dynamic";
 const CAMPAIGN_LIMIT_PER_MINUTE = 240;
 
 export async function GET(request: Request) {
-  const { submissionWindow: campaign, recordGoal, publicThrottle, testRun } = await getAppSettings();
+  const { submissionWindow: campaign, recordGoal, publicThrottle, testRun } = await getCachedAppSettings();
 
   const limit = publicRateLimit(request, "campaign", publicThrottle, CAMPAIGN_LIMIT_PER_MINUTE);
   if (!limit.allowed) {

@@ -12,5 +12,5 @@ export const SITE_LOGO_TAG = "site-logo";
 export const getSiteLogoUrl = unstable_cache(
   async () => publicLogoUrl((await readSettingsRow())?.logo_path ?? null),
   ["site-logo"],
-  { revalidate: 300, tags: [SITE_LOGO_TAG] },
+  { revalidate: 3600, tags: [SITE_LOGO_TAG] },
 );

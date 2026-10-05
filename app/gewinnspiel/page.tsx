@@ -43,10 +43,17 @@ export const metadata = {
   description: "Jede eingereichte Reparatur kann am Gewinnspiel teilnehmen – kostenlos, unabhängig davon, ob die Reparatur geglückt ist. Teilnahmebedingungen und Ablauf der Verlosung.",
 };
 
-/* Zeitraum, Preise und Veranstalter kommen aus dem Backend. Fuenf Minuten,
-   nicht eine Stunde: Ein Preis wird oft kurz vor einer Veranstaltung
-   nachgetragen, und dann soll er auch dort stehen. */
-export const revalidate = 300;
+/* Zeitraum, Preise und Veranstalter kommen aus dem Backend. Ein Preis wird oft
+   kurz vor einer Veranstaltung nachgetragen und soll dann sofort hier stehen -
+   dafuer baut das Speichern im Backend die Seite neu (refreshPublicPage in
+   app/api/admin/prizes/route.ts, SETTINGS_PAGES in lib/app-settings.ts).
+
+   Die Frist faengt nur ab, was kein Speichern ausloest: den Wechsel des Tons
+   zum Start der Teilnahme (Issue #110), der an der Uhr haengt. Der darf sich
+   um bis zu eine Stunde verspaeten; die Bindung selbst prueft das Backend
+   gegen die Serverzeit. Fuenf Minuten kosteten das Zwoelffache an
+   ISR-Writes. */
+export const revalidate = 3600;
 
 const dateFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Berlin" });
 /* Fuer den Stichtag der Preisliste: Der Tag entscheidet, die Minute nicht. */

@@ -1,6 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { publicRateLimit } from "@/lib/rate-limit";
-import { acceptsSubmissions, getAppSettings } from "@/lib/app-settings";
+import { acceptsSubmissions, getCachedAppSettings } from "@/lib/app-settings";
 import { MAX_HIGHLIGHTS, readCells, type DashboardDelta, type DashboardHighlight, type DashboardMetrics, type DashboardKreisDay, type DashboardSnapshot } from "@/lib/dashboard";
 
 /**
@@ -38,6 +38,9 @@ type CacheEntry<T> = { value: T; expiresAt: number };
  */
 const snapshotCache = new Map<string, CacheEntry<DashboardSnapshot>>();
 const deltaCache = new Map<string, CacheEntry<DashboardDelta>>();
+
+/** Gesetzt, sobald Supabase `dashboard_delta` nicht kennt (Migration 202610050001 fehlt). */
+let deltaFunctionMissing = false;
 
 type SupabaseAdmin = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -237,7 +240,44 @@ async function loadSnapshot(
   };
 }
 
-async function loadDelta(supabase: SupabaseAdmin, since: string, withImages: boolean): Promise<DashboardDelta | null> {
+type DeltaParts = {
+  total: number;
+  /** Null, wenn der Tagesstand nicht zu holen war. */
+  today: number | null;
+  metrics: DashboardMetrics | null;
+  rows: RepairRow[];
+};
+
+/**
+ * Alle Teile des Deltas in einem Aufruf (`dashboard_delta`, Migration
+ * 202610050001). Eine laufende Buehne fragt viermal je Minute, und jede Anfrage
+ * an Supabase ist eine eigene Zeile im Gateway-Log - vier Einzelabfragen je
+ * Delta machten den Grossteil der Log Ingestion aus.
+ *
+ * Null, wenn die Funktion fehlt oder scheitert; dann uebernimmt
+ * {@link loadDeltaPartsSeparately}.
+ */
+async function loadDeltaPartsAtOnce(supabase: SupabaseAdmin, since: string): Promise<DeltaParts | null> {
+  if (deltaFunctionMissing) return null;
+
+  const { data, error } = await supabase.rpc("dashboard_delta", { since, max_rows: DELTA_LIMIT });
+  // PGRST202: Die Funktion gibt es (noch) nicht. Dann nicht bei jedem Delta neu
+  // fragen - der Fehlversuch waere selbst wieder eine Zeile im Log. Bis zum
+  // naechsten Kaltstart bleibt es beim alten Weg.
+  if (error?.code === "PGRST202") deltaFunctionMissing = true;
+  if (error || !data || typeof data !== "object") return null;
+
+  const record = data as Record<string, unknown>;
+  return {
+    total: toNumber(record.total),
+    today: record.today === null || record.today === undefined ? null : toNumber(record.today),
+    metrics: toMetrics(record.metrics),
+    rows: Array.isArray(record.rows) ? (record.rows as RepairRow[]) : [],
+  };
+}
+
+/** Der Weg ohne Migration 202610050001: vier Abfragen nacheinander. */
+async function loadDeltaPartsSeparately(supabase: SupabaseAdmin, since: string): Promise<DeltaParts | null> {
   const { count, error: countError } = await supabase
     .from("repairs")
     .select("id", { count: "exact", head: true })
@@ -265,7 +305,19 @@ async function loadDelta(supabase: SupabaseAdmin, since: string, withImages: boo
 
   if (error) return null;
 
-  const rows = (data ?? []) as RepairRow[];
+  return {
+    total: count ?? 0,
+    today: todayError ? null : toNumber(todayCount),
+    metrics: toMetrics(metricsError ? null : metricsData),
+    rows: (data ?? []) as RepairRow[],
+  };
+}
+
+async function loadDelta(supabase: SupabaseAdmin, since: string, withImages: boolean): Promise<DashboardDelta | null> {
+  const parts = (await loadDeltaPartsAtOnce(supabase, since)) ?? (await loadDeltaPartsSeparately(supabase, since));
+  if (!parts) return null;
+
+  const { rows } = parts;
   const categories: Record<string, number> = {};
   for (const row of rows) {
     categories[row.category] = (categories[row.category] ?? 0) + 1;
@@ -274,20 +326,20 @@ async function loadDelta(supabase: SupabaseAdmin, since: string, withImages: boo
   const highlights = await toHighlights(supabase, rows, withImages);
 
   return {
-    total: count ?? 0,
+    total: parts.total,
     // Null statt 0, wenn der Tagesstand nicht zu holen war: Der Client behaelt
     // dann seinen letzten Wert, statt den Tageszaehler auf null zu ziehen.
-    today: todayError ? null : toNumber(todayCount),
+    today: parts.today,
     added: [...highlights].reverse(),
     categories,
-    metrics: toMetrics(metricsError ? null : metricsData),
+    metrics: parts.metrics,
     cursor: rows.at(-1)?.moderated_at ?? since,
     generatedAt: new Date().toISOString(),
   };
 }
 
 export async function GET(request: Request) {
-  const settings = await getAppSettings();
+  const settings = await getCachedAppSettings();
   const campaign = settings.submissionWindow;
   /* Im Testlauf ebenfalls offen (Issue #102): Die Buehne ist der letzte
      Abschnitt des geprobten Weges - ohne sie endet der Testlauf bei der

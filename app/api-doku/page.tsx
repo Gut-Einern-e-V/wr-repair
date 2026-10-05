@@ -13,9 +13,10 @@ export const metadata = {
 };
 
 /* Grenzen und Zeitraum sind im Backend einstellbar. Eine Doku, die sie nennt,
-   muss deshalb mitlaufen - fuenf Minuten sind fuer eine Textseite reichlich
-   (Issue #80). */
-export const revalidate = 300;
+   muss deshalb mitlaufen (Issue #80). Das Speichern baut die Seite sofort neu
+   (SETTINGS_PAGES in lib/app-settings.ts), die Stunde ist nur das
+   Sicherheitsnetz. */
+export const revalidate = 3600;
 
 const REPO = "https://github.com/Gut-Einern-e-V/wr-repair/blob/main/docs";
 

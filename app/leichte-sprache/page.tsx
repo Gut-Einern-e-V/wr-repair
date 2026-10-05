@@ -10,8 +10,10 @@ export const metadata = {
     "Der Reparaturrekord NRW in Leichter Sprache: Worum es geht, wie du mitmachst, wo du Hilfe beim Reparieren findest und an wen du dich wendest, wenn etwas nicht funktioniert.",
 };
 
-/* Die Zielzahl ist im Backend einstellbar (Issue #74) und steht auch hier. */
-export const revalidate = 300;
+/* Die Zielzahl ist im Backend einstellbar (Issue #74) und steht auch hier.
+   Das Speichern baut die Seite sofort neu (SETTINGS_PAGES in
+   lib/app-settings.ts), die Stunde ist nur das Sicherheitsnetz. */
+export const revalidate = 3600;
 
 /**
  * Seite in Leichter Sprache (Issue #47).

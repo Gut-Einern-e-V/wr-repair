@@ -1,4 +1,4 @@
-import { getAppSettings } from "@/lib/app-settings";
+import { getCachedAppSettings } from "@/lib/app-settings";
 import { getPartners } from "@/lib/partners";
 import { publicRateLimit } from "@/lib/rate-limit";
 
@@ -6,7 +6,7 @@ import { publicRateLimit } from "@/lib/rate-limit";
 const PARTNERS_LIMIT_PER_MINUTE = 120;
 
 export async function GET(request: Request) {
-  const { publicThrottle } = await getAppSettings();
+  const { publicThrottle } = await getCachedAppSettings();
   const limit = publicRateLimit(request, "partners", publicThrottle, PARTNERS_LIMIT_PER_MINUTE);
   if (!limit.allowed) {
     return Response.json(
