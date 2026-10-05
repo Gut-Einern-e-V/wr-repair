@@ -207,6 +207,31 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
      */
     let focusAnchor: { x: number; y: number } | null = null;
 
+    /*
+     * Vorgezeichnete Ebenen fuer alles, was stillsteht: die Karte (Kreise,
+     * Landesgrenze, Fluesse) und darueber die Ortsnamen.
+     *
+     * Frueher zog jeder Frame die 53 Kreise mit rund 2.500 Eckpunkten, die
+     * Grenze zweimal, die Fluesse und 26 umrandete Namen neu - bei 60 oder
+     * 120 Hz, obwohl sich davon seit der stehenden Kamera (Issue #70) fast nie
+     * etwas aendert. Das kostete auf schwachen Beamer-Rechnern mehr als die
+     * ganze Punktwolke. Jetzt wird eine Ebene nur neu gezeichnet, wenn sich
+     * ihr Inhalt aendert, und sonst mit einem einzigen drawImage aufgetragen.
+     *
+     * Das Bild bleibt dasselbe: Eine durchscheinende Ebene per drawImage
+     * aufzutragen ergibt dieselben Pixel wie dieselben Pfade direkt zu fuellen.
+     */
+    const mapLayer = document.createElement("canvas");
+    const labelLayer = document.createElement("canvas");
+    const mapLayerContext = mapLayer.getContext("2d");
+    const labelLayerContext = labelLayer.getContext("2d");
+    if (!mapLayerContext || !labelLayerContext) return;
+    const mapContext = mapLayerContext;
+    const labelContext = labelLayerContext;
+    let pixelRatio = 1;
+    /** Gesetzt, wenn sich die Masse geaendert haben und beide Ebenen neu muessen. */
+    let layersStale = true;
+
     const resize = () => {
       // clientWidth/-Height statt getBoundingClientRect(): Im erzwungenen
       // Widescreen-Modus auf dem Smartphone ist die Buehne um 90 Grad gedreht.
@@ -220,6 +245,15 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
       canvas.width = Math.round(width * ratio);
       canvas.height = Math.round(height * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      // Das Setzen der Breite leert eine Canvas und setzt ihre Transformation
+      // zurueck - bei den Ebenen ist genau das gewollt.
+      for (const [layer, layerContext] of [[mapLayer, mapContext], [labelLayer, labelContext]] as const) {
+        layer.width = canvas.width;
+        layer.height = canvas.height;
+        layerContext.setTransform(ratio, 0, 0, ratio, 0, 0);
+      }
+      pixelRatio = ratio;
+      layersStale = true;
 
       // offsetLeft/-Top statt Rect, aus demselben Grund: beides sind Layoutwerte
       // und damit unabhaengig von der Drehung der Buehne.
@@ -231,6 +265,14 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
       focusAnchor = null;
     };
     resize();
+
+    // Die Ortsnamen stehen in Nunito. Kommt die Schrift erst nach dem ersten
+    // Zeichnen an, behielte die Namensebene sonst die Ersatzschrift.
+    const onFontsLoaded = () => {
+      layersStale = true;
+    };
+    document.fonts?.addEventListener("loadingdone", onFontsLoaded);
+    void document.fonts?.ready.then(onFontsLoaded);
 
     const observer = new ResizeObserver(resize);
     observer.observe(canvas);
@@ -427,14 +469,30 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
     }
 
     /** Zieht einen Pfad aus Einheitskoordinaten. */
-    function tracePath(points: { x: number; y: number }[], close: boolean) {
-      context.beginPath();
+    function tracePath(target: CanvasRenderingContext2D, points: { x: number; y: number }[], close: boolean) {
+      target.beginPath();
       points.forEach((point, index) => {
         const screen = project(point.x, point.y);
-        if (index === 0) context.moveTo(screen.x, screen.y);
-        else context.lineTo(screen.x, screen.y);
+        if (index === 0) target.moveTo(screen.x, screen.y);
+        else target.lineTo(screen.x, screen.y);
       });
-      if (close) context.closePath();
+      if (close) target.closePath();
+    }
+
+    /** Leert eine Ebene vollstaendig, unabhaengig von ihrer Transformation. */
+    function clearLayer(target: CanvasRenderingContext2D) {
+      target.setTransform(1, 0, 0, 1, 0, 0);
+      target.clearRect(0, 0, target.canvas.width, target.canvas.height);
+      target.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    }
+
+    /** Traegt eine vorgezeichnete Ebene Pixel fuer Pixel auf die Buehne auf. */
+    function blitLayer(layer: HTMLCanvasElement, alpha: number) {
+      context.save();
+      context.setTransform(1, 0, 0, 1, 0, 0);
+      context.globalAlpha = alpha;
+      context.drawImage(layer, 0, 0);
+      context.restore();
     }
 
     /**
@@ -446,41 +504,98 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
      * dort zugedeckt, wo die meisten Reparaturen liegen; der Saum kostet nur
      * die Punkte, die den Buchstaben ohnehin im Weg stehen.
      */
-    function drawPlaces(alpha: number) {
-      if (alpha <= 0.02) return;
-
+    function drawPlaces(target: CanvasRenderingContext2D) {
       const labelSize = Math.max(9, Math.min(19, scale / 68));
       const ground = stateRef.current.beamer ? "0, 0, 0" : "8, 11, 20";
       const gap = labelSize * 0.55;
       const dot = Math.max(1.8, labelSize / 6);
 
-      context.font = `600 ${labelSize}px "Nunito", "Segoe UI", system-ui, sans-serif`;
-      context.textAlign = "left";
-      context.textBaseline = "middle";
-      context.lineJoin = "round";
+      target.font = `600 ${labelSize}px "Nunito", "Segoe UI", system-ui, sans-serif`;
+      target.textAlign = "left";
+      target.textBaseline = "middle";
+      target.lineJoin = "round";
       // Ohne das Deckeln ziehen spitze Winkel - das V in Leverkusen etwa - lange
       // Zacken aus dem Saum heraus.
-      context.miterLimit = 2;
+      target.miterLimit = 2;
 
       for (const city of labelledCities) {
         const screen = project(city.x, city.y);
 
-        context.globalAlpha = alpha * 0.92;
-        context.strokeStyle = `rgba(${ground}, 0.92)`;
-        context.lineWidth = Math.max(3, labelSize / 3.2);
-        context.beginPath();
-        context.arc(screen.x, screen.y, dot, 0, Math.PI * 2);
-        context.stroke();
-        context.strokeText(city.name, screen.x + gap, screen.y);
+        target.globalAlpha = 0.92;
+        target.strokeStyle = `rgba(${ground}, 0.92)`;
+        target.lineWidth = Math.max(3, labelSize / 3.2);
+        target.beginPath();
+        target.arc(screen.x, screen.y, dot, 0, Math.PI * 2);
+        target.stroke();
+        target.strokeText(city.name, screen.x + gap, screen.y);
 
-        context.globalAlpha = alpha * 0.82;
-        context.fillStyle = "#f7f5f0";
-        context.beginPath();
-        context.arc(screen.x, screen.y, dot, 0, Math.PI * 2);
-        context.fill();
-        context.fillText(city.name, screen.x + gap, screen.y);
+        target.globalAlpha = 0.82;
+        target.fillStyle = "#f7f5f0";
+        target.beginPath();
+        target.arc(screen.x, screen.y, dot, 0, Math.PI * 2);
+        target.fill();
+        target.fillText(city.name, screen.x + gap, screen.y);
       }
-      context.globalAlpha = 1;
+      target.globalAlpha = 1;
+    }
+
+    /** Stand, mit dem die Ebenen zuletzt gezeichnet wurden. */
+    let layerScale = 0;
+    let layerCameraX = 0;
+    let layerCameraY = 0;
+    let layerFill: string[] | null = null;
+    let layerHover: string | null = null;
+    let layerBeamer: boolean | null = null;
+    /** Ob beim letzten Zeichnen noch ein Kreis aufleuchtete - dann muss die Ebene einmal ohne. */
+    let layerFlashing = false;
+
+    /** Kreise, Landesgrenze und Fluesse - der Inhalt der Kartenebene. */
+    function drawMap(target: CanvasRenderingContext2D) {
+      // Kreise: Fuellung nach Zahl der Reparaturen, feine Trennlinien darueber.
+      target.lineJoin = "round";
+      const kreisLine = Math.max(0.5, scale / 1_400);
+      kreiseUnit.forEach((kreis, index) => {
+        tracePath(target, kreis.ring, true);
+        const isHovered = kreis.name === hoveredKreis;
+        // Kurzes Aufleuchten, wenn dort gerade eine Reparatur eingetroffen ist -
+        // dieselbe Goldfarbe wie Landering und Anflug-Schweif, damit "hier ist
+        // etwas passiert" ueberall gleich aussieht.
+        const flash = kreisFlash.get(kreis.name) ?? 0;
+        if (isHovered) {
+          target.fillStyle = "rgba(255, 196, 50, 0.3)";
+        } else if (flash > 0) {
+          target.fillStyle = `rgba(255, 196, 50, ${(0.12 + flash * 0.35).toFixed(3)})`;
+        } else {
+          target.fillStyle = kreisFill[index];
+        }
+        target.fill();
+        target.lineWidth = isHovered ? Math.max(1.4, kreisLine * 3) : flash > 0 ? Math.max(1, kreisLine * (1 + flash * 2)) : kreisLine;
+        target.strokeStyle = isHovered
+          ? "rgba(255, 196, 50, 0.95)"
+          : flash > 0
+            ? `rgba(255, 196, 50, ${(0.4 + flash * 0.55).toFixed(3)})`
+            : "rgba(149, 212, 187, 0.22)";
+        target.stroke();
+      });
+
+      // Landesgrenze zweimal: breit und weich als Schein, darueber schmal und klar.
+      tracePath(target, outlineUnit, true);
+      target.lineWidth = Math.max(4, scale / 150);
+      target.strokeStyle = "rgba(149, 212, 187, 0.1)";
+      target.stroke();
+      target.lineWidth = Math.max(1.2, scale / 620);
+      target.strokeStyle = "rgba(149, 212, 187, 0.75)";
+      target.stroke();
+
+      // Rhein und die groesseren Fluesse als Orientierungslinien. Fein und
+      // zurueckhaltend, damit sie neben Kreisen und Punktwolke nicht auffallen.
+      target.lineWidth = Math.max(1.1, scale / 480);
+      target.strokeStyle = "rgba(120, 180, 200, 0.38)";
+      target.lineJoin = "round";
+      for (const river of riverUnits) {
+        tracePath(target, river, false);
+        target.stroke();
+      }
     }
 
     function draw(now: number) {
@@ -543,52 +658,38 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
       context.fillStyle = reduceMotion ? `rgb(${ground})` : `rgba(${ground}, 0.34)`;
       context.fillRect(0, 0, width, height);
 
-      // Kreise: Fuellung nach Zahl der Reparaturen, feine Trennlinien darueber.
-      context.lineJoin = "round";
-      const kreisLine = Math.max(0.5, scale / 1_400);
-      kreiseUnit.forEach((kreis, index) => {
-        tracePath(kreis.ring, true);
-        const isHovered = kreis.name === hoveredKreis;
-        // Kurzes Aufleuchten, wenn dort gerade eine Reparatur eingetroffen ist -
-        // dieselbe Goldfarbe wie Landering und Anflug-Schweif, damit "hier ist
-        // etwas passiert" ueberall gleich aussieht.
-        const flash = kreisFlash.get(kreis.name) ?? 0;
-        if (isHovered) {
-          context.fillStyle = "rgba(255, 196, 50, 0.3)";
-        } else if (flash > 0) {
-          context.fillStyle = `rgba(255, 196, 50, ${(0.12 + flash * 0.35).toFixed(3)})`;
-        } else {
-          context.fillStyle = kreisFill[index];
+      // Kartenebene nur neu zeichnen, wenn sich etwas an ihr geaendert hat.
+      // Ein aufleuchtender Kreis klingt ueber gut eine Sekunde ab - solange
+      // wird sie jeden Frame neu gezogen, danach steht sie wieder.
+      let flashing = false;
+      for (const value of kreisFlash.values()) {
+        if (value > 0) {
+          flashing = true;
+          break;
         }
-        context.fill();
-        context.lineWidth = isHovered ? Math.max(1.4, kreisLine * 3) : flash > 0 ? Math.max(1, kreisLine * (1 + flash * 2)) : kreisLine;
-        context.strokeStyle = isHovered
-          ? "rgba(255, 196, 50, 0.95)"
-          : flash > 0
-            ? `rgba(255, 196, 50, ${(0.4 + flash * 0.55).toFixed(3)})`
-            : "rgba(149, 212, 187, 0.22)";
-        context.stroke();
-        if (flash > 0) kreisFlash.set(kreis.name, Math.max(0, flash - 0.012));
-      });
-
-      // Landesgrenze zweimal: breit und weich als Schein, darueber schmal und klar.
-      tracePath(outlineUnit, true);
-      context.lineWidth = Math.max(4, scale / 150);
-      context.strokeStyle = "rgba(149, 212, 187, 0.1)";
-      context.stroke();
-      context.lineWidth = Math.max(1.2, scale / 620);
-      context.strokeStyle = "rgba(149, 212, 187, 0.75)";
-      context.stroke();
-
-      // Rhein und die groesseren Fluesse als Orientierungslinien. Fein und
-      // zurueckhaltend, damit sie neben Kreisen und Punktwolke nicht auffallen.
-      context.lineWidth = Math.max(1.1, scale / 480);
-      context.strokeStyle = "rgba(120, 180, 200, 0.38)";
-      context.lineJoin = "round";
-      for (const river of riverUnits) {
-        tracePath(river, false);
-        context.stroke();
       }
+      const viewMoved = scale !== layerScale || camera.x !== layerCameraX || camera.y !== layerCameraY;
+      if (layersStale || viewMoved || flashing || layerFlashing || kreisFill !== layerFill || hoveredKreis !== layerHover) {
+        clearLayer(mapContext);
+        drawMap(mapContext);
+        layerFill = kreisFill;
+        layerHover = hoveredKreis;
+        layerFlashing = flashing;
+      }
+      if (flashing) {
+        for (const [name, value] of kreisFlash) kreisFlash.set(name, Math.max(0, value - 0.012));
+      }
+      const beamer = stateRef.current.beamer;
+      if (layersStale || viewMoved || beamer !== layerBeamer) {
+        clearLayer(labelContext);
+        drawPlaces(labelContext);
+        layerBeamer = beamer;
+      }
+      layersStale = false;
+      layerScale = scale;
+      layerCameraX = camera.x;
+      layerCameraY = camera.y;
+      blitLayer(mapLayer, 1);
 
       // Beim Zoom auf ein Bild blenden die Ortsnamen aus, damit der Spotlight
       // nicht auf beschrifteten Punkten liegt. Gezeichnet werden sie erst nach
@@ -684,7 +785,7 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
         context.stroke();
       }
 
-      drawPlaces(labelAlpha);
+      if (labelAlpha > 0.02) blitLayer(labelLayer, labelAlpha);
 
       /* Fokuspunkt hervorheben und mit der Karteikarte verbinden.
 
@@ -763,6 +864,7 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
     return () => {
       cancelAnimationFrame(frameHandle);
       observer.disconnect();
+      document.fonts?.removeEventListener("loadingdone", onFontsLoaded);
       document.removeEventListener("visibilitychange", onVisibility);
       if (stage) {
         stage.removeEventListener("pointermove", onPointerMove);
