@@ -1,7 +1,8 @@
+import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
 import { isValidIpRule, MAX_ALLOWLIST_ENTRIES } from "@/lib/ip-allowlist";
 import { getClientIp } from "@/lib/rate-limit";
-import { getAppSettings, publicLogoUrl, readSettingsRow } from "@/lib/app-settings";
+import { getAppSettings, publicLogoUrl, readSettingsRow, SETTINGS_PAGES } from "@/lib/app-settings";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
 type Body = {
@@ -268,6 +269,8 @@ export async function PUT(request: Request) {
   if (error) {
     return Response.json({ error: "Die Einstellungen konnten nicht gespeichert werden. Wurde die Migration ausgeführt?" }, { status: 502 });
   }
+
+  for (const path of SETTINGS_PAGES) revalidatePath(path);
 
   const row = await readSettingsRow();
   return Response.json({ ok: true, logoUrl: publicLogoUrl(row?.logo_path ?? null) });

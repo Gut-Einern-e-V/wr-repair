@@ -238,7 +238,53 @@ export function acceptsSubmissions(settings: AppSettings) {
 }
 
 /**
+ * Zwischengespeicherte Seiten (ISR), die Einstellungen anzeigen.
+ *
+ * `getAppSettings` liest ohne Cache-Tag, deshalb weiss Next nicht von selbst,
+ * welche Seiten nach einer Aenderung veraltet sind. Das Speichern im Backend
+ * baut genau diese Pfade neu (app/api/admin/settings/route.ts). Wer eine
+ * weitere Seite mit `revalidate` die Einstellungen lesen laesst, traegt sie
+ * hier ein - sonst zeigt sie bis zum Ablauf ihrer Frist den alten Stand.
+ */
+export const SETTINGS_PAGES = ["/about", "/leichte-sprache", "/api-doku", "/gewinnspiel", "/llms.txt"] as const;
+
+/**
  * Cached per request so a page rendering several settings-aware sections still
  * hits the database once.
  */
 export const getAppSettings = cache(async (): Promise<AppSettings> => buildAppSettings(await readSettingsRow()));
+
+/** Wie lange {@link getCachedAppSettings} eine gelesene Zeile wiederverwendet. */
+export const SETTINGS_ROW_TTL_MS = 30_000;
+
+let cachedRow: { row: SettingsRow; expiresAt: number } | null = null;
+
+/**
+ * Die Einstellungen fuer die oeffentlichen Leserouten, bis zu
+ * {@link SETTINGS_ROW_TTL_MS} alt.
+ *
+ * `/api/dashboard`, `/api/stats` und Co. lasen die Zeile bei jedem Aufruf neu.
+ * Eine laufende Buehne allein fragt viermal je Minute, und jede Abfrage ist
+ * eine Zeile im Supabase-Gateway-Log. Gemerkt wird je Function-Instanz die
+ * Zeile, nicht das Ergebnis: Ob der Zeitraum gerade offen ist, rechnet
+ * {@link buildAppSettings} bei jedem Aufruf neu gegen die Uhr.
+ *
+ * Eine fehlende Zeile wird nicht gemerkt, damit eine kurz nicht erreichbare
+ * Datenbank nicht eine halbe Minute lang die Umgebungsvorgaben festschreibt.
+ *
+ * Nicht fuer Admin-Routen und nicht fuer Seiten mit `revalidate`: Dort muss
+ * eine Aenderung sofort ankommen, eine ISR-Seite wuerde einen veralteten Stand
+ * sonst fuer ihre ganze Frist festhalten.
+ */
+export async function getCachedAppSettings(now = Date.now()): Promise<AppSettings> {
+  if (cachedRow && cachedRow.expiresAt > now) return buildAppSettings(cachedRow.row);
+
+  const row = await readSettingsRow();
+  cachedRow = row ? { row, expiresAt: now + SETTINGS_ROW_TTL_MS } : null;
+  return buildAppSettings(row);
+}
+
+/** Nur fuer Tests: vergisst die gemerkte Zeile. */
+export function resetCachedAppSettings() {
+  cachedRow = null;
+}

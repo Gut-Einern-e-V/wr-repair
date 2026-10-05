@@ -1,6 +1,6 @@
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { publicRateLimit } from "@/lib/rate-limit";
-import { getAppSettings } from "@/lib/app-settings";
+import { getCachedAppSettings } from "@/lib/app-settings";
 import { readPublicStats, timelineRange } from "@/lib/public-stats";
 
 /**
@@ -21,7 +21,7 @@ import { readPublicStats, timelineRange } from "@/lib/public-stats";
 const STATS_LIMIT_PER_MINUTE = 120;
 
 export async function GET(request: Request) {
-  const settings = await getAppSettings();
+  const settings = await getCachedAppSettings();
   const campaign = settings.submissionWindow;
   /* Waehrend und nach dem Zeitraum. Vorher gibt es nichts zu zeigen, und die
      Zahl null als "Live-Stand" waere irrefuehrend; danach ist die Zahl das

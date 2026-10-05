@@ -1,6 +1,6 @@
 import { anonymizeRequestOrigin, isCoarsePoint } from "@/lib/geo-anonymize";
 import { kreisForPoint } from "@/lib/nrw-map";
-import { getAppSettings } from "@/lib/app-settings";
+import { getCachedAppSettings } from "@/lib/app-settings";
 import { publicRateLimit } from "@/lib/rate-limit";
 
 /**
@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   /* Im Schonmodus gilt die engere Grenze aus dem Backend (Issue #80). Diese
      Route liegt im Einreichungsweg - wer sie drosselt, drosselt den
      Kreis-Vorschlag im Formular, nicht die Einreichung selbst. */
-  const { publicThrottle } = await getAppSettings();
+  const { publicThrottle } = await getCachedAppSettings();
   const limit = publicRateLimit(request, "geo-kreis", publicThrottle, GEO_LIMIT_PER_MINUTE);
   if (!limit.allowed) {
     return Response.json(

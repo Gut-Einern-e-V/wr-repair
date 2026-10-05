@@ -14,9 +14,11 @@ export const metadata = {
 };
 
 /* Die Seite nennt die eingestellte Zielzahl (Issue #74). Sie ist im Backend
-   aenderbar, darf also nicht bis zum naechsten Deploy einfrieren - fuenf
-   Minuten sind fuer eine Textseite reichlich. */
-export const revalidate = 300;
+   aenderbar, darf also nicht bis zum naechsten Deploy einfrieren. Das Speichern
+   der Einstellungen baut die Seite sofort neu (SETTINGS_PAGES in
+   lib/app-settings.ts); die Stunde ist nur das Sicherheitsnetz. Kuerzer kostet
+   ISR-Writes, ohne dass sich auf der Seite etwas aendert. */
+export const revalidate = 3600;
 
 /* Reihenfolge nach Issue #84: erst der Antrieb (warum ueberhaupt ein Rekord),
    dann der Absender (Circular Week, CSCP und die Partner in der Region),

@@ -1,4 +1,4 @@
-import { getAppSettings } from "@/lib/app-settings";
+import { getCachedAppSettings } from "@/lib/app-settings";
 import { MOSAIC_MAX_TILES, type MosaicPayload } from "@/lib/mosaic";
 import { publicRateLimit } from "@/lib/rate-limit";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
@@ -39,7 +39,7 @@ const MOSAIC_LIMIT_PER_MINUTE = 120;
 let cached: { payload: MosaicPayload; expiresAt: number } | null = null;
 
 export async function GET(request: Request) {
-  const { publicThrottle } = await getAppSettings();
+  const { publicThrottle } = await getCachedAppSettings();
   const limit = publicRateLimit(request, "mosaic", publicThrottle, MOSAIC_LIMIT_PER_MINUTE);
   if (!limit.allowed) {
     return Response.json(

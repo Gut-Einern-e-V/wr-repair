@@ -26,7 +26,7 @@ const readPartners = unstable_cache(
     return partners.length ? partners : defaultPartners;
   },
   ["partners"],
-  { revalidate: 300, tags: [PARTNERS_TAG] },
+  { revalidate: 3600, tags: [PARTNERS_TAG] },
 );
 
 /**
