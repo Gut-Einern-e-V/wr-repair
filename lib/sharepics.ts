@@ -16,6 +16,7 @@
 
 import type { PublicStats } from "./public-stats";
 import { berlinDay, shiftDay } from "./public-stats";
+import { isRecapPeriod, isRecapView, type RecapPeriod, type RecapView } from "./sharepic-recap";
 import { shareVisualGroundOrder, type ShareVisualGround } from "./share-visual";
 
 export type SharepicMotif =
@@ -31,15 +32,17 @@ export type SharepicMotif =
   | "duel"
   | "lottery"
   | "howto"
-  | "business";
+  | "business"
+  | "recap"
+  | "recapKreis";
 
 /** Was ein Motiv ausser Grundfarbe und Ueberschrift noch einstellen laesst. */
-export type SharepicParam = "kreis" | "kreisB" | "milestone";
+export type SharepicParam = "kreis" | "kreisB" | "milestone" | "period" | "view";
 
 export type SharepicMotifSpec = {
   label: string;
   hint: string;
-  group: "Start" | "Laufend" | "Finale" | "Extras";
+  group: "Start" | "Laufend" | "Rückschau" | "Finale" | "Extras";
   params: SharepicParam[];
   ground: ShareVisualGround;
   /** Braucht das Motiv Zahlen? Ohne Zahlen gibt es keine "Stand"-Zeile. */
@@ -54,6 +57,8 @@ export const sharepicMotifs: Record<SharepicMotif, SharepicMotifSpec> = {
   today: { label: "Tagesbilanz", hint: "Heute, bester Tag, Rekord", group: "Laufend", params: [], ground: "yellow", live: true },
   milestone: { label: "Meilenstein", hint: "z. B. 1.000 Reparaturen", group: "Laufend", params: ["milestone"], ground: "mint", live: true },
   impact: { label: "Wirkung", hint: "Stunden, Euro, Erfolgsquote", group: "Laufend", params: [], ground: "paper", live: true },
+  recap: { label: "Rückschau NRW", hint: "Woche oder seit Anfang an", group: "Rückschau", params: ["period", "view"], ground: "paper", live: true },
+  recapKreis: { label: "Rückschau Stadt", hint: "Woche oder seit Anfang an, ein Ort", group: "Rückschau", params: ["kreis", "period", "view"], ground: "mint", live: true },
   final: { label: "Endergebnis", hint: "Rückblick nach dem Ende", group: "Finale", params: [], ground: "ink", live: true },
   kreis: { label: "Eine Stadt", hint: "Stand und Platz eines Orts", group: "Extras", params: ["kreis"], ground: "mint", live: true },
   duel: { label: "Stadt-Duell", hint: "Zwei Orte gegeneinander", group: "Extras", params: ["kreis", "kreisB"], ground: "yellow", live: true },
@@ -139,6 +144,9 @@ export type SharepicRequest = {
   kreisB: string | null;
   /** Feste Meilensteinzahl; null heisst: aus dem Stand ableiten. */
   milestone: number | null;
+  /** Zeitraum und Grafik der Rueckschau-Motive. */
+  period: RecapPeriod;
+  view: RecapView;
   /** Eigene Ueberschrift, eine Zeile je Aufkleber; null heisst: Vorgabe. */
   headline: string[] | null;
   /** Beispielzahlen statt Live-Daten - das Bild traegt dann ein Wasserzeichen. */
@@ -175,6 +183,8 @@ export function parseSharepicRequest(params: URLSearchParams): SharepicRequest {
   const milestone = Number.parseInt(params.get("milestone") ?? "", 10);
   const formatParam = params.get("format");
   const langParam = params.get("lang");
+  const periodParam = params.get("period");
+  const viewParam = params.get("view");
 
   return {
     motif,
@@ -184,6 +194,8 @@ export function parseSharepicRequest(params: URLSearchParams): SharepicRequest {
     kreis: parseName(params.get("kreis")),
     kreisB: parseName(params.get("kreisB")),
     milestone: Number.isFinite(milestone) && milestone > 0 ? milestone : null,
+    period: isRecapPeriod(periodParam) ? periodParam : "week",
+    view: isRecapView(viewParam) ? viewParam : "total",
     headline: parseHeadline(params.get("headline")),
     demo: params.get("demo") === "1",
     download: params.get("download") === "1",
@@ -225,6 +237,9 @@ export function publicSharepicQuery(request: SharepicRequest) {
   if (request.lang !== "de") params.set("lang", request.lang);
   if (request.kreis) params.set("kreis", request.kreis);
   if (request.kreisB) params.set("kreisB", request.kreisB);
+  /* Nur wo das Motiv Zeitraum und Grafik kennt - sonst waere dasselbe Bild unter zwei Adressen im Cache. */
+  if (sharepicMotifs[request.motif].params.includes("period")) params.set("period", request.period);
+  if (sharepicMotifs[request.motif].params.includes("view")) params.set("view", request.view);
   if (request.download) params.set("download", "1");
   return params.toString();
 }

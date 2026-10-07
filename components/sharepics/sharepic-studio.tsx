@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { posterBackgrounds } from "@/lib/poster";
 import { shareVisualGroundOrder, type ShareVisualGround } from "@/lib/share-visual";
+import { recapPeriodOrder, recapPeriods, recapViewOrder, recapViews, type RecapPeriod, type RecapView } from "@/lib/sharepic-recap";
 import { HEADLINE_MAX_CHARS, HEADLINE_MAX_LINES, sharepicFormatOrder, sharepicFormats, sharepicLanguageOrder, sharepicLanguages, sharepicMotifOrder, sharepicMotifs, type SharepicFormat, type SharepicLanguage, type SharepicMotif } from "@/lib/sharepics";
 
-const groups = ["Start", "Laufend", "Finale", "Extras"] as const;
+const groups = ["Start", "Laufend", "Rückschau", "Finale", "Extras"] as const;
 
 /** Wie lange nach dem letzten Tastendruck die Vorschau neu gezeichnet wird. */
 const TYPING_DELAY_MS = 450;
@@ -28,6 +29,8 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
   const [ground, setGround] = useState<ShareVisualGround>(sharepicMotifs.launch.ground);
   const [kreis, setKreis] = useState("");
   const [kreisB, setKreisB] = useState("");
+  const [period, setPeriod] = useState<RecapPeriod>("week");
+  const [view, setView] = useState<RecapView>("total");
   const [milestone, setMilestone] = useState("");
   const [headline, setHeadline] = useState("");
   const [demo, setDemo] = useState(false);
@@ -49,11 +52,13 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
     if (lang !== "de") params.set("lang", lang);
     if (spec.params.includes("kreis") && kreis) params.set("kreis", kreis);
     if (spec.params.includes("kreisB") && kreisB) params.set("kreisB", kreisB);
+    if (spec.params.includes("period")) params.set("period", period);
+    if (spec.params.includes("view")) params.set("view", view);
     if (moderation && spec.params.includes("milestone") && milestone) params.set("milestone", milestone);
     if (moderation && headline.trim()) params.set("headline", headline);
     if (moderation && demo) params.set("demo", "1");
     return params.toString();
-  }, [motif, format, lang, ground, kreis, kreisB, milestone, headline, demo, spec.params, moderation]);
+  }, [motif, format, lang, ground, kreis, kreisB, period, view, milestone, headline, demo, spec.params, moderation]);
 
   /* Tippen soll nicht bei jedem Buchstaben ein neues Bild anfordern. */
   const [previewQuery, setPreviewQuery] = useState(query);
@@ -135,7 +140,27 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
           </div>
         </fieldset>
 
-        {spec.params.some((param) => moderation || param !== "milestone") && <fieldset>
+        {spec.params.includes("period") && <fieldset>
+          <legend>Zeitraum</legend>
+          <div className="poster-choices">
+            {recapPeriodOrder.map((value) => <label key={value}>
+              <input type="radio" name="sharepic-period" value={value} checked={period === value} onChange={() => setPeriod(value)} />
+              <span>{recapPeriods[value].label}<small>{recapPeriods[value].hint}</small></span>
+            </label>)}
+          </div>
+        </fieldset>}
+
+        {spec.params.includes("view") && <fieldset>
+          <legend>Grafik</legend>
+          <div className="poster-choices">
+            {recapViewOrder.map((value) => <label key={value}>
+              <input type="radio" name="sharepic-view" value={value} checked={view === value} onChange={() => setView(value)} />
+              <span>{recapViews[value].label}<small>{recapViews[value].hint}</small></span>
+            </label>)}
+          </div>
+        </fieldset>}
+
+        {spec.params.some((param) => param === "kreis" || param === "kreisB" || (moderation && param === "milestone")) && <fieldset>
           <legend>Angaben</legend>
           <div className="sharepic-fields">
             {spec.params.includes("kreis") && <label>
