@@ -6,6 +6,16 @@ import { repairCategoryLabel } from "@/lib/repair-catalog";
 import type { SharepicLogos } from "./logos";
 import { shareVisualGrounds, type GroundSpec } from "@/lib/share-visual";
 import {
+  bucketTimeline,
+  recapChange,
+  recapRange,
+  recapSharePercent,
+  recapSuccessPercent,
+  stackCategories,
+  type RecapBar,
+  type RecapStats,
+} from "@/lib/sharepic-recap";
+import {
   autoMilestone,
   countdown,
   formatCount,
@@ -43,6 +53,10 @@ export type SharepicInput = {
   /** Adresse ohne Protokoll, steht unten auf jedem Bild. */
   domain: string;
   prizeCount: number;
+  /** Zahlen der Rueckschau; nur bei den Motiven mit Zeitraum, sonst `null`. */
+  recap: RecapStats | null;
+  /** Der Ort der Rueckschau Stadt, schon aufgeloest (Platz 1, wenn nichts gewaehlt). */
+  recapKreis: string | null;
   /** Die Foerderlogos in Graustufen, als data-URLs (siehe logos.ts). */
   logos: SharepicLogos;
 };
@@ -178,6 +192,57 @@ function kit(format: SharepicFormat, lang: SharepicLanguage) {
     return <img src={src} width={size} height={size} alt="" />;
   }
 
+  /** Farben der gestapelten Balken; die erste folgt der Schriftfarbe, damit sie auf Tinte nicht verschwindet. */
+  const stackColors = (inkGround: boolean) => [inkGround ? yellow : ink, "#ffffff", "#2f8f6b", "#d62828", "#6b7fd7"];
+  const STACK_REST = "#9aa0ab";
+
+  /**
+   * Balken je Tag oder Zeitabschnitt. Gestapelt, wenn `keys` gesetzt ist: Dann
+   * bekommt jede der genannten Kategorien ein Segment, der Rest ein graues.
+   */
+  function BarChart({ bars, ground, keys, inkGround }: { bars: RecapBar[]; ground: GroundSpec; keys?: string[]; inkGround: boolean }) {
+    const height = px(spec.height > 1500 ? 430 : 400);
+    const max = Math.max(...bars.map((bar) => bar.succeeded), 1);
+    const colors = stackColors(inkGround);
+    return <div style={{ ...flexCol, gap: px(14) }}>
+      <div style={{ display: "flex", flexDirection: "row", alignItems: "flex-end", gap: px(bars.length > 14 ? 6 : 12), height, borderBottom: `5px solid ${ground.text}` }}>
+        {bars.map((bar) => {
+          const total = Math.round((bar.succeeded / max) * height);
+          if (!keys) return <div key={bar.date} style={{ display: "flex", flex: 1, height: Math.max(total, bar.succeeded > 0 ? 4 : 0), background: ground.text }} />;
+          const known = keys.reduce((sum, key) => sum + (bar.categories[key] ?? 0), 0);
+          const parts = [...keys.map((key, index) => ({ key, amount: bar.categories[key] ?? 0, color: colors[index % colors.length] })), { key: "rest", amount: Math.max(bar.succeeded - known, 0), color: STACK_REST }];
+          return <div key={bar.date} style={{ ...flexCol, justifyContent: "flex-end", flex: 1, height: total }}>
+            {[...parts].reverse().map((part) => {
+              const segment = bar.succeeded > 0 ? Math.round((part.amount / bar.succeeded) * total) : 0;
+              return segment >= 3 ? <div key={part.key} style={{ display: "flex", height: segment, background: part.color, borderTop: `2px solid ${ink}` }} /> : null;
+            })}
+          </div>;
+        })}
+      </div>
+      <div style={{ ...flexRow, justifyContent: "space-between", fontSize: px(28), fontWeight: 700, color: ground.muted }}>
+        <span>{bars[0] ? day(bars[0].date) : ""}</span>
+        <span>{bars.length > 1 ? day(bars[bars.length - 1].date) : ""}</span>
+      </div>
+    </div>;
+  }
+
+  function Legend({ items }: { items: { label: string; color: string }[] }) {
+    return <div style={{ display: "flex", flexWrap: "wrap", gap: `${px(10)}px ${px(26)}px` }}>
+      {items.map((item) => <div key={item.label} style={{ ...flexRow, gap: px(10), fontSize: px(30), fontWeight: 800 }}>
+        <div style={{ display: "flex", width: px(30), height: px(30), background: item.color, border: `3px solid ${ink}` }} />
+        {item.label}
+      </div>)}
+    </div>;
+  }
+
+  /** Zwei Teile einer Gesamtheit in einem Balken. */
+  function SplitBar({ part, rest, ground }: { part: number; rest: number; ground: GroundSpec }) {
+    const share = part + rest > 0 ? Math.max(2, Math.min(98, (part / (part + rest)) * 100)) : 0;
+    return <div style={{ display: "flex", height: px(64), border: `5px solid ${ground.text}`, background: ground.ground }}>
+      <div style={{ display: "flex", width: `${share}%`, height: "100%", background: ground.text === ink ? ink : yellow }} />
+    </div>;
+  }
+
   function Steps({ steps, ground }: { steps: string[]; ground: GroundSpec }) {
     return <div style={{ ...flexCol, gap: px(30) }}>
       {steps.map((step, index) => <div key={step} style={{ ...flexRow, gap: px(28), alignItems: "flex-start" }}>
@@ -222,13 +287,169 @@ function kit(format: SharepicFormat, lang: SharepicLanguage) {
   /** `path` haengt an der Adresse unten, etwa `/gewinnspiel`. */
   type MotifBody = { headline: string[]; body: ReactNode; cta?: string; path?: string };
 
-  function motifBody({ request, stats, now, prizeCount }: SharepicInput, ground: GroundSpec): MotifBody {
+
+  /**
+   * Die Rueckschau, fuer ganz NRW (`recap`) und fuer einen Ort (`recapKreis`).
+   *
+   * Beide Motive teilen sich Zeitraum und Grafik; nur der Bezug und der Anteil
+   * unterscheiden sich. Gezaehlt wird wie beim Rekord - gelungene Reparaturen -,
+   * gescheiterte Versuche stehen nur in der Grafik "Geglueckt / gescheitert".
+   */
+  function recapBody({ request, stats, now, recap, recapKreis }: SharepicInput, ground: GroundSpec): MotifBody {
+    const scope = request.motif === "recapKreis" ? recapKreis ?? "NRW" : null;
+    const names = {
+      "7d": { headline: t("Letzte 7 Tage", "Last 7 days"), before: t("zu den 7 Tagen davor", "vs. the 7 days before") },
+      week: { headline: t("Letzte Woche", "Last week"), before: t("zur Vorwoche", "vs. the week before") },
+      all: { headline: t("Seit Anfang an", "Since the start"), before: "" },
+    }[request.period];
+    const headline = [scope ?? t("Rückschau", "Look back"), names.headline];
+
+    if (!recap || recap.succeeded + recap.failed === 0) {
+      return {
+        headline,
+        body: <Text size={52} weight={800}>{t("In diesem Zeitraum wurde noch nichts eingetragen. Das ändert sich mit deiner Reparatur!", "Nothing has been added in this period yet. Your repair can change that!")}</Text>,
+      };
+    }
+
+    const range = recapRange(request.period, now, stats.campaign.startAt);
+    const first = range.start ?? recap.timeline[0]?.date ?? range.end;
+    const dates = first === range.end ? day(range.end) : `${day(first)} – ${day(range.end)}`;
+    const kicker = <Kicker ground={ground}>{scope ? `${scope} · ${dates}` : dates}</Kicker>;
+    const euros = (value: number) => t(`${count(value)} €`, `€${count(value)}`);
+    const maxBars = request.period === "all" ? spec.rows * 3 : 7;
+    const inkGround = request.ground === "ink";
+    const labelOf = (key: string) => repairCategoryLabel(key, lang);
+
+    switch (request.view) {
+      case "total": {
+        const change = recapChange(recap.succeeded, recap.previousSucceeded);
+        return {
+          headline,
+          body: <div style={{ ...flexCol, gap: px(44) }}>
+            <div style={{ ...flexCol, gap: px(4) }}>
+              {kicker}
+              <BigNumber value={count(recap.succeeded)} size={320} color={ground.text} />
+              <Text size={64} weight={900}>{t("Reparaturen", "repairs")}</Text>
+              {change !== null && <Text size={44} weight={800} color={ground.muted}>{`${change > 0 ? "+" : ""}${count(change)} % ${names.before}`}</Text>}
+            </div>
+            <Tiles ground={ground} items={[
+              { label: t("Gespart", "Saved"), value: euros(recap.valueSavedEuros), sub: t("an Wert", "in value") },
+              { label: t("Stunden", "Hours"), value: formatHours(recap.minutesSaved, lang), sub: t("repariert", "repaired") },
+            ]} />
+          </div>,
+        };
+      }
+
+      case "success": {
+        const percent = recapSuccessPercent(recap.succeeded, recap.failed);
+        return {
+          headline,
+          body: <div style={{ ...flexCol, gap: px(44) }}>
+            <div style={{ ...flexCol, gap: px(4) }}>
+              {kicker}
+              <BigNumber value={t(`${percent} %`, `${percent}%`)} size={300} color={ground.text} />
+              <Text size={56} weight={900}>{t("der Versuche geglückt", "of attempts succeeded")}</Text>
+            </div>
+            <SplitBar part={recap.succeeded} rest={recap.failed} ground={ground} />
+            <Tiles ground={ground} items={[
+              { label: t("Geglückt", "Succeeded"), value: count(recap.succeeded), sub: t("zählen zum Rekord", "count to the record") },
+              { label: t("Gescheitert", "Failed"), value: count(recap.failed), sub: t("trotzdem versucht", "tried anyway") },
+            ]} />
+          </div>,
+        };
+      }
+
+      case "share": {
+        if (scope) {
+          const percent = recapSharePercent(recap.succeeded, recap.nrwSucceeded);
+          /* Wie viele Kategorien noch Platz haben: Die Story zwei, das Hochformat eine, das Quadrat keine. */
+          const top = rankEntries(recap.categories, format === "story" ? 2 : format === "portrait" ? 1 : 0);
+          return {
+            headline,
+            body: <div style={{ ...flexCol, gap: px(40) }}>
+              <div style={{ ...flexCol, gap: px(4) }}>
+                {kicker}
+                <BigNumber value={t(`${String(percent).replace(".", ",")} %`, `${percent}%`)} size={300} color={ground.text} />
+                <Text size={54} weight={900}>{t(`aller Reparaturen in NRW kamen aus ${scope}`, `of all repairs in NRW came from ${scope}`)}</Text>
+              </div>
+              <SplitBar part={recap.succeeded} rest={Math.max(recap.nrwSucceeded - recap.succeeded, 0)} ground={ground} />
+              <Text size={38} weight={700} color={ground.muted}>{t(`${count(recap.succeeded)} von ${count(recap.nrwSucceeded)} Reparaturen`, `${count(recap.succeeded)} of ${count(recap.nrwSucceeded)} repairs`)}</Text>
+              {top.length > 0 && <div style={{ ...flexCol, gap: px(18) }}>
+                {top.map((entry) => <RankRow key={entry.key} badge={<Pictogram category={entry.key} size={48} />} name={`${labelOf(entry.key)} · ${recapSharePercent(entry.count, recap.succeeded)} %`} count={entry.count} max={top[0].count} ground={ground} />)}
+              </div>}
+            </div>,
+          };
+        }
+        const top = rankEntries(recap.categories, Math.min(6, spec.rows));
+        return {
+          headline,
+          body: <div style={{ ...flexCol, gap: px(24) }}>
+            {kicker}
+            {top.map((entry) => <RankRow key={entry.key} badge={<Pictogram category={entry.key} size={48} />} name={`${labelOf(entry.key)} · ${recapSharePercent(entry.count, recap.succeeded)} %`} count={entry.count} max={top[0].count} ground={ground} />)}
+            <Text size={38} weight={700} color={ground.muted} style={{ marginTop: px(10) }}>{t(`${count(recap.succeeded)} Reparaturen insgesamt`, `${count(recap.succeeded)} repairs in total`)}</Text>
+          </div>,
+        };
+      }
+
+      case "money": {
+        const average = recap.succeeded > 0 ? recap.valueSavedEuros / recap.succeeded : 0;
+        return {
+          headline,
+          body: <div style={{ ...flexCol, gap: px(44) }}>
+            <div style={{ ...flexCol, gap: px(4) }}>
+              {kicker}
+              <BigNumber value={euros(recap.valueSavedEuros)} size={250} color={ground.text} />
+              <Text size={60} weight={900}>{t("gespart statt neu gekauft", "saved instead of buying new")}</Text>
+            </div>
+            <Tiles ground={ground} items={[
+              { label: t("Ø je Reparatur", "Avg. per repair"), value: euros(average) },
+              { label: t("Stunden", "Hours"), value: formatHours(recap.minutesSaved, lang), sub: t("Reparaturzeit", "of repair time") },
+            ]} />
+            <Text size={32} weight={700} color={ground.muted}>{t(`Wert von ${count(recap.succeeded)} reparierten Dingen, wie angegeben.`, `Value of ${count(recap.succeeded)} repaired items, as stated.`)}</Text>
+          </div>,
+        };
+      }
+
+      case "timeline":
+      case "stack": {
+        const bars = bucketTimeline(recap.timeline, maxBars);
+        const best = recap.timeline.reduce((top, entry) => (entry.succeeded > top.succeeded ? entry : top), recap.timeline[0]);
+        const keys = request.view === "stack" ? stackCategories(recap.categories, 4) : undefined;
+        const colors = stackColors(inkGround);
+        return {
+          headline,
+          body: <div style={{ ...flexCol, gap: px(36) }}>
+            <div style={{ ...flexRow, justifyContent: "space-between", alignItems: "flex-end" }}>
+              <div style={{ ...flexCol, gap: px(4) }}>
+                {kicker}
+                <div style={{ ...flexRow, gap: px(20), alignItems: "flex-end" }}>
+                  <BigNumber value={count(recap.succeeded)} size={170} color={ground.text} />
+                  <Text size={48} weight={900} style={{ paddingBottom: px(14) }}>{t("Reparaturen", "repairs")}</Text>
+                </div>
+              </div>
+            </div>
+            <BarChart bars={bars} ground={ground} keys={keys} inkGround={inkGround} />
+            {keys
+              ? <Legend items={[...keys.map((key, index) => ({ label: labelOf(key), color: colors[index % colors.length] })), { label: t("Weitere", "Others"), color: STACK_REST }]} />
+              : best && best.succeeded > 0 && <Text size={40} weight={800}>{t(`Bester Tag: ${day(best.date)} mit ${count(best.succeeded)}`, `Best day: ${day(best.date)} with ${count(best.succeeded)}`)}</Text>}
+          </div>,
+        };
+      }
+    }
+  }
+
+  function motifBody(input: SharepicInput, ground: GroundSpec): MotifBody {
+    const { request, stats, now, prizeCount } = input;
     const { startAt, endAt } = stats.campaign;
     const period = startAt && endAt ? formatPeriod(startAt, endAt, lang) : null;
     const topCategory = rankEntries(stats.categories, 1)[0];
     const topKreis = rankEntries(stats.kreise, 1)[0];
 
     switch (request.motif) {
+      case "recap":
+      case "recapKreis":
+        return recapBody(input, ground);
+
       case "launch":
         return {
           headline: t("Heute geht’s|los!", "It starts|today!").split("|"),

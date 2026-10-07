@@ -147,3 +147,28 @@ describe("Oeffentliche Sharepics", () => {
     expect(new URLSearchParams(canonical).toString()).toBe(canonical);
   });
 });
+
+describe("Anfrage der Rueckschau", () => {
+  const kreise = ["Köln"];
+  const parse = (query: string) => parsePublicSharepicRequest(new URLSearchParams(query), kreise);
+
+  it("nimmt die letzte Woche und die Gesamtzahl als Vorgabe", () => {
+    const request = parse("motif=recap");
+    expect(request.period).toBe("week");
+    expect(request.view).toBe("total");
+  });
+
+  it("schreibt Zeitraum und Grafik in die kanonische Adresse", () => {
+    expect(publicSharepicQuery(parse("motif=recap&view=money&period=all"))).toBe("motif=recap&ground=paper&period=all&view=money");
+    expect(publicSharepicQuery(parse("motif=recapKreis&kreis=Köln&period=7d&view=stack"))).toBe("motif=recapKreis&ground=mint&kreis=K%C3%B6ln&period=7d&view=stack");
+  });
+
+  it("laesst bei anderen Motiven Zeitraum und Grafik weg", () => {
+    expect(publicSharepicQuery(parse("motif=launch&period=all&view=money"))).toBe("motif=launch&ground=yellow");
+  });
+
+  it("faellt bei unbekannten Angaben auf die Vorgabe zurueck", () => {
+    const request = parse("motif=recap&period=jahr&view=torte");
+    expect([request.period, request.view]).toEqual(["week", "total"]);
+  });
+});
