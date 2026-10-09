@@ -43,6 +43,25 @@ export function prizeQuantityRefusal(binding: boolean, previousQuantity: number,
 }
 
 /**
+ * Die Ausnahme von der Sperre (Issue #152).
+ *
+ * Ein Preis kann ausfallen, ohne dass jemand etwas dafuer kann: Die Zange ist
+ * nicht lieferbar. Dann hilft keine Sperre, sondern eine offene Korrektur. Die
+ * darf nur ein Superadmin vornehmen und nur mit einer Begruendung, die im
+ * Protokoll der Route steht.
+ */
+export const OVERRIDE_REASON_MIN = 10;
+
+export function prizeOverrideReason(roles: string[], reasonRaw: unknown): { allowed: true; reason: string } | { allowed: false; hint: string } {
+  if (!roles.includes("superadmin")) return { allowed: false, hint: " Ausnahmen kann nur ein Superadmin eintragen." };
+  const reason = String(reasonRaw ?? "").trim();
+  if (reason.length < OVERRIDE_REASON_MIN) {
+    return { allowed: false, hint: ` Als Superadmin geht es mit einer Begründung (mindestens ${OVERRIDE_REASON_MIN} Zeichen), zum Beispiel „nicht lieferbar“.` };
+  }
+  return { allowed: true, reason };
+}
+
+/**
  * Der Satz ueber der Preisliste auf /gewinnspiel.
  *
  * Er steht hier und nicht in der Seite, weil er die Zusage traegt: Art und
@@ -73,7 +92,7 @@ export function prizeListLead(binding: boolean, startLabel: string | null, total
   }
 
   if (binding) {
-    return `Unter allen gültigen Teilnahmen werden ${total === 1 ? "der folgende Preis" : `die folgenden ${total} Preise`} verlost. Mit dem Start der Teilnahme${start} ist diese Liste verbindlich: Es können weitere Preise dazukommen, gestrichen oder in der Anzahl verringert wird keiner.`;
+    return `Unter allen gültigen Teilnahmen werden ${total === 1 ? "der folgende Preis" : `die folgenden ${total} Preise`} verlost. Mit dem Start der Teilnahme${start} ist diese Liste verbindlich: Es können weitere Preise dazukommen, gestrichen oder in der Anzahl verringert wird keiner, außer ein Preis lässt sich ohne unser Zutun nicht liefern – das sagen wir dann hier offen.`;
   }
 
   return `Die Preise werden von Unternehmen und Initiativen aus der Region gestiftet; bis jetzt ${total === 1 ? "steht ein Gewinn" : `stehen ${total} Gewinne`} fest. Bis zum Start der Teilnahme${start} können weitere dazukommen. Ab dem Start ist die Liste verbindlich: Dann wird kein aufgeführter Preis mehr gestrichen und keine Anzahl mehr verringert.`;

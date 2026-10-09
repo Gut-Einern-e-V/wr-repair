@@ -52,6 +52,7 @@ export type ManagedPrize = {
 function PrizeForm({
   prize,
   binding,
+  canOverride,
   suggestedPlace,
   onSubmit,
   submitLabel,
@@ -61,6 +62,8 @@ function PrizeForm({
   suggestedPlace?: number;
   /** Laeuft die Teilnahme schon? Dann ist die eingetragene Anzahl die Untergrenze. */
   binding: boolean;
+  /** Superadmin: Die Anzahl darf trotz laufender Teilnahme sinken, mit Begruendung. */
+  canOverride?: boolean;
   onSubmit: (form: HTMLFormElement) => Promise<boolean>;
   submitLabel: string;
 }) {
@@ -130,9 +133,16 @@ function PrizeForm({
         <label>bis Platz<input name="placeTo" type="number" inputMode="numeric" min={1} max={PRIZE_PLACE_LIMIT} step={1} placeholder="–" defaultValue={prize && prize.place_to !== prize.place_from ? prize.place_to : ""} /></label>
         <small>
           Für einen einzelnen Platz „bis“ leer lassen. Ein Bereich wie 10 bis 20 heißt: elf gleiche Gewinne. Jeder Platz von 1 bis {PRIZE_PLACE_LIMIT} kann nur einem Preis gehören.
-          {binding && prize ? ` Die Teilnahme läuft – der Bereich darf wachsen, aber nicht kleiner werden als ${prize.quantity} ${prize.quantity === 1 ? "Platz" : "Plätze"}.` : ""}
+          {binding && prize && !canOverride ? ` Die Teilnahme läuft – der Bereich darf wachsen, aber nicht kleiner werden als ${prize.quantity} ${prize.quantity === 1 ? "Platz" : "Plätze"}.` : ""}
+          {" "}Ist der Platz schon vergeben, rücken die folgenden Preise automatisch nach hinten.
         </small>
       </div>
+      {binding && prize && canOverride && (
+        <label>Begründung, falls die Anzahl sinkt
+          <input name="overrideReason" maxLength={200} placeholder="z. B. nicht lieferbar" />
+          <small>Die Teilnahme läuft. Nur Superadmins dürfen die Anzahl trotzdem verringern; die Begründung wird protokolliert.</small>
+        </label>
+      )}
       <label className="choice">
         <input name="isMain" type="checkbox" value="true" defaultChecked={prize?.is_main ?? false} />
         <span><strong>Hauptpreis</strong> – wird auf der Bühne gezogen und nicht mit den kleinen Preisen zusammen.</span>
@@ -162,13 +172,14 @@ export default function PrizePanel({
   /** Die Ziehung darunter zeigt dieselben Preise und muss mitbekommen, dass sie sich geaendert haben. */
   onChanged: () => void;
 }) {
-  const { data, error, isLoading, reload } = useJsonResource<{ prizes: ManagedPrize[]; binding: boolean }>("/api/admin/prizes", "Die Preise konnten nicht geladen werden.");
+  const { data, error, isLoading, reload } = useJsonResource<{ prizes: ManagedPrize[]; binding: boolean; canOverride?: boolean }>("/api/admin/prizes", "Die Preise konnten nicht geladen werden.");
   const [editing, setEditing] = useState("");
   const [busy, setBusy] = useState("");
   const prizes = data?.prizes ?? [];
   /* Im Zweifel gebunden: Solange die Antwort fehlt, ist der sichere Zustand
      der, in dem nichts verschwindet. Die Route entscheidet ohnehin selbst. */
   const binding = data?.binding ?? true;
+  const canOverride = data?.canOverride ?? false;
 
   const suggestedPlace = Math.min(nextFreePlace(prizes.map((prize) => ({ placeFrom: prize.place_from, placeTo: prize.place_to }))), PRIZE_PLACE_LIMIT);
 
@@ -190,9 +201,15 @@ export default function PrizePanel({
 
   async function removePrize(prize: ManagedPrize) {
     if (!window.confirm(`„${prize.title}“ entfernen?`)) return;
+    let reasonQuery = "";
+    if (binding) {
+      const reason = window.prompt("Die Teilnahme läuft. Begründung für das Entfernen (z. B. nicht lieferbar):");
+      if (!reason) return;
+      reasonQuery = `&overrideReason=${encodeURIComponent(reason)}`;
+    }
     setBusy(prize.id);
     try {
-      const response = await fetch(`/api/admin/prizes?id=${encodeURIComponent(prize.id)}`, { method: "DELETE" });
+      const response = await fetch(`/api/admin/prizes?id=${encodeURIComponent(prize.id)}${reasonQuery}`, { method: "DELETE" });
       const payload = await response.json().catch(() => ({})) as { error?: string };
 
       if (!response.ok) {
@@ -215,7 +232,7 @@ export default function PrizePanel({
       {/* Beide Saetze sagen dasselbe von zwei Seiten - vorher als Auftrag,
           nachher als Erklaerung fuer den fehlenden Knopf (Issue #110). */}
       {binding
-        ? <p>Die Teilnahme läuft: Die Preisliste ist damit verbindlich. Preise lassen sich weiter hinzufügen, beschreiben und bebildern, auch die Anzahl darf steigen – entfernen oder verkleinern lässt sich keiner mehr. So steht es in den Teilnahmebedingungen.</p>
+        ? <p>Die Teilnahme läuft: Die Preisliste ist damit verbindlich. Preise lassen sich weiter hinzufügen, beschreiben und bebildern, auch die Anzahl darf steigen – entfernen oder verkleinern lässt sich keiner mehr. So steht es in den Teilnahmebedingungen.{canOverride ? " Ist ein Preis nicht lieferbar, kannst du als Superadmin ihn mit Begründung entfernen oder verkleinern; der Grund wird protokolliert und die öffentliche Seite nennt diese Ausnahme." : " Bei einem nicht lieferbaren Preis wende dich an einen Superadmin."}</p>
         : <p>Bis zum Start der Teilnahme muss jeder Preis hier stehen, mit Anzahl und einer Beschreibung, die erkennen lässt, was es ist. Ab dem Start ist die Liste verbindlich: Dann kommen nur noch Preise dazu, entfernt wird keiner mehr.</p>}
 
       {error && <p className="form-error" role="alert">{error}</p>}
@@ -243,11 +260,11 @@ export default function PrizePanel({
                   <button className="text-button" type="button" aria-expanded={editing === prize.id} onClick={() => setEditing(editing === prize.id ? "" : prize.id)}>
                     {editing === prize.id ? "Schließen" : "Bearbeiten"}
                   </button>
-                  {!binding && <button className="text-button" type="button" disabled={busy !== ""} onClick={() => void removePrize(prize)}>Entfernen</button>}
+                  {(!binding || canOverride) && <button className="text-button" type="button" disabled={busy !== ""} onClick={() => void removePrize(prize)}>Entfernen</button>}
                 </span>
               </div>
               {editing === prize.id && (
-                <PrizeForm prize={prize} binding={binding} onSubmit={(form) => send("PATCH", form, "Der Preis wurde gespeichert.")} submitLabel="Änderungen speichern" />
+                <PrizeForm prize={prize} binding={binding} canOverride={canOverride} onSubmit={(form) => send("PATCH", form, "Der Preis wurde gespeichert.")} submitLabel="Änderungen speichern" />
               )}
             </div>
           ))}

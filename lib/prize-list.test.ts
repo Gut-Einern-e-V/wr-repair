@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { derivePlaces, isPrizeListBinding, nextFreePlace, parsePlaces, placeConflict, placeLabel, placesQuantity, prizeListLead, prizeQuantityRefusal, prizeRemovalRefusal, totalPrizeCount, type PrizePlaces } from "./prize-list";
+import { derivePlaces, isPrizeListBinding, nextFreePlace, parsePlaces, placeConflict, placeLabel, placesQuantity, prizeListLead, prizeOverrideReason, prizeQuantityRefusal, prizeRemovalRefusal, totalPrizeCount, type PrizePlaces } from "./prize-list";
 
 describe("isPrizeListBinding", () => {
   it("bindet noch nicht, solange die Teilnahme nicht begonnen hat", () => {
@@ -161,5 +161,20 @@ describe("Platzierungen", () => {
   it("leitet Plaetze aus Reihenfolge und Anzahl ab, solange die Spalten fehlen", () => {
     expect(derivePlaces([{ quantity: 1 }, { quantity: 3 }, { quantity: 1 }]).map(({ placeFrom, placeTo }) => [placeFrom, placeTo]))
       .toEqual([[1, 1], [2, 4], [5, 5]]);
+  });
+});
+
+describe("prizeOverrideReason", () => {
+  it("laesst Admins keine Ausnahme zu", () => {
+    expect(prizeOverrideReason(["admin"], "nicht lieferbar, Zange")).toMatchObject({ allowed: false });
+  });
+
+  it("verlangt von Superadmins eine Begruendung", () => {
+    expect(prizeOverrideReason(["superadmin"], " kurz ")).toMatchObject({ allowed: false });
+    expect(prizeOverrideReason(["superadmin"], undefined)).toMatchObject({ allowed: false });
+  });
+
+  it("erlaubt Superadmins die Ausnahme mit Begruendung", () => {
+    expect(prizeOverrideReason(["superadmin"], "  nicht lieferbar  ")).toEqual({ allowed: true, reason: "nicht lieferbar" });
   });
 });
