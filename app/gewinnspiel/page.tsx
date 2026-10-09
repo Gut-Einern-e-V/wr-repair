@@ -318,7 +318,7 @@ export default async function LotteryPage() {
           {/* Die Preisliste ist Teil der Bedingungen (Issue #110): Wer zur
               Teilnahme aufgefordert wird, soll erkennen koennen, was er
               gewinnen kann - und sich darauf verlassen duerfen. */}
-          <p>Verlost werden die oben auf dieser Seite aufgeführten Preise; spätestens zum Beginn der Teilnahme steht dort die vollständige Liste mit Anzahl und Beschreibung. Danach können weitere Preise hinzukommen; ein aufgeführter Preis wird weder gestrichen noch in seiner Anzahl verringert.</p>
+          <p>Verlost werden die oben auf dieser Seite aufgeführten Preise; spätestens zum Beginn der Teilnahme steht dort die vollständige Liste mit Anzahl und Beschreibung. Danach können weitere Preise hinzukommen; ein aufgeführter Preis wird weder gestrichen noch in seiner Anzahl verringert, es sei denn, er lässt sich ohne unser Zutun nicht liefern; das machen wir dann auf dieser Seite sichtbar.</p>
           <p>Die Preise werden zugeschickt oder in Wuppertal zur Abholung bereitgestellt. Eine Barauszahlung, ein Umtausch oder eine Übertragung auf andere Personen sind nicht möglich.</p>
         </section>
         <section>

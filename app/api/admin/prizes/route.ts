@@ -2,7 +2,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
 import { getAppSettings } from "@/lib/app-settings";
 import { readPrizes } from "@/lib/lottery-store";
-import { isPrizeListBinding, parsePlaces, placeConflict, placeLabel, placesQuantity, prizeQuantityRefusal, prizeRemovalRefusal, type PrizePlaces } from "@/lib/prize-list";
+import { isPrizeListBinding, parsePlaces, placesQuantity, prizeOverrideReason, prizeQuantityRefusal, prizeRemovalRefusal } from "@/lib/prize-list";
 import { publicPrizeLogoUrl, publicPrizePhotoUrl } from "@/lib/prize-logo";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
@@ -137,26 +137,29 @@ async function storeImage(supabase: ReturnType<typeof createSupabaseAdminClient>
 }
 
 /**
- * Gehoert einer dieser Plaetze schon einem anderen Preis?
+ * Preis speichern und dabei Platz schaffen (Issue #152).
  *
- * Die Datenbank lehnt Ueberschneidungen ohnehin ab (Ausschlussbedingung in der
- * Migration zu Issue #119). Hier wird vorher nachgesehen, damit die Meldung
- * den Preis nennt, der den Platz schon hat.
+ * Belegt der Bereich schon Plaetze, rutschen die Preise ab dort nach hinten -
+ * in derselben Transaktion wie das Speichern (Funktion `save_prize`, siehe
+ * Migration 202610090001). Frueher lehnte die Route die Ueberschneidung ab,
+ * und ein spaeter gestifteter Hauptpreis hiess: jeden anderen Preis einzeln
+ * verschieben.
  */
-async function placeRefusal(supabase: ReturnType<typeof createSupabaseAdminClient>, places: PrizePlaces, ownId?: string) {
-  const { data, error } = await supabase.from("lottery_prizes").select("id, title, place_from, place_to");
-  if (error) return "Die Plätze der anderen Preise konnten nicht gelesen werden. Wurde die Migration ausgeführt?";
-
-  const others = (data ?? []).map((row) => ({ id: row.id as string, title: row.title as string, placeFrom: Number(row.place_from), placeTo: Number(row.place_to) }));
-  const conflict = placeConflict(places, others, ownId);
-  if (!conflict) return null;
-  return `${placeLabel(places)} überschneidet sich mit „${conflict.title}“ (${placeLabel(conflict)}). Jeder Platz kann nur einem Preis gehören.`;
+async function savePrize(supabase: ReturnType<typeof createSupabaseAdminClient>, id: string, fields: PrizeFields, paths: Record<string, string | null>) {
+  const { place_from, place_to, ...rest } = fields;
+  /* Die Anzahl ergibt sich in der Funktion aus den Plaetzen. */
+  const { quantity: _derived, ...values } = rest;
+  void _derived;
+  return supabase.rpc("save_prize", { p_id: id, p_values: { ...values, ...paths }, p_place_from: place_from, p_place_to: place_to });
 }
 
 /** Postgres: Ausschlussbedingung verletzt - zwei Preise wollten denselben Platz. */
 const EXCLUSION_VIOLATION = "23P01";
 
 function saveFailure(error: { code?: string; message: string }) {
+  if (error.code === "22003") {
+    return Response.json({ error: "Die Preise würden über den letzten Platz hinausrutschen. Bitte erst Plätze am Ende freimachen." }, { status: 409 });
+  }
   if (error.code === EXCLUSION_VIOLATION) {
     return Response.json({ error: "Einer dieser Plätze ist gerade an einen anderen Preis vergeben worden. Bitte die Liste neu laden." }, { status: 409 });
   }
@@ -198,6 +201,8 @@ export async function GET() {
     /* Damit das Formular den Zustand zeigen kann, statt ihn erst beim
        abgelehnten Klick zu verraten (Issue #110). */
     binding: await prizeListBinds(),
+    /* Nur Superadmins duerfen die Sperre mit Begruendung durchbrechen (Issue #152). */
+    canOverride: authorization.currentAdmin.roles.includes("superadmin"),
     prizes: rows.map((prize) => ({
       ...prize,
       logoUrl: publicPrizeLogoUrl(prize.logo_path),
@@ -219,9 +224,6 @@ export async function POST(request: Request) {
   }
 
   const supabase = createSupabaseAdminClient();
-  const conflict = await placeRefusal(supabase, { placeFrom: parsed.fields.place_from, placeTo: parsed.fields.place_to });
-  if (conflict) return Response.json({ error: conflict }, { status: 409 });
-
   const prizeId = crypto.randomUUID();
   const paths: Partial<Record<Slot["column"], string | null>> = {};
   const uploaded: { bucket: Slot["bucket"]; path: string }[] = [];
@@ -240,7 +242,7 @@ export async function POST(request: Request) {
     uploaded.push({ bucket: slot.bucket, path: stored.path });
   }
 
-  const { error } = await supabase.from("lottery_prizes").insert({ id: prizeId, ...parsed.fields, ...paths });
+  const { error } = await savePrize(supabase, prizeId, parsed.fields, paths);
   if (error) {
     for (const done of uploaded) await supabase.storage.from(done.bucket).remove([done.path]);
     return saveFailure(error);
@@ -280,11 +282,21 @@ export async function PATCH(request: Request) {
      grosser Preis soll nach vorne ruecken koennen. Die Anzahl ist etwas
      anderes: Einen Bereich zu verkleinern nimmt Gewinne aus einer Liste, auf
      die sich schon jemand verlassen hat (Issue #110). */
-  const quantityRefusal = prizeQuantityRefusal(await prizeListBinds(), Number(existing.quantity ?? 0), parsed.fields.quantity);
-  if (quantityRefusal) return Response.json({ error: quantityRefusal }, { status: 409 });
+  const previousQuantity = Number(existing.quantity ?? 0);
+  if (parsed.fields.quantity < previousQuantity) {
+    const quantityRefusal = prizeQuantityRefusal(await prizeListBinds(), previousQuantity, parsed.fields.quantity);
+    if (quantityRefusal) {
+      const override = prizeOverrideReason(authorization.currentAdmin.roles, form.get("overrideReason"));
+      if (!override.allowed) return Response.json({ error: `${quantityRefusal}${override.hint}` }, { status: 409 });
+      console.warn(`[prizes] ${authorization.currentAdmin.user.email} verringert ${prizeId} von ${previousQuantity} auf ${parsed.fields.quantity}: ${override.reason}`);
+    }
 
-  const conflict = await placeRefusal(supabase, { placeFrom: parsed.fields.place_from, placeTo: parsed.fields.place_to }, prizeId);
-  if (conflict) return Response.json({ error: conflict }, { status: 409 });
+    /* Wer schon gewonnen hat, behaelt den Gewinn - egal, was die Liste sagt. */
+    const { count: drawn } = await supabase.from("lottery_entries").select("id", { count: "exact", head: true }).eq("prize_id", prizeId);
+    if ((drawn ?? 0) > parsed.fields.quantity) {
+      return Response.json({ error: `Auf diesen Preis wurde schon ${drawn}-mal gezogen. Nimm zuerst Ziehungen zurück, bevor du die Anzahl so weit verringerst.` }, { status: 409 });
+    }
+  }
 
   const paths: Partial<Record<Slot["column"], string | null>> = {};
   /* Dateien, die nach dem Speichern weg koennen: die ersetzten und die
@@ -315,7 +327,7 @@ export async function PATCH(request: Request) {
     }
   }
 
-  const { error } = await supabase.from("lottery_prizes").update({ ...parsed.fields, ...paths }).eq("id", prizeId);
+  const { error } = await savePrize(supabase, prizeId, parsed.fields, paths);
   if (error) {
     for (const done of added) await supabase.storage.from(done.bucket).remove([done.path]);
     return saveFailure(error);
@@ -338,7 +350,11 @@ export async function DELETE(request: Request) {
   if (!prizeId) return Response.json({ error: "Es fehlt, welcher Preis gemeint ist." }, { status: 400 });
 
   const removalRefusal = prizeRemovalRefusal(await prizeListBinds());
-  if (removalRefusal) return Response.json({ error: removalRefusal }, { status: 409 });
+  if (removalRefusal) {
+    const override = prizeOverrideReason(authorization.currentAdmin.roles, new URL(request.url).searchParams.get("overrideReason"));
+    if (!override.allowed) return Response.json({ error: `${removalRefusal}${override.hint}` }, { status: 409 });
+    console.warn(`[prizes] ${authorization.currentAdmin.user.email} entfernt ${prizeId}: ${override.reason}`);
+  }
 
   const supabase = createSupabaseAdminClient();
 
