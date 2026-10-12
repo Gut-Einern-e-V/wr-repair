@@ -862,7 +862,21 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
   body { background: #fff; }
   .poster-page { min-height: 0; padding: 0; background: #fff; }
   .poster-stage { display: block; }
+  /* Das Papierraster legt der iOS-Druck (WebKit, Issue #155) als schwarze
+     Flaeche ueber die Karte und deckt die Schrift zu. Gedruckt bleibt die
+     Farbflaeche deshalb glatt. */
+  .poster-card::before { display: none; }
   .poster-sheet { width: var(--page-w); height: var(--page-h); max-width: none; margin: 0; aspect-ratio: auto; }
+}
+
+/* iOS ignoriert `@page { margin: 0 }` und setzt eigene Seitenraender (in der
+   PDF aus Issue #155 etwa 14 mm oben). Der Bogen in voller Blattgroesse laeuft
+   dann auf eine zweite Seite. Nur dort schrumpft er etwas; `zoom` skaliert die
+   Schrift und die Schnittlinien mit. Alle anderen Browser drucken 1:1. */
+@media print {
+  @supports (-webkit-touch-callout: none) {
+    .poster-sheet { zoom: .9; break-after: avoid; }
+  }
 }
 
 @media (max-width: 720px) {
