@@ -48,6 +48,9 @@ export function RecordCounter({ total, goal, celebrating, fullscreen, onToggleFu
         title={fullscreen ? "Vollbild verlassen (Esc)" : "Zähler im Vollbild zeigen (F)"}
       >
         <CounterCloud celebrating={celebrating} fullscreen={fullscreen} reached={reached} value={total} />
+        {/* Auf dem Telefon ist die Wolke zu klein, um aus wenigen Punkten noch
+            Ziffern zu lesen (Issue #154). Dort steht die Zahl schlicht da. */}
+        <span className="counter-plain" aria-hidden="true">{total.toLocaleString("de-DE")}</span>
         <span className="counter-readout" aria-live="polite">{total.toLocaleString("de-DE")} Reparaturen</span>
       </button>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { CategoryPictogram } from "@/components/category-pictogram";
 import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
 import { campaignElapsed, countdownTo, dayRecordState, formatDayLabel, formatMinutes, formatRemaining, goalPercent, paceVerdict, rankKreisDay, requiredPerHour, type DashboardSnapshot, type PaceVerdict } from "@/lib/dashboard";
 import { type KreisRank } from "@/lib/nrw-map";
@@ -71,6 +72,9 @@ export function CategoryTreemap({ categories }: { categories: Record<string, num
         // fuer sich, und die Zahl steht im Laufband und in der Sprechblase.
         const showLabel = rect.width > 74 && rect.height > 34;
         const showCount = rect.width > 44 && rect.height > 22;
+        // Das Piktogramm passt auch dort, wo der Name keinen Platz hat. Auf dem
+        // Telefon steht es allein, der Name entfaellt per Stylesheet (Issue #154).
+        const showIcon = rect.width > 20 && rect.height > 20;
         return (
           <div
             className="category-tile"
@@ -87,7 +91,12 @@ export function CategoryTreemap({ categories }: { categories: Record<string, num
             }}
             title={`${repairCategoryLabel(rect.key)}: ${rect.value.toLocaleString("de-DE")}`}
           >
-            {showLabel && <span className="category-tile-name">{repairCategoryLabel(rect.key)}</span>}
+            {showIcon && (
+              <span className="category-tile-name">
+                <CategoryPictogram category={rect.key} className="category-tile-icon" decorative />
+                {showLabel && <span className="category-tile-label">{repairCategoryLabel(rect.key)}</span>}
+              </span>
+            )}
             {showCount && <strong className="category-tile-count">{rect.value.toLocaleString("de-DE")}</strong>}
           </div>
         );

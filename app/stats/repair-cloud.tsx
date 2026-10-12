@@ -505,7 +505,10 @@ export function RepairCloud({ total, arrivals, focusId, focusAnchorRef, celebrat
      * die Punkte, die den Buchstaben ohnehin im Weg stehen.
      */
     function drawPlaces(target: CanvasRenderingContext2D) {
-      const labelSize = Math.max(9, Math.min(19, scale / 68));
+      // Auf dem Telefon deckten die Namen bei 9 px schon zu viel Karte zu
+      // (Issue #154) - dort darf die Schrift weiter schrumpfen.
+      const compact = window.matchMedia("(max-width: 900px)").matches;
+      const labelSize = Math.max(compact ? 7 : 9, Math.min(19, scale / 68));
       const ground = stateRef.current.beamer ? "0, 0, 0" : "8, 11, 20";
       const gap = labelSize * 0.55;
       const dot = Math.max(1.8, labelSize / 6);

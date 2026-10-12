@@ -205,6 +205,9 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
 }
 .record-counter.is-reached .counter-cloud-canvas { filter: drop-shadow(0 0 28px rgba(255, 196, 50, .5)); }
 
+/* Schlichte Zahl statt Wolke - nur auf dem Telefon sichtbar, siehe unten. */
+.counter-plain { display: none; }
+
 /* Textfassung der Zahl: fuer Screenreader, optisch nicht vorhanden. */
 .counter-readout {
   position: absolute; width: 1px; height: 1px; margin: 0;
@@ -348,11 +351,17 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
               width .9s cubic-bezier(.2, .8, .3, 1), height .9s cubic-bezier(.2, .8, .3, 1);
 }
 .category-tile-name {
+  display: flex;
+  align-items: center;
+  gap: .4em;
+  min-width: 0;
   color: var(--stage-dim);
   font: 500 clamp(10px, .8vw, 14px)/1.2 var(--sans);
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
+/* Das Zeichen traegt die volle Kategoriefarbe wie die Akzentkante - so findet
+   man die Kachel auch ohne Namen wieder. */
+.category-tile-icon { flex: none; width: 1.4em; height: 1.4em; color: var(--tile); }
+.category-tile-label { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .category-tile-count { font: 800 clamp(15px, 1.6vw, 32px)/1 var(--sans); font-variant-numeric: tabular-nums; }
 .category-map-empty { margin: 0; color: rgba(238, 241, 247, .34); font: 500 10px/1.5 var(--mono); letter-spacing: .06em; }
 
@@ -586,7 +595,7 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   .spotlight { right: 1.4vw; bottom: 1.4vw; max-width: min(20vw, 560px); }
   .spotlight figcaption strong { font-size: clamp(1.6rem, 1.8vw, 3rem); }
   .stage-note { padding-bottom: 1vh; font-size: clamp(10px, .62vw, 18px); }
-  .dashboard-ticker span { height: 4vh; font-size: clamp(12px, .72vw, 20px); }
+  .dashboard-ticker > div > span { height: 4vh; font-size: clamp(12px, .72vw, 20px); }
 }
 
 /* Telefone: immer Widescreen --------------------------------------------
@@ -616,18 +625,37 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   .kreis-top-empty { font-size: 7px; }
   .dashboard-panel { gap: 8px; padding: 9px 11px; }
   .panel-label { font-size: 8px; }
-  .record-counter { gap: 7px; }
-  .counter-cloud { height: 52px; }
+  /* Die Punktwolke braucht Flaeche, um Ziffern zu formen. Auf 52 px blieben zu
+     wenige Punkte, die Zahl war nicht zu lesen (Issue #154). Hier steht sie
+     deshalb als Text - und braucht dabei weniger Hoehe, die der Rangliste
+     darunter zugute kommt. */
+  .record-counter { gap: 5px; }
+  .counter-cloud { height: auto; }
+  .counter-cloud-canvas { display: none; }
+  .counter-plain {
+    display: block;
+    color: var(--stage-mint);
+    font: 800 1.6rem/1 var(--sans);
+    font-variant-numeric: tabular-nums;
+    text-align: left;
+  }
+  .record-counter.is-fullscreen .counter-cloud { height: auto; }
+  .record-counter.is-fullscreen .counter-plain { font-size: clamp(3rem, 22vmin, 9rem); text-align: center; }
+  .record-counter.is-reached .counter-plain { color: var(--stage-yellow); }
   .counter-goal { font-size: 8px; }
   .counter-track { height: 5px; }
   .counter-reached { font-size: 13px; }
-  .metric-tiles { gap: 4px; }
-  .metric-tiles li { padding: 5px 0; }
-  .metric-tiles strong { font-size: .95rem; }
-  .metric-tiles span { font-size: 8px; }
+  .metric-tiles { gap: 0; }
+  .metric-tiles li { gap: 6px; padding: 3px 0; }
+  /* Wert und Einheit gehoeren in eine Zeile; umbrechen darf nur die
+     Beschriftung daneben. */
+  .metric-tiles strong { flex: none; font-size: .85rem; white-space: nowrap; }
+  .metric-tiles span { font-size: 7px; }
   .category-map { min-height: 70px; }
-  .category-tile { padding: 3px 4px; box-shadow: inset 0 0 0 1px #080b14; }
-  .category-tile-name { font-size: 7px; }
+  .category-tile { flex-direction: row; align-items: flex-end; justify-content: flex-start; gap: 3px; padding: 3px 4px; box-shadow: inset 0 0 0 1px #080b14; }
+  /* Auf dem Telefon nur das Zeichen: Die Namen waren hier ohnehin zu klein. */
+  .category-tile-label { display: none; }
+  .category-tile-icon { width: 12px; height: 12px; }
   .category-tile-count { font-size: 11px; }
   /* Auf dem Telefon fehlt fuer den QR-Code der Platz - dort ist die Seite
      ohnehin schon in der Hand, aus der man ihn scannen wuerde. */
@@ -651,7 +679,10 @@ html:has(.dashboard-root), body:has(.dashboard-root) { overflow: hidden; }
   .spotlight figcaption span { font-size: 8px; }
   .spotlight figcaption strong { font-size: .85rem; }
   .stage-note { padding: 0 9px 3px; font-size: 7px; }
-  .dashboard-ticker span { height: 30px; font-size: 9px; }
+  /* Nur die Eintraege, nicht die Spans darin: Bekam auch "Ort" und "vor x Min."
+     die feste Hoehe, stand ihr Text oben in der Box statt auf der Mittellinie
+     (Issue #154). */
+  .dashboard-ticker > div > span { height: 30px; font-size: 9px; }
   .dashboard-ticker > div { gap: 20px; }
 }
 
