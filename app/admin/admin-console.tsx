@@ -7,10 +7,11 @@ import CampaignPanel, { type AdminSettings } from "./campaign-panel";
 import LotteryPanel from "./lottery-panel";
 import PartnerPanel from "./partner-panel";
 import SystemStatus from "./system-status";
+import TallyPanel from "./tally-panel";
 import TeamSettings from "./team-settings";
 
 type Role = "moderator" | "admin" | "superadmin";
-type Tab = "status" | "campaign" | "team" | "partners" | "lottery";
+type Tab = "status" | "campaign" | "team" | "partners" | "lottery" | "tally";
 
 const tabLabels: Record<Tab, string> = {
   status: "System",
@@ -18,6 +19,7 @@ const tabLabels: Record<Tab, string> = {
   team: "Team",
   partners: "Partner",
   lottery: "Verlosung",
+  tally: "Strichlisten",
 };
 
 /**
@@ -34,7 +36,7 @@ export default function AdminConsole({ email, roles, initialSettings }: { email:
   /* Die Verlosung stand nur Superadmins offen (Issue #99). Preise kommen aber
      waehrend der Aktion herein und muessen gleich eingetragen werden - die
      Ziehung selbst bleibt Superadmin-Sache, das regelt der Bereich selbst. */
-  const tabs: Tab[] = ["status", "campaign", "team", "partners", "lottery"];
+  const tabs: Tab[] = ["status", "campaign", "team", "partners", "lottery", "tally"];
 
   const onStatus = useCallback((message: string) => { setStatus(message); setError(""); }, []);
   const onError = useCallback((message: string) => { setError(message); setStatus(""); }, []);
@@ -87,6 +89,7 @@ export default function AdminConsole({ email, roles, initialSettings }: { email:
         {tab === "team" && <TeamSettings onStatus={onStatus} onError={onError} />}
         {tab === "partners" && <PartnerPanel onStatus={onStatus} onError={onError} />}
         {tab === "lottery" && <LotteryPanel settings={settings} canDraw={isSuperadmin} onSaved={(next) => setSettings((current) => ({ ...current, ...next }))} onStatus={onStatus} onError={onError} />}
+        {tab === "tally" && <TallyPanel onStatus={onStatus} onError={onError} />}
       </div>
     </main>
   );

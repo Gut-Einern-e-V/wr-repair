@@ -1183,6 +1183,24 @@ h2 { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .prize-form .prize-places { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(2, minmax(0, 10rem)); gap: 12px; align-items: end; }
 .prize-form .prize-places label { grid-column: auto; }
 .prize-form .prize-places small { grid-column: 1 / -1; }
+/* Strichlisten von Repair-Cafes (Issue #158): Kopf in zwei Spalten, darunter
+   ein Zaehlfeld je Kategorie. Auf dem Telefon alles untereinander. */
+.tally-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: end; padding: 18px; border: var(--line); background: var(--bg); }
+.tally-form label { display: grid; gap: 6px; font: 11px var(--mono); text-transform: uppercase; }
+.tally-form input:not([type="checkbox"]) {
+  width: 100%; min-height: 44px; padding: 9px; border: var(--line); border-radius: 0;
+  background: var(--paper); color: var(--ink); font: 15px var(--sans);
+}
+.tally-address { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: end; }
+.tally-address .button { margin: 0; }
+.tally-hint { grid-column: 1 / -1; margin: 0; font: 11px/1.4 var(--mono); color: var(--muted); }
+.tally-counts { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 12px; margin: 0; padding: 14px 0 0; border: 0; border-top: var(--line); }
+.tally-counts legend { display: flex; gap: 12px; padding: 0 0 8px; font: 11px var(--mono); text-transform: uppercase; }
+.tally-counts legend span { color: var(--muted); }
+.tally-form .choice { grid-column: 1 / -1; display: flex; gap: 10px; align-items: start; font: 14px/1.45 var(--sans); text-transform: none; }
+.tally-form .choice input { width: 20px; min-height: 20px; }
+.tally-form > button { grid-column: 1 / -1; justify-self: start; margin: 0; }
+@media (max-width: 720px) { .tally-form, .tally-address { grid-template-columns: 1fr; } }
 /* Reihenfolge von Hand (Issue #98) - zweimal derselbe Handgriff im Backend,
    bei den Unterstuetzern und bei den Preisen. Eine Zeile je Eintrag mit
    Pfeilen, Bild und Namen: So passen auch zwanzig Preise auf einen Schirm,
