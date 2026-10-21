@@ -1,6 +1,7 @@
 import { getCachedAppSettings } from "@/lib/app-settings";
 import { publicRateLimit } from "@/lib/rate-limit";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { TALLY_TAG } from "@/lib/tally-sheet";
 
 const MAX_GALLERY_ITEMS = 6;
 
@@ -34,6 +35,8 @@ export async function GET(request: Request) {
     .from("repairs")
     .select("id, category, brand_model, image_alt_text, image_path, created_at")
     .eq("status", "approved")
+    // Nachgetragene Strichlisten haben weder Foto noch Namen (Issue #158).
+    .not("tags", "cs", `{${TALLY_TAG}}`)
     .order("moderated_at", { ascending: false })
     .limit(MAX_GALLERY_ITEMS);
 
