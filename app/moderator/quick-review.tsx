@@ -5,6 +5,7 @@ import { CategoryMotif } from "@/components/category-motif";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import MetadataFields from "./metadata-fields";
 import ScreenedImage from "./screened-image";
+import SubmissionWarning from "./submission-warning";
 import { claimNextRepair, decideRepair, deleteRepairImage, releaseRepairClaim, saveRepairMetadata } from "./moderation-api";
 import { draftFromRepair, missingImageNote, performedByLabel, type MetadataDraft, type ModerationRepair,
   isTestRunRepair,
@@ -119,6 +120,7 @@ function QuickCard({
             {isTestRunRepair(repair) && <span className="status-chip is-test-run">Testlauf</span>}
           </p>
           <h3>{repair.brand_model || "Marke/Modell unbekannt"}</h3>
+          <SubmissionWarning repair={repair} />
           {repair.story && <p className="quick-story">{repair.story}</p>}
           <dl>
             <div><dt>Durchgeführt</dt><dd>{performedByLabel(repair.performed_by)}</dd></div>
