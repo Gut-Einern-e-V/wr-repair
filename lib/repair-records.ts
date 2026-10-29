@@ -15,6 +15,10 @@ export type RepairRecord = {
   source?: { label: string; href: string };
 };
 
+/** Die Monatsbestmarke von The BIG FIX 2024 - die Zahl, auf die der Stoerer
+    auf der Startseite zielt (Issue #162). */
+export const MONTH_RECORD = 3_177;
+
 const bigFix = {
   label: "The BIG FIX, Recycle Devon",
   href: "https://www.recycledevon.org/thebigfix",
@@ -28,7 +32,7 @@ export const repairRecords: RepairRecord[] = [
     source: bigFix,
   },
   {
-    value: "3.177",
+    value: MONTH_RECORD.toLocaleString("de-DE"),
     label: "Reparaturen in einem Monat landesweit",
     detail: "2024 während der landesweiten Kampagne The BIG FIX in Großbritannien gezählt.",
     source: bigFix,
@@ -64,6 +68,20 @@ export function goalRecord(goal: number | null): RepairRecord | null {
     label: "Reparaturen sind unser Ziel für NRW",
     detail: "Die Zahl, die wir uns für diesen Rekordmonat vorgenommen haben. Der Live-Stand zeigt, wie weit wir sind.",
   };
+}
+
+/**
+ * Wie viele gelungene Reparaturen noch fehlen, bis NRW die Monatsbestmarke
+ * uebertrifft (Issue #162). Gleichziehen reicht nicht, deshalb eine mehr als
+ * die Marke.
+ *
+ * `null`, solange der Stand nicht bekannt ist oder die Marke schon fiel: Dann
+ * gibt es nichts mehr herunterzuzaehlen.
+ */
+export function repairsToBeatRecord(total: number | null): number | null {
+  if (total === null) return null;
+  const missing = MONTH_RECORD + 1 - total;
+  return missing > 0 ? missing : null;
 }
 
 export type FaqEntry = { question: string; answer: string; link?: { href: string; label: string } };

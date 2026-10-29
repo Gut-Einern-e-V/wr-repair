@@ -472,6 +472,17 @@ nav a:hover, .header-link:hover { text-decoration: underline; text-decoration-th
 
 .hero-side { display: grid; align-content: end; gap: 18px; }
 
+/* Stoerer ueber dem Zaehler (Issue #162): rot und schief wie ein Aufkleber,
+   damit der Endspurt neben dem gelben Kasten nicht untergeht. */
+.hero-stoerer {
+  justify-self: start; max-width: 340px; margin: 0 0 6px; padding: 14px 18px 16px;
+  border: var(--line); background: var(--red); color: var(--paper);
+  box-shadow: 6px 6px 0 var(--ink); transform: rotate(-3deg);
+  font-weight: 800; line-height: 1.25; text-transform: none;
+}
+.hero-stoerer strong { display: block; margin-bottom: 4px; font: 800 13px/1.1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
+.hero-stoerer span { display: block; font-size: 20px; }
+
 /* --- Blog: Kartenraster mit grossen Vorschaubildern -------- */
 .story-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .story-card { display: flex; flex-direction: column; background: var(--paper); }
