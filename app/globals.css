@@ -2225,48 +2225,182 @@ a.made-line:hover, a.made-line:focus-visible { text-decoration: underline; }
   .festival-nav > * { flex: 1 1 auto; justify-content: center; }
 }
 
-/* Rahmenprogramm (Issue #163): Uhrzeit links, Programmpunkt in der Mitte, Ort
-   rechts - so laesst sich die Liste nach Zeit und nach Ort ueberfliegen. */
-.festival-schedule { margin: 0; padding: 0; list-style: none; border-top: var(--line); }
-.festival-schedule > li { display: grid; grid-template-columns: 130px minmax(0, 1fr) 210px; gap: 8px 24px; padding: 18px 0; border-bottom: var(--line); }
-.festival-schedule-time { margin: 2px 0 0; font: 500 15px var(--mono); font-variant-numeric: tabular-nums; }
-.festival-schedule h3 { margin: 0; font-size: 20px; line-height: 1.2; }
-.festival-schedule-by { margin: 6px 0 0; color: var(--red-deep); font-size: 14px; font-weight: 600; }
-.festival-schedule li > div > p:last-child { max-width: 62ch; margin: 8px 0 0; font-size: 16px; line-height: 1.5; }
-.festival-schedule-place { margin: 2px 0 0; font: 12px/1.5 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+/* Festivalseite als Wegweiser (Issue #163 und Folge): Kopf mit "Jetzt"-Kasten,
+   Sprungmenue, filterbarer Zeitplan, Werkstaetten, Lageplan und zugeklappte
+   Stationen. Die Orte haben feste Farben, damit Zeitplan, Lageplan und
+   Stationen auf einen Blick zusammenpassen. */
+[data-venue="Utopiastadt"] { --venue: var(--mint); }
+[data-venue="Wiesenwerke"] { --venue: var(--yellow); }
+[data-venue="Nordbahntrasse"] { --venue: #b9c4ea; }
 
-/* Rallye und Workshop als kleine Marken - dieselben auf dem Erklaertext und an
-   jeder Station, damit die Legende nicht extra stehen muss. */
+.festival-hero { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr); gap: 40px; align-items: end; }
+.festival-hero .hero-actions { margin: 28px 0 0; }
+.festival-hero .hero-actions .button-secondary { background: var(--paper); color: var(--ink); border-color: var(--ink); }
+.festival-hero .hero-actions .button-secondary:hover { background: var(--ink); color: var(--paper); }
+
+.festival-now { padding: 20px; border: var(--line); background: var(--ink); color: var(--paper); box-shadow: 6px 6px 0 var(--yellow); }
+.festival-now-label { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; color: var(--yellow); font: 500 12px var(--mono); letter-spacing: .06em; text-transform: uppercase; }
+.festival-now-lead { margin: 14px 0 6px; font-size: 15px; line-height: 1.45; }
+.festival-now-lead:first-of-type { margin-top: 0; }
+.festival-now-list { margin: 0; padding: 0; list-style: none; }
+.festival-now-list li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 10px; padding: 9px 0; border-top: 1px solid rgba(247, 245, 240, .28); }
+.festival-now-list time { font: 500 14px var(--mono); font-variant-numeric: tabular-nums; color: var(--yellow); }
+.festival-now-list strong { display: block; font-size: 15px; line-height: 1.3; }
+.festival-now-list small { display: block; margin-top: 3px; font: 11px var(--mono); letter-spacing: .04em; text-transform: uppercase; opacity: .8; }
+.festival-now-links { margin: 12px 0 0; }
+.festival-now-links a { color: var(--yellow); font: 500 12px var(--mono); text-transform: uppercase; }
+.festival-live-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 0 rgba(236, 66, 76, .7); animation: festival-pulse 1.6s ease-out infinite; }
+@keyframes festival-pulse { to { box-shadow: 0 0 0 10px rgba(236, 66, 76, 0); } }
+
+.festival-facts-section { padding-top: 32px; padding-bottom: 32px; }
+.festival-facts-section .festival-facts { margin-bottom: 0; }
+
+/* Sprungmenue: bleibt oben stehen, auf dem Telefon waagerecht wischbar. */
+.festival-jump { position: sticky; top: 0; z-index: 20; max-width: 1120px; margin: 0 auto; border-bottom: var(--line); background: var(--paper); }
+.festival-jump ul { position: relative; display: flex; gap: 0; margin: 0; padding: 0 24px; list-style: none; overflow-x: auto; scrollbar-width: none; }
+.festival-jump ul::-webkit-scrollbar { display: none; }
+.festival-jump a { display: inline-flex; align-items: center; min-height: 50px; padding: 0 16px; border-bottom: 4px solid transparent; font: 500 12px var(--mono); letter-spacing: .05em; text-transform: uppercase; text-decoration: none; white-space: nowrap; }
+.festival-jump a:hover { background: var(--mint-soft); }
+.festival-jump a[aria-current="true"] { border-bottom-color: var(--red); background: var(--yellow); }
+.festival-anchor, .festival-area, .festival-room { scroll-margin-top: 64px; }
+html:has(.festival-jump) { scroll-behavior: smooth; }
+
+/* Filterknoepfe fuer Zeitplan und Stationen. */
+.festival-filter-bar { display: grid; gap: 10px; }
+.festival-filter { display: flex; flex-wrap: wrap; gap: 8px; }
+.festival-filter button { min-height: 40px; padding: 8px 14px; border: var(--line); border-radius: 999px; background: var(--paper); color: var(--ink); font: 500 12px var(--mono); letter-spacing: .04em; text-transform: uppercase; cursor: pointer; transition: transform 120ms ease, box-shadow 120ms ease; }
+.festival-filter button[data-venue]:not([data-venue="alle"])::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 8px; border: 1.5px solid var(--ink); border-radius: 50%; background: var(--venue, var(--paper)); vertical-align: -1px; }
+.festival-filter button:hover { transform: translate(-1px, -1px); box-shadow: 2px 2px 0 var(--ink); }
+.festival-filter button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.festival-filter button:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+.festival-filter-summary { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin: 18px 0 0; }
+.festival-filter-count { margin: 16px 0 12px; color: var(--muted); font: 12px var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.festival-filter-summary .festival-filter-count { margin: 0; }
+.festival-filter-summary .text-button { cursor: pointer; color: var(--ink); }
+
+/* Zeitplan: eine Zeile je Punkt, Details zum Aufklappen. */
+.festival-schedule { margin: 0; padding: 0; list-style: none; border-top: var(--line); }
+.festival-schedule > li { border-bottom: var(--line); transition: opacity 160ms ease; }
+.festival-schedule summary { display: grid; grid-template-columns: 112px minmax(0, 1fr) 200px 32px; gap: 6px 20px; align-items: center; padding: 14px 4px; cursor: pointer; list-style: none; }
+.festival-schedule summary::-webkit-details-marker { display: none; }
+.festival-schedule summary:hover { background: var(--paper); }
+.festival-schedule summary:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; }
+.festival-schedule summary > i { display: grid; place-items: center; width: 30px; height: 30px; border: 1.5px solid var(--ink); font-size: 18px; font-style: normal; transition: transform 160ms ease, background-color 160ms ease; }
+.festival-schedule details[open] summary > i { transform: rotate(45deg); background: var(--yellow); }
+.festival-schedule-time { font: 500 15px var(--mono); font-variant-numeric: tabular-nums; }
+.festival-schedule-title strong { font-size: 18px; line-height: 1.25; }
+.festival-schedule-title .festival-tag { margin-right: 8px; }
+.festival-schedule-place { justify-self: start; padding: 4px 9px; border: 1.5px solid var(--ink); background: var(--venue, var(--paper)); font: 500 11px/1.35 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.festival-schedule-place small { display: block; font-size: 10px; text-transform: none; letter-spacing: 0; }
+.festival-schedule-more { padding: 0 52px 18px 136px; }
+.festival-schedule-span { margin: 0 0 6px; font: 11px/1.4 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.festival-schedule-by { margin: 0; color: var(--red-deep); font-size: 14px; font-weight: 600; }
+.festival-schedule-more > p:last-child { max-width: 62ch; margin: 6px 0 0; font-size: 16px; line-height: 1.5; }
+.festival-schedule > li.is-past { opacity: .5; }
+.festival-schedule > li.is-running { background: rgba(255, 196, 50, .22); box-shadow: inset 6px 0 0 var(--red); }
+.festival-schedule > li.is-running > details > summary { padding-left: 14px; }
+.festival-filter-summary + .festival-schedule { margin-top: 14px; }
+
+/* Marken: Rallye, Workshop und Co. - dieselben im Erklaertext und an jeder
+   Station, damit die Legende nicht extra stehen muss. */
 .festival-tag { display: inline-block; padding: 2px 7px; border: 1.5px solid var(--ink); font: 500 10px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; vertical-align: .15em; white-space: nowrap; }
 .festival-tag[data-kind="rallye"] { background: var(--mint-soft); }
 .festival-tag[data-kind="workshop"] { background: var(--yellow); }
+.festival-tag[data-kind="kinder"] { background: #f6c6d0; }
+.festival-tag[data-kind="info"] { background: var(--ink); color: var(--paper); }
+.festival-tag[data-kind="live"] { background: var(--red); color: var(--paper); border-color: var(--red); }
+.section-lead .festival-tag { vertical-align: .1em; }
 
-.festival-area { margin-top: 46px; scroll-margin-top: 90px; }
-.festival-area > h3 { margin: 0 0 10px; font-size: clamp(1.8rem, 3.5vw, 2.6rem); }
-.festival-area-intro { max-width: 680px; margin: 0 0 22px; font-size: 17px; line-height: 1.5; }
-.festival-rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: var(--line); border-left: var(--line); }
-.festival-room { padding: 20px; border-right: var(--line); border-bottom: var(--line); background: var(--paper); }
-.festival-room h4 { margin: 0; font-size: 22px; }
-.festival-room h4 small { display: block; margin-top: 4px; font: 11px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
-.festival-room-intro { margin: 10px 0 0; font-size: 15px; line-height: 1.5; }
-.festival-providers { margin: 14px 0 0; padding: 0; list-style: none; }
+/* Werkstaetten des ReparaturCafe XXL als vier Karten. */
+.festival-workshops { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 0; padding: 0; list-style: none; border-top: var(--line); border-left: var(--line); }
+.festival-workshops > li { display: flex; flex-direction: column; padding: 20px 18px; border-right: var(--line); border-bottom: var(--line); background: var(--paper); transition: background-color 120ms ease; }
+.festival-workshops > li:hover { background: var(--yellow-soft); }
+.festival-workshops h3 { margin: 0; font-size: 22px; }
+.festival-workshop-where { margin: 8px 0 0; font: 11px/1.4 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.festival-workshops > li > p:not(.festival-workshop-where) { flex: 1; margin: 12px 0 16px; font-size: 15px; line-height: 1.5; }
+.festival-workshops .text-button { align-self: flex-start; }
+
+/* Lageplan: West nach Ost, dazwischen die Trasse als Weg. */
+.festival-map { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .8fr) minmax(0, 1.1fr); gap: 0; margin: 0; padding: 0; list-style: none; }
+.festival-map > li { position: relative; display: flex; }
+.festival-map-place { display: flex; flex: 1; flex-direction: column; padding: 20px; border: var(--line); background: var(--venue); color: var(--ink); text-decoration: none; box-shadow: 4px 4px 0 var(--ink); transition: transform 120ms ease, box-shadow 120ms ease; }
+.festival-map-place:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--ink); }
+.festival-map-place:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }
+.festival-map > li[data-venue="Nordbahntrasse"] { padding: 28px 0; }
+.festival-map > li[data-venue="Nordbahntrasse"] .festival-map-place { border-left: 0; border-right: 0; box-shadow: none; background: repeating-linear-gradient(90deg, var(--venue) 0 18px, var(--paper) 18px 26px); }
+.festival-map > li[data-venue="Nordbahntrasse"] .festival-map-place:hover { transform: none; }
+.festival-map > li[data-venue="Nordbahntrasse"] ul { padding: 10px; background: var(--paper); border: 1.5px solid var(--ink); }
+.festival-map-name { font: 900 clamp(1.3rem, 2.2vw, 1.9rem)/1.05 var(--sans); text-transform: uppercase; overflow-wrap: anywhere; hyphens: auto; }
+.festival-map-place > small { margin-top: 6px; font: 11px var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+.festival-map-place ul { display: grid; gap: 8px; margin: 16px 0; padding: 0; list-style: none; font-size: 14px; line-height: 1.35; }
+.festival-map-place li { display: flex; align-items: baseline; gap: 8px; }
+.festival-map-spot { flex: 0 0 auto; min-width: 74px; padding: 1px 6px; border: 1.5px solid var(--ink); background: var(--paper); font: 500 9px/1.5 var(--mono); letter-spacing: .06em; text-align: center; text-transform: uppercase; }
+.festival-map-spot[data-kind="info"] { background: var(--ink); color: var(--paper); }
+.festival-map-spot[data-kind="buehne"] { background: var(--red); color: var(--paper); }
+.festival-map-more { margin-top: auto; font: 500 12px var(--mono); letter-spacing: .04em; text-transform: uppercase; text-decoration: underline; text-underline-offset: 4px; }
+
+/* Stationen: Raeume zum Aufklappen, je Ort mit Farbkante. */
+.festival-area { margin-top: 40px; }
+.festival-area > h3 { display: flex; align-items: center; gap: 12px; margin: 0 0 8px; font-size: clamp(1.8rem, 3.5vw, 2.6rem); }
+.festival-area > h3::before { content: ""; width: 18px; height: 18px; border: var(--line); border-radius: 50%; background: var(--venue); }
+.festival-area-intro { max-width: 680px; margin: 0 0 18px; font-size: 17px; line-height: 1.5; }
+.festival-rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-items: start; }
+.festival-room { border: var(--line); border-left: 8px solid var(--venue); background: var(--paper); }
+.festival-area .festival-room { border-left-color: var(--venue); }
+.festival-room > summary { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; align-items: center; padding: 16px 16px 16px 18px; cursor: pointer; list-style: none; }
+.festival-room > summary::-webkit-details-marker { display: none; }
+.festival-room > summary:hover { background: var(--mint-soft); }
+.festival-room > summary:focus-visible { outline: 3px solid var(--blue); outline-offset: -3px; }
+.festival-room-name { font: 900 20px/1.15 var(--sans); text-transform: uppercase; }
+.festival-room-name small { display: block; margin-top: 4px; font: 11px var(--mono); letter-spacing: .05em; }
+.festival-room-badges { display: flex; flex-wrap: wrap; gap: 6px; grid-column: 1; }
+.festival-room > summary > i { grid-column: 2; grid-row: 1 / span 2; display: grid; place-items: center; width: 32px; height: 32px; background: var(--yellow); font-size: 20px; font-style: normal; transition: transform 160ms ease; }
+.festival-room[open] > summary > i { transform: rotate(45deg); }
+.festival-room-body { padding: 0 18px 18px; }
+.festival-room-intro { margin: 0 0 10px; font-size: 15px; line-height: 1.5; }
+.festival-providers { margin: 6px 0 0; padding: 0; list-style: none; }
 .festival-providers > li { padding: 12px 0; border-top: 1px solid var(--ink); }
 .festival-providers > li > p { margin: 4px 0 0; font-size: 15px; line-height: 1.45; }
 .festival-providers > li > .festival-provider-name { margin: 0; font-weight: 700; }
 .festival-offers { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.festival-offers .festival-tag + .festival-tag { margin-left: 6px; }
 .festival-offers strong { margin-left: 8px; font-size: 15px; }
 .festival-offers p { margin: 4px 0 0; font-size: 14px; line-height: 1.45; }
-.section-lead .festival-tag { vertical-align: .1em; }
 
+.festival-more-link { margin-top: 22px; }
+.festival-join { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, .8fr); gap: 30px; align-items: end; background: var(--yellow-soft); }
+.festival-join h2 { margin: 0 0 14px; font-size: clamp(1.8rem, 3.5vw, 2.6rem); }
+.festival-join p:not(.section-index):not(.link-row) { max-width: 560px; margin: 0; font-size: 17px; line-height: 1.5; }
+.festival-join .link-row { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 22px; margin: 0; }
+
+@media (max-width: 1000px) {
+  .festival-hero { grid-template-columns: minmax(0, 1fr); }
+  .festival-workshops { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .festival-map { grid-template-columns: minmax(0, 1fr); }
+  .festival-map > li[data-venue="Nordbahntrasse"] { padding: 0 28px; }
+  .festival-map > li[data-venue="Nordbahntrasse"] .festival-map-place { border: var(--line); border-top: 0; border-bottom: 0; background: repeating-linear-gradient(0deg, var(--venue) 0 18px, var(--paper) 18px 26px); }
+  .festival-join { grid-template-columns: minmax(0, 1fr); }
+}
 @media (max-width: 860px) {
-  .festival-schedule > li { grid-template-columns: 110px minmax(0, 1fr); }
-  .festival-schedule-place { grid-column: 2; }
+  .festival-schedule summary { grid-template-columns: 96px minmax(0, 1fr) 30px; }
+  .festival-schedule-place { grid-column: 2; grid-row: 2; }
+  .festival-schedule summary > i { grid-column: 3; grid-row: 1 / span 2; }
+  .festival-schedule-more { padding: 0 46px 16px 120px; }
   .festival-rooms { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 520px) {
-  .festival-schedule > li { grid-template-columns: minmax(0, 1fr); gap: 6px; }
-  .festival-schedule-place { grid-column: auto; }
-  .festival-room { padding: 18px 16px; }
+  .festival-jump ul { padding: 0 8px; }
+  .festival-jump a { padding: 0 12px; }
+  .festival-hero .hero-actions { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .festival-hero .hero-actions .button { width: auto; min-height: 44px; padding: 10px 6px; justify-content: center; gap: 4px; font-size: 11px; letter-spacing: .02em; text-align: center; }
+  .festival-schedule summary { grid-template-columns: 52px minmax(0, 1fr) 30px; gap: 6px 12px; }
+  .festival-schedule-time { font-size: 14px; }
+  .festival-schedule-end { display: none; }
+  .festival-schedule-title strong { font-size: 16px; }
+  .festival-schedule-more { padding: 0 12px 16px 68px; }
+  .festival-workshops { grid-template-columns: minmax(0, 1fr); }
+  .festival-room > summary { padding: 14px 12px 14px 14px; }
+  .festival-room-body { padding: 0 14px 16px; }
 }
 
 /* --- Seite in Leichter Sprache (/leichte-sprache) --------------------------

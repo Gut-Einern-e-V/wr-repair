@@ -18,7 +18,7 @@ export type FestivalVenueName = "Utopiastadt" | "Wiesenwerke" | "Nordbahntrasse"
  */
 export type FestivalOfferKind = "rallye" | "workshop";
 
-export type FestivalOffer = { kind: FestivalOfferKind; title: string; text: string };
+export type FestivalOffer = { kind: FestivalOfferKind; title: string; text: string; forKids?: boolean };
 
 export type FestivalProvider = {
   name: string;
@@ -32,6 +32,8 @@ export type FestivalRoom = {
   /** Wo der Raum liegt, wenn der Name allein nicht reicht. */
   where?: string;
   intro?: string;
+  /** Hier steht ein Infostand: Startpunkt der Rallye, Fragen, Rallye-Plan. */
+  info?: boolean;
   providers: readonly FestivalProvider[];
 };
 
@@ -46,22 +48,37 @@ export type FestivalSlot = {
   venue: FestivalVenueName;
   room: string;
   text: string;
+  /** Ausdruecklich fuer Kinder gedacht - fuer den Filter "Für Kinder". */
+  forKids?: boolean;
 };
+
+function slug(text: string) {
+  return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/** Sprungziele fuer Orte und Raeume - Lageplan und Werkstaetten verlinken darauf. */
+export function areaId(venue: FestivalVenueName) {
+  return `ort-${slug(venue)}`;
+}
+
+export function roomId(room: string) {
+  return `raum-${slug(room)}`;
+}
 
 /** Das Rahmenprogramm mit festen Zeiten, nach Beginn sortiert. */
 export const festivalSchedule: readonly FestivalSlot[] = [
   { start: "11:00", end: "11:15", title: "Eröffnung des Festivals", by: "David Becher und Nils Kreft", venue: "Utopiastadt", room: "Wartesaal 1", text: "Moderator David Becher begrüßt euch und stellt mit Nils Kreft die Highlights des Tages vor." },
   { start: "11:00", end: "11:15", title: "Eröffnung des Festivals (Live-Stream)", by: "David Becher und Nils Kreft", venue: "Wiesenwerke", room: "TalTonTheater", text: "Die Eröffnung aus der Utopiastadt, live übertragen ins TalTonTheater." },
-  { start: "11:15", end: "11:55", title: "Theaterstück „Zirkus Stinknich“", by: "Patrick Strohm alias Herr Stinknich", venue: "Wiesenwerke", room: "TalTonTheater", text: "Humorvolles für Groß und Klein ab 4 Jahren: wie aus vermeintlichem Müll Neues entsteht und warum Reparieren Spaß macht." },
+  { start: "11:15", end: "11:55", title: "Theaterstück „Zirkus Stinknich“", by: "Patrick Strohm alias Herr Stinknich", venue: "Wiesenwerke", room: "TalTonTheater", text: "Humorvolles für Groß und Klein ab 4 Jahren: wie aus vermeintlichem Müll Neues entsteht und warum Reparieren Spaß macht.", forKids: true },
   { start: "11:15", end: "12:15", title: "Utopiastadt entdecken – Führung über das Gelände", by: "Amanda Steinborn, Utopiastadt", venue: "Nordbahntrasse", room: "Treffpunkt vor Utopiastadt", text: "Ein Rundgang über das Gelände, auf dem Menschen gemeinsam Stadt gestalten – und das an diesem Tag Festivalort ist." },
   { start: "12:00", end: "13:00", title: "Gib alten Geräten Superkräfte – mit deiner Stimme & KI", by: "Seeed Studio", venue: "Wiesenwerke", room: "Workshopraum", text: "Ohne Programmierkenntnisse einem alten elektronischen Gerät mit KI neue Funktionen geben." },
   { start: "12:00", end: "13:15", title: "ZukunftsTalk: Kaputt – und jetzt? Wie Reparieren uns unabhängiger macht", by: "u. a. Dominik Stingl (Gut Einern) und Victoria Wenzelmann (New Production Institute, Helmut-Schmidt-Universität Hamburg)", venue: "Wiesenwerke", room: "TalTonTheater", text: "Moderiert von David Becher – und wie gewohnt herausgefordert von launigen KI-Einwürfen." },
   { start: "12:30", end: "12:45", title: "Versteigerung von Brautmode", by: "Brautpoesie", venue: "Utopiastadt", room: "Wartesaal 1", text: "Die Kleider der stillen Versteigerung werden vorgestellt. Danach habt ihr eine Stunde Zeit, am Stand von Brautpoesie mitzubieten; der Erlös geht an einen guten Zweck." },
-  { start: "13:00", end: "13:40", title: "Theaterstück „Zirkus Stinknich“", by: "Patrick Strohm alias Herr Stinknich", venue: "Utopiastadt", room: "Wartesaal 1", text: "Noch einmal das Theaterstück für Groß und Klein ab 4 Jahren, diesmal in der Utopiastadt." },
+  { start: "13:00", end: "13:40", title: "Theaterstück „Zirkus Stinknich“", by: "Patrick Strohm alias Herr Stinknich", venue: "Utopiastadt", room: "Wartesaal 1", text: "Noch einmal das Theaterstück für Groß und Klein ab 4 Jahren, diesmal in der Utopiastadt.", forKids: true },
   { start: "13:00", end: "13:30", title: "Führung durch das „Circular Office“", by: "Neue Effizienz", venue: "Wiesenwerke", room: "Bauwagen auf dem Parkplatz", text: "Wie sieht ein Büro nach den Prinzipien von New Work und Kreislaufwirtschaft aus – und was geht schon erstaunlich gut?" },
   { start: "13:00", end: "14:00", title: "Die klingende Ballerina – Reparieren, Hacken & Musik machen", by: "Seeed Studio", venue: "Wiesenwerke", room: "Workshopraum", text: "Eine Audio-Ballerina wieder zum Klingen und Tanzen bringen und dabei mit Musik und Technik experimentieren." },
   { start: "13:00", end: "14:00", title: "Das BUGA-Haus besichtigen, Hängebrücke und Seilbahn mit der VR-Brille erleben", by: "BUGA Wuppertal 2031", venue: "Nordbahntrasse", room: "Treffpunkt vor Utopiastadt", text: "Führung durch das ehemalige Solar-Decathlon-Haus und ein virtueller Blick auf die geplante Hängebrücke und Seilbahn." },
-  { start: "13:00", end: "16:00", title: "Entdecke das Bandwebermuseum", by: "Bandwebermuseum Wuppertal", venue: "Wiesenwerke", room: "Bandwebermuseum", text: "Historische Maschinen und laufende Webstühle – und für Kinder eine Entdeckungsreise mit dem Webvogel Friedolin." },
+  { start: "13:00", end: "16:00", title: "Entdecke das Bandwebermuseum", by: "Bandwebermuseum Wuppertal", venue: "Wiesenwerke", room: "Bandwebermuseum", text: "Historische Maschinen und laufende Webstühle – und für Kinder eine Entdeckungsreise mit dem Webvogel Friedolin.", forKids: true },
   { start: "13:30", end: "15:00", title: "Live-Reparatur", by: "Lars Gauster (Gausterhaus) u. a.", venue: "Wiesenwerke", room: "TalTonTheater", text: "Knifflige Fälle aus der Elektro-Werkstatt, live auf der Bühne: wie man Defekte aufspürt und repariert." },
   { start: "14:00", end: "14:40", title: "Abriss oder Weiternutzung?", by: "Santana Ahmadifar, UmBauLabor Gelsenkirchen", venue: "Utopiastadt", room: "Wartesaal 1", text: "Aus der Reihe „Bauen, aber anders!“: an einem echten Gebäude gezeigt, wie sich Räume und Material erhalten und neu nutzen lassen." },
   { start: "14:00", end: "15:00", title: "Utopiastadt entdecken – Führung über das Gelände", by: "Eberhard Fahle, Utopiastadt", venue: "Nordbahntrasse", room: "Treffpunkt vor Utopiastadt", text: "Die zweite Führung über das Gelände der Utopiastadt." },
@@ -74,7 +91,8 @@ export const festivalSchedule: readonly FestivalSlot[] = [
 
 /* Die Werkstaetten des ReparaturCafe XXL. Sie stehen gesondert, weil sie der
    Grund sind, mit einem kaputten Gegenstand zu kommen - auf den Postern stehen
-   sie unter "Wiesenwerke", hier zusaetzlich oben auf der Seite. */
+   sie unter "Wiesenwerke", hier zusaetzlich oben auf der Seite. `name` ist
+   zugleich der Raum in `festivalAreas`, auf den die Karte verweist. */
 export const repairWorkshops = [
   { name: "Elektro-Werkstatt", where: "Wiesenwerke, Projektraum (2. OG)", text: "Hilfe zur Selbsthilfe für Elektrogeräte aller Art, von der Stehlampe über den Mixer bis zur Stereoanlage." },
   { name: "Fahrrad-Werkstatt", where: "Wiesenwerke, neben der Nordbahntrasse", text: "Schaltung rattert, Bremse quietscht? Gemeinsam behebt ihr den Fehler und lernt euer Rad besser kennen." },
@@ -85,7 +103,8 @@ export const repairWorkshops = [
 const NETZWERK = "Netzwerk Reparatur Wuppertal";
 const FAB = "Fab Region Bergisches Städtedreieck";
 const MACHBAR = "MACHBAR ReparaturCafé";
-const INFO: FestivalProvider = { name: `Infostand: ${FAB}`, about: "Startpunkt der Rallye. Hier beantwortet das Festivalteam eure Fragen, und hier gibt es den Rallye-Plan." };
+/* Der Infostand der FAB Region steht in drei Raeumen. Er ist ein Merkmal des
+   Raums (`info`) und kein Anbieter, damit sein Text nicht dreimal dasteht. */
 
 export const festivalAreas: readonly FestivalArea[] = [
   {
@@ -94,11 +113,11 @@ export const festivalAreas: readonly FestivalArea[] = [
     rooms: [
       {
         name: "Wartesaal 1",
-        intro: "Mit Infostand, Eröffnung und Bühnenprogramm. Getränke gibt es vom Hutmacher.",
+        intro: "Eröffnung und Bühnenprogramm. Getränke gibt es vom Hutmacher.",
+        info: true,
         providers: [
-          INFO,
           { name: "Bandwirkermuseum Ronsdorf", about: "Wie sieht eine Maschine aus, die Armbänder weben kann? Das Museum zeigt es." },
-          { name: "Brockenhaus", about: "Secondhand-Kaufhaus in Wuppertal mit Kleidung, Möbeln, Hausrat und Büchern, eigener Reparatur und Verleih.", offers: [{ kind: "rallye", title: "Kinderschminken", text: "Es ist Halloween: tierisch, märchenhaft oder gruselig – ihr entscheidet." }] },
+          { name: "Brockenhaus", about: "Secondhand-Kaufhaus in Wuppertal mit Kleidung, Möbeln, Hausrat und Büchern, eigener Reparatur und Verleih.", offers: [{ kind: "rallye", title: "Kinderschminken", text: "Es ist Halloween: tierisch, märchenhaft oder gruselig – ihr entscheidet.", forKids: true }] },
           {
             name: "Gut Einern",
             about: "Lernort für Permakultur und Vertical Farming in Wuppertal, der lokale Kreisläufe mit KI, Sensorik und Coding erlebbar macht.",
@@ -143,7 +162,7 @@ export const festivalAreas: readonly FestivalArea[] = [
           },
           { name: "Verbraucherzentrale Umweltberatung Wuppertal", about: "Unabhängige Beratung zu Energie, nachhaltigem Konsum und Abfallvermeidung.", offers: [{ kind: "rallye", title: "Bügelflicken kreativ gestalten", text: "Eigene Bügelflicken gestalten und erfahren, wer was an einer Jeans verdient und welche Siegel helfen." }] },
           { name: "Wuppertal Institut für Klima, Umwelt, Energie", offers: [{ kind: "rallye", title: "Ressourcen-Rechner", text: "In zehn Minuten den eigenen ökologischen Rucksack berechnen – mit Tipps für einen ressourcenleichteren Alltag." }] },
-          { name: "zdi-Zentrum BeST Wuppertal", about: "Begeistert Schüler:innen für MINT-Fächer.", offers: [{ kind: "workshop", title: "Basteltiere unter Strom", text: "Aus alten Kartons werden kleine Tiere, die ein Motor zum Leben erweckt." }] },
+          { name: "zdi-Zentrum BeST Wuppertal", about: "Begeistert Schüler:innen für MINT-Fächer.", offers: [{ kind: "workshop", title: "Basteltiere unter Strom", text: "Aus alten Kartons werden kleine Tiere, die ein Motor zum Leben erweckt.", forKids: true }] },
         ],
       },
     ],
@@ -152,13 +171,13 @@ export const festivalAreas: readonly FestivalArea[] = [
     venue: "Wiesenwerke",
     intro: "In der früheren Gold-Zack-Fabrik: das ReparaturCafé XXL, die Zukunfts-Werkstatt und die Bühne im TalTonTheater.",
     rooms: [
-      { name: "Bauwagen", where: "auf dem Parkplatz", intro: "Treffpunkt für die Führungen durch das „Circular Office“.", providers: [INFO] },
+      { name: "Bauwagen", where: "auf dem Parkplatz", intro: "Treffpunkt für die Führungen durch das „Circular Office“.", info: true, providers: [] },
       {
         name: "Bahnhof Blo",
         where: "Bouldercafé",
         intro: "Für veganes Essen und Getränke ist hier gesorgt.",
+        info: true,
         providers: [
-          INFO,
           { name: "Smart Circular Wuppertal", about: "Erprobt in Pilotprojekten neue Ansätze für Kreislaufwirtschaft in Wuppertal, etwa vernetzte Reparaturangebote.", offers: [{ kind: "rallye", title: "Welcher Reparaturtyp bist du?", text: "Mit ein paar Fragen herausfinden, welcher von vier Reparaturtypen ihr seid – und welcher ihr sein wollt." }] },
         ],
       },
@@ -207,7 +226,7 @@ export const festivalAreas: readonly FestivalArea[] = [
         intro: "Teil des ReparaturCafé XXL. Möbelreparaturen sind hier nicht möglich – sie dauern meist länger als das Festival.",
         providers: [
           { name: NETZWERK, offers: [{ kind: "workshop", title: "Vogel- oder Fledermaushäuschen bauen", text: "Ein Projekt für Einsteiger:innen und Fortgeschrittene – die Tiere werden es euch danken." }] },
-          { name: "wasbauen | Steffen Hübner", offers: [{ kind: "workshop", title: "Kleine Holzflitzer bauen", text: "Kinder ab 4 Jahren bauen mit Hilfe der Großen aus Modulen ein eigenes Holzfahrzeug: sägen, schleifen, anmalen, Räder dran, losfahren." }] },
+          { name: "wasbauen | Steffen Hübner", offers: [{ kind: "workshop", title: "Kleine Holzflitzer bauen", text: "Kinder ab 4 Jahren bauen mit Hilfe der Großen aus Modulen ein eigenes Holzfahrzeug: sägen, schleifen, anmalen, Räder dran, losfahren.", forKids: true }] },
         ],
       },
       {
