@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { faqEntries, goalRecord, repairRecords } from "./repair-records";
+import { faqEntries, goalRecord, MONTH_RECORD, repairRecords, repairsToBeatRecord } from "./repair-records";
 
 describe("Rekordzahlen", () => {
   it("nennt zu jeder fremden Bestmarke eine oeffentlich pruefbare Quelle", () => {
@@ -31,6 +31,20 @@ describe("Zielkachel", () => {
   it("entfaellt, solange kein Ziel bekannt ist", () => {
     expect(goalRecord(null)).toBeNull();
     expect(goalRecord(0)).toBeNull();
+  });
+});
+
+describe("Stoerer zur Bestmarke", () => {
+  it("zaehlt bis eine Reparatur ueber die Marke (Issue #162)", () => {
+    expect(repairsToBeatRecord(0)).toBe(MONTH_RECORD + 1);
+    expect(repairsToBeatRecord(3_000)).toBe(178);
+    expect(repairsToBeatRecord(MONTH_RECORD)).toBe(1);
+  });
+
+  it("entfaellt ohne Stand und sobald die Marke gefallen ist", () => {
+    expect(repairsToBeatRecord(null)).toBeNull();
+    expect(repairsToBeatRecord(MONTH_RECORD + 1)).toBeNull();
+    expect(repairsToBeatRecord(5_000)).toBeNull();
   });
 });
 

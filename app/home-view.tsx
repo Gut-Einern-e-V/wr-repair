@@ -13,7 +13,7 @@ import { StoryMosaic } from "@/components/story-mosaic";
 import { brandPhotos } from "@/lib/brand-photos";
 import { campaignPhaseAt, type CampaignDates, type CampaignPhase } from "@/lib/campaign-phase";
 import { repairCategories, repairCategoryLabel, type RepairCategory } from "@/lib/repair-catalog";
-import { faqEntries, goalRecord, repairRecords } from "@/lib/repair-records";
+import { faqEntries, goalRecord, repairRecords, repairsToBeatRecord } from "@/lib/repair-records";
 import type { StoryTeaser } from "@/lib/stories";
 
 type RepairStats = {
@@ -201,6 +201,9 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
   const goal = repairStats?.goal ?? campaignGoal;
   const isDone = phase === "after" && !isTestRun;
   const records = [...repairRecords, goalRecord(goal)].filter((record) => record !== null);
+  /* Der Stoerer aus Issue #162 - nur solange die Aktion laeuft und die Marke
+     noch steht. Zaehlt live mit, statt eine feste Zahl zu nennen. */
+  const toBeatRecord = phase === "open" ? repairsToBeatRecord(repairCount) : null;
 
   return (
     <main className="page-shell">
@@ -237,6 +240,12 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
           </div>
 
           <div className="hero-side">
+            {toBeatRecord !== null && (
+              <p className="hero-stoerer">
+                <strong>Endspurt!</strong>
+                <span>Nur noch {toBeatRecord.toLocaleString("de-DE")} {toBeatRecord === 1 ? "Reparatur" : "Reparaturen"} bis zur neuen Bestmarke!</span>
+              </p>
+            )}
             <aside className="hero-facts" id="counter">
               <div>
                 <p className="counter-label">{copy.counterLabel}</p>
