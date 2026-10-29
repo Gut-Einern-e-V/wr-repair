@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useJsonResource } from "@/lib/use-json-resource";
 import { performedByLabel } from "@/app/moderator/repair-types";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
@@ -27,6 +28,8 @@ type AbandonedSubmission = {
   attempts: number;
   stage: string;
   reason: string;
+  /** Fehlercode des Dienstes, etwa `response_duplicate` (Issue #167). */
+  detail: string | null;
   ipRegion: string | null;
   kreis: string | null;
   originSource: string | null;
@@ -73,7 +76,7 @@ const stageLabels: Record<string, string> = {
 
 const reasonLabels: Record<string, string> = {
   captcha_unavailable: "Friendly Captcha hat nicht geantwortet; die Einreichung wurde trotzdem angenommen.",
-  captcha_invalid: "Friendly Captcha hat das Lösungswort abgelehnt. Steht dahinter response_duplicate, war es ein zweiter Versuch mit demselben Wort.",
+  captcha_invalid: "Friendly Captcha hat das Lösungswort abgelehnt. Seit Issue #167 wird die Einreichung trotzdem angenommen und in der Moderation markiert; bei response_duplicate als mögliche Doppeleinreichung.",
   captcha_unfinished: "Abgeschickt, bevor der Spam-Schutz fertig gerechnet hatte. Das Formular wartet seit Issue #107 darauf.",
   captcha_unconfigured: "FRIENDLY_CAPTCHA_API_KEY oder der Sitekey fehlt in der Umgebung. Bis dahin kommt niemand durch.",
   token_missing: "Einreichung ohne Lösungswort - das Widget hat nicht geladen, oder es war ein Skript.",
@@ -106,6 +109,46 @@ function QuotaBar({ label, quota, hint }: { label: string; quota: Quota; hint?: 
       <div className="quota-head"><strong>{label}</strong><span>{formatBytes(quota.usedBytes)} von {formatBytes(quota.quotaBytes)}</span></div>
       <div className="quota-bar"><span className={percent > 85 ? "is-critical" : percent > 65 ? "is-warning" : ""} style={{ width: `${percent}%` }} /></div>
       <p className="quota-note">{formatBytes(free)} frei ({(100 - percent).toFixed(0)} Prozent){hint ? ` · ${hint}` : ""}</p>
+    </div>
+  );
+}
+
+/**
+ * Eine abgebrochene Einreichung als offene Einreichung in die Moderation holen
+ * (Issue #167). Die Zeile verschwindet danach aus der Liste.
+ */
+function AdoptButton({ id, disabled, onDone }: { id: string; disabled: boolean; onDone: () => void }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function adopt() {
+    setBusy(true);
+    setError("");
+    try {
+      const response = await fetch("/api/admin/abandoned-submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const payload = await response.json().catch(() => ({})) as { error?: string };
+      if (!response.ok && response.status !== 409) {
+        setError(payload.error ?? "Die Einreichung konnte nicht übernommen werden.");
+        return;
+      }
+      onDone();
+    } catch {
+      setError("Die Einreichung konnte nicht übernommen werden.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <button className="button button-secondary" type="button" disabled={disabled || busy} onClick={() => void adopt()}>
+        {busy ? "Wird übernommen …" : "In Moderation übernehmen"}
+      </button>
+      {error && <p className="form-error" role="alert">{error}</p>}
     </div>
   );
 }
@@ -192,6 +235,7 @@ export default function SystemStatus() {
                   {entry.attempts > 1 ? ` · ${entry.attempts} Versuche` : ""}
                 </strong>
                 <span>{reasonLabels[entry.reason] ?? entry.reason}</span>
+                {entry.detail && <span className="quota-note">Fehlercode: <code>{entry.detail}</code></span>}
                 <dl className="admin-facts">
                   <div><dt>Gerät</dt><dd>{entry.brandModel ?? "–"}</dd></div>
                   <div><dt>Reparatur</dt><dd>{performedByLabel(entry.performedBy)}</dd></div>
@@ -205,10 +249,12 @@ export default function SystemStatus() {
                   {entry.hasImage ? " · mit Foto (nicht gespeichert)" : ""}
                   {entry.wantsLottery ? " · wollte am Gewinnspiel teilnehmen (Name und Mail sind nicht gespeichert)" : ""}
                 </p>
+                <AdoptButton id={entry.id} disabled={!entry.category} onDone={reload} />
               </li>
             ))}
           </ul>
         )}
+        <p className="quota-note">Sendevorgänge, die beim nächsten Versuch doch angekommen sind, stehen hier nicht mehr. „In Moderation übernehmen“ legt eine offene Einreichung mit dem Tag <code>nachgetragen</code> an, ohne Foto und ohne Gewinnspiel-Los.</p>
         <p className="quota-note">Aufgehoben wird nur, was eine Reparatur beschreibt - kein Foto, kein Name, keine Mail-Adresse, keine IP. Die Zeilen löschen sich nach 30 Tagen selbst.</p>
       </div>
 
