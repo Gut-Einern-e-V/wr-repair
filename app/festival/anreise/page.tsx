@@ -2,7 +2,7 @@ import Link from "next/link";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { BreadcrumbStructuredData } from "@/components/structured-data";
 import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
-import { FESTIVAL_DATE_TEXT, FestivalFacts, FestivalNav, FestivalPending, FestivalVenues } from "../festival-chrome";
+import { FESTIVAL_DATE_TEXT, FestivalFacts, FestivalNav, FestivalVenues } from "../festival-chrome";
 
 export const metadata = {
   title: "Anreise zum Festival",
@@ -52,7 +52,7 @@ export default function FestivalTravelPage() {
         </div>
       </div>
       <FestivalFacts />
-      <FestivalPending>Welcher Eingang am Festivaltag geöffnet ist, wie das Gelände zwischen beiden Orten organisiert wird und wo die Stellplätze für Räder stehen. Sobald das Gelände geplant ist, steht es hier.</FestivalPending>
+      <p className="travel-note">Vor Ort helfen euch die Infostände weiter: im Wartesaal 1 der Utopiastadt sowie am Bauwagen auf dem Parkplatz und im Bahnhof Blo der Wiesenwerke. Zwischen beiden Orten pendelt ein Rikscha-Shuttle für alle, die nicht gut zu Fuß sind.</p>
     </section>
 
     <section className="content-section" aria-labelledby="travel-venues-title">
@@ -148,7 +148,7 @@ export default function FestivalTravelPage() {
         <h2 id="travel-access-title">Sagt uns, was ihr braucht.</h2>
       </div>
       <div>
-        <p>Beide Gelände sind ehemalige Bahn- und Industrieflächen; nicht jeder Weg dort ist eben, und zwischen Utopiastadt und Wiesenwerken liegen rund 700 Meter. Was am Festivaltag barrierefrei erreichbar sein wird, steht noch nicht in allen Punkten fest.</p>
+        <p>Beide Gelände sind ehemalige Bahn- und Industrieflächen; nicht jeder Weg dort ist eben, und zwischen Utopiastadt und Wiesenwerken liegen rund 700 Meter. Für den Weg dazwischen fährt am Festivaltag ein Rikscha-Shuttle des Nachbarschaftsheims Wuppertal.</p>
         <p>Schreibt uns, was ihr braucht &ndash; Begleitung, ein ruhiger Ort, ein Weg ohne Stufen, eine Mitfahrgelegenheit zwischen den beiden Orten. Je früher wir es wissen, desto eher lässt es sich einplanen.</p>
         <p className="link-row">
           <Link className="text-button" href="/accessibility">Barrierefreiheit auf dieser Website <span aria-hidden="true">&#8594;</span></Link>

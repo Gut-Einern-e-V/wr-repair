@@ -119,7 +119,7 @@ export function FestivalStructuredData() {
     "@context": "https://schema.org",
     "@type": "Event",
     name: "Repair & Share Festival",
-    description: "Der Abschlusstag des Reparaturrekords NRW: Reparatur-Café XXL, Reparieren auf der Bühne, Secondhand, Workshops, Kinderwerkstatt und die letzten Reparaturen für den Weltrekord. Eintritt frei.",
+    description: "Der Abschlusstag des Reparaturrekords NRW: ReparaturCafé XXL, Live-Reparatur auf der Bühne, Rallye mit Mitmachstationen, Workshops, Secondhand und die Countdown-Show zum Weltrekord. Eintritt frei.",
     startDate: FESTIVAL_START,
     endDate: FESTIVAL_END,
     eventStatus: "https://schema.org/EventScheduled",

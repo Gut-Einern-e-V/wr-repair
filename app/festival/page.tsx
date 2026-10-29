@@ -3,37 +3,27 @@ import NextImage from "next/image";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { BreadcrumbStructuredData, FestivalStructuredData } from "@/components/structured-data";
 import { brandPhotos } from "@/lib/brand-photos";
-import { FESTIVAL_DATE_ISO, FESTIVAL_DATE_TEXT, FESTIVAL_FAB_URL, FESTIVAL_SIGNUP_URL, FestivalFacts, FestivalNav, FestivalPending } from "./festival-chrome";
+import { FESTIVAL_DATE_ISO, FESTIVAL_DATE_TEXT, FESTIVAL_SIGNUP_URL, FestivalFacts, FestivalNav } from "./festival-chrome";
+import { festivalAreas, festivalSchedule, repairWorkshops, type FestivalArea, type FestivalOfferKind, type FestivalVenueName } from "./programm";
 
 export const metadata = {
   title: "Repair & Share Festival",
   description:
-    "Am 31. Oktober 2026 endet der Reparaturrekord mit dem Repair & Share Festival in Utopiastadt und Wiesenwerken in Wuppertal: 11 bis 17 Uhr, Eintritt frei, mit Reparatur-Café XXL, Secondhand, Workshops und Kinderwerkstatt.",
+    "Am 31. Oktober 2026 endet der Reparaturrekord mit dem Repair & Share Festival in Utopiastadt und Wiesenwerken in Wuppertal: 11 bis 17 Uhr, Eintritt frei. Das ganze Programm: ReparaturCafé XXL, Live-Reparatur auf der Bühne, Rallye mit rund 40 Mitmachstationen, Workshops, Secondhand und die Countdown-Show zum Rekord.",
 };
 
-/* Programm und Fragen wie auf der Festivalseite der FAB Region
-   (FESTIVAL_FAB_URL), dort gepflegt vom Festivalteam. Hier stehen sie als
-   Liste und nicht als Kopie der Seite: ohne Emojis und ohne Anmeldelinks
-   fuer Fragen, die auf dieser Website anders beantwortet werden - etwa das
-   Einreichen von Reparaturen, das hier ueber /mitmachen laeuft. */
-const programme = [
-  ["Reparatur-Café XXL", "Die letzten Reparaturen für den Rekord – mit Hilfe bei Elektro, Kleingeräten, Fahrrädern, Kleidung, Textilien und Möbeln."],
-  ["Reparieren auf der Bühne", "Bekannte DIY-Expert:innen reparieren live, dazu der Countdown zum Rekordversuch."],
-  ["DIY-Reparaturbereiche", "Selbst Hand anlegen an Fahrrad, Elektro, Möbel und Textil – vom Laufrad bis zum Rollator."],
-  ["Secondhand", "Secondhand-Pop-ups, eine Tauschbörse für aussortierte Kleidung und 2nd-use-Brautmoden."],
-  ["Workshops", "Unter anderem „Pimp your Shirt“: Bringt ein altes Shirt mit und macht etwas Neues daraus."],
-  ["Kinder", "Eine Kinderwerkstatt und ein eigenes Bühnenprogramm für Kinder."],
-  ["Impulse", "Ein Future Talk zum Recht auf Reparatur und Beiträge zum zirkulären Bauen, zu Ressourcen, Resilienz und Gemeinwohl."],
-  ["Lernen zum Anfassen", "Vertical Farming, digitale Module zum Zocken, eine virtuelle Lernreise in die Permakultur, Büchertisch und Info-Point."],
-  ["Essen & Trinken", "Für alle, die den ganzen Tag bleiben."],
-] as const;
-
+/* Fragen wie auf der Festivalseite der FAB Region (FESTIVAL_FAB_URL), ohne
+   Emojis und ohne Anmeldelinks fuer Fragen, die auf dieser Website anders
+   beantwortet werden - etwa das Einreichen von Reparaturen ueber /mitmachen.
+   Das Programm steht in ./programm.ts. */
 const questions = [
-  ["Was kann vor Ort repariert werden?", "Ziemlich viel: Elektro- und Haushaltsgeräte, Kleidung und Textilien, Fahrräder, Holzgegenstände und kleine Möbel und alles, was mechanisch ist. Die Faustregel: alles, was ihr allein zum Festival tragen könnt."],
-  ["Muss ich selbst reparieren?", "Nein, aber ihr dürft sehr gerne. Manche reparieren komplett für euch, andere zeigen euch, wie es geht. Sagt einfach, welche Hilfe ihr braucht – vielleicht stellt sich heraus, dass Schrauben richtig Spaß macht."],
-  ["Wer schraubt und näht da eigentlich?", "Reparaturinitiativen aus dem Bergischen Städtedreieck und aus ganz NRW haben schon zugesagt. Dazu kommen vielleicht Handwerker:innen aus der Nachbarschaft, Handy-Reparaturläden und Händler mit eigenem Reparaturservice."],
-  ["Ist das Festival für die ganze Familie?", "Ja. Es gibt Angebote für Kinder, Jugendliche und Erwachsene."],
-  ["Aber da ist doch Halloween …?", "Perfekt. Kommt gerne verkleidet oder bastelt euer Kostüm vor Ort aus gebrauchtem Material. Auch die Halloween-Deko für das Festival entsteht aus Resten."],
+  ["Was kann vor Ort repariert werden?", "Ziemlich viel: Elektro- und Haushaltsgeräte, Kleidung und Textilien, Fahrräder und alles, was mechanisch ist. Die Faustregel: alles, was ihr allein zum Festival tragen könnt. Nur Möbel nicht – eine Möbelreparatur dauert meist länger als der Festivaltag."],
+  ["Muss ich selbst reparieren?", "Nein, aber ihr dürft sehr gerne. Im ReparaturCafé XXL helfen euch Ehrenamtliche, eure Sachen selbst zu reparieren. Sagt einfach, welche Hilfe ihr braucht – vielleicht stellt sich heraus, dass Schrauben richtig Spaß macht."],
+  ["Wer schraubt und näht da eigentlich?", "Das Netzwerk Reparatur Wuppertal betreibt die Werkstätten, dazu kommen unter anderem das MACHBAR ReparaturCafé, das ASTA RepairCafé Bochum, Repair & Share Ruhr, die Arrenbergstatt und iFixit."],
+  ["Ist das Festival für die ganze Familie?", "Ja. Für Kinder gibt es das Theaterstück „Zirkus Stinknich“ (ab 4 Jahren), Holzflitzer bauen, Kinderschminken, Basteltiere unter Strom und die Rallye über das ganze Gelände."],
+  ["Aber da ist doch Halloween …?", "Perfekt. Kommt gerne verkleidet – oder lasst euch beim Kinderschminken im Wartesaal 1 tierisch, märchenhaft oder gruselig herrichten. Auch die Halloween-Deko für das Festival entsteht aus Resten."],
+  ["Wie komme ich zwischen den beiden Orten hin und her?", "Utopiastadt und Wiesenwerke liegen rund 700 Meter auseinander an der Nordbahntrasse, etwa zehn Minuten zu Fuß. Für alle, die nicht gut zu Fuß sind, pendelt ein Rikscha-Shuttle."],
+  ["Gibt es etwas zu essen?", "Ja. Für veganes Essen ist im Bahnhof Blo in den Wiesenwerken und an der Nordbahntrasse bei der Utopiastadt gesorgt, Kaffee und Kuchen gibt es beim Kulturkindergarten."],
   ["Welchen Rekord wollen wir schlagen?", "2024 wurden in Großbritannien 3.177 erfolgreiche Reparaturen in einem Monat gezählt, 2019 in Exeter 268 an einem einzigen Tag und Ort. Beides nehmen wir uns vor: den Monatsrekord in ganz NRW – und am Festivaltag mindestens 300 erfolgreiche Reparaturen an einem Ort."],
   ["Ich brauche jetzt Hilfe, nicht erst am Festivaltag.", "Auf unserer Karte stehen die Repair Cafés und Reparaturinitiativen in NRW, mehr findet ihr bei reparatur-initiativen.de. Die Initiativen freuen sich über alle, die vorbeikommen – mit kaputtem Toaster oder mit Werkzeugkoffer."],
   ["Ich kann gar nicht reparieren, will aber mithelfen.", "Reparaturinitiativen brauchen nicht nur Reparaturprofis: Aufbauen, Organisieren, Registrieren, Kuchen backen und Menschen ins Gespräch bringen gehört genauso dazu. Für das Festival könnt ihr euch über das Anmeldeformular melden, für die Zeit davor bei einer Initiative in eurer Nähe."],
@@ -45,9 +35,10 @@ const questions = [
    Initiativen, die dort selbst etwas anbieten. Beide brauchen andere Angaben,
    deshalb die Unterseiten - hier steht nur, was fuer alle gilt.
 
-   Uhrzeit, Eintritt und Programmpunkte stehen fest, das Buehnenprogramm mit
-   Uhrzeiten noch nicht. Was fehlt, steht als solches auf der Seite: eine Save-the-date-Seite, die so tut, als
-   waere schon alles geplant, muesste spaeter jede Angabe widerrufen. */
+   Seit das Programm steht (Issue #163), steht es hier vollstaendig: erst
+   alles mit fester Uhrzeit, dann die Werkstaetten, fuer die man einen
+   kaputten Gegenstand mitbringt, dann jeder Ort Raum fuer Raum wie auf den
+   Aushaengen vor Ort. */
 export default function FestivalPage() {
   return <main className="page-shell content-page">
     <SiteHeader />
@@ -66,26 +57,63 @@ export default function FestivalPage() {
       <FestivalNav current="/festival" />
       <div className="section-heading">
         <div>
-          <p className="section-index">Save the Date</p>
+          <p className="section-index">Der Termin</p>
           <h2 id="festival-facts-title"><time dateTime={FESTIVAL_DATE_ISO}>{FESTIVAL_DATE_TEXT}</time></h2>
         </div>
       </div>
       <FestivalFacts />
     </section>
 
-    <section className="content-section" aria-labelledby="festival-programme-title">
+    <section className="content-section" aria-labelledby="festival-schedule-title">
       <div className="section-heading">
         <div>
-          <p className="section-index">Programm &amp; Highlights</p>
-          <h2 id="festival-programme-title">Ein Tag zum Mitmachen.</h2>
+          <p className="section-index">Rahmenprogramm</p>
+          <h2 id="festival-schedule-title">Was wann passiert.</h2>
         </div>
       </div>
+      <p className="section-lead">Bühne, Vorträge, Führungen und Workshops mit fester Uhrzeit. Alles andere läuft den ganzen Tag von 11 bis 17 Uhr.</p>
+      <ol className="festival-schedule">
+        {festivalSchedule.map((slot) => (
+          <li key={`${slot.start}-${slot.title}-${slot.venue}`}>
+            <p className="festival-schedule-time"><time dateTime={`${FESTIVAL_DATE_ISO}T${slot.start}`}>{slot.start}</time>&ndash;<time dateTime={`${FESTIVAL_DATE_ISO}T${slot.end}`}>{slot.end}</time></p>
+            <div>
+              <h3>{slot.title}</h3>
+              {slot.by ? <p className="festival-schedule-by">{slot.by}</p> : null}
+              <p>{slot.text}</p>
+            </div>
+            <p className="festival-schedule-place">{slot.venue}<br />{slot.room}</p>
+          </li>
+        ))}
+      </ol>
+    </section>
+
+    <section className="content-section" aria-labelledby="festival-repair-title">
+      <div className="section-heading">
+        <div>
+          <p className="section-index">ReparaturCafé XXL</p>
+          <h2 id="festival-repair-title">Bringt mit, was kaputt ist.</h2>
+        </div>
+      </div>
+      <p className="section-lead">In den Wiesenwerken helfen euch Ehrenamtliche vom Netzwerk Reparatur Wuppertal und vielen weiteren Initiativen, eure mitgebrachten Sachen selbst zu reparieren. Jede gelungene Reparatur zählt für den Rekord.</p>
       <dl className="travel-routes">
-        {programme.map(([title, text]) => (
-          <div key={title}><dt>{title}</dt><dd>{text}</dd></div>
+        {repairWorkshops.map((workshop) => (
+          <div key={workshop.name}><dt>{workshop.name}</dt><dd><strong>{workshop.where}.</strong> {workshop.text}</dd></div>
         ))}
       </dl>
-      <FestivalPending>Das Bühnenprogramm mit Uhrzeiten. Es folgt bald und steht dann hier und auf der <a href={FESTIVAL_FAB_URL} target="_blank" rel="noreferrer">Festivalseite der FAB Region</a>.</FestivalPending>
+    </section>
+
+    <section className="content-section" aria-labelledby="festival-rallye-title">
+      <div className="section-heading">
+        <div>
+          <p className="section-index">Rallye &amp; Stände</p>
+          <h2 id="festival-rallye-title">Raum für Raum.</h2>
+        </div>
+      </div>
+      <p className="section-lead">An den Infoständen im Wartesaal 1 der Utopiastadt und am Bauwagen und im Bahnhof Blo der Wiesenwerke bekommt ihr den Rallye-Plan. An jeder <span className="festival-tag" data-kind="rallye">Rallye</span>-Station legt ihr selbst Hand an; die <span className="festival-tag" data-kind="workshop">Workshop</span>-Stationen brauchen etwas mehr Zeit und Geschick.</p>
+      <nav className="festival-nav" aria-label="Festivalorte">
+        {festivalAreas.map((area) => <a key={area.venue} href={`#${areaId(area.venue)}`}>{area.venue}</a>)}
+      </nav>
+      {festivalAreas.map((area) => <FestivalAreaBlock key={area.venue} area={area} />)}
     </section>
 
     <section className="content-section two-column-copy" aria-labelledby="festival-visit-title">
@@ -143,4 +171,45 @@ export default function FestivalPage() {
 
     <SiteFooter />
   </main>;
+}
+
+const offerLabels: Record<FestivalOfferKind, string> = { rallye: "Rallye", workshop: "Workshop" };
+
+function areaId(venue: FestivalVenueName) {
+  return `ort-${venue.toLowerCase()}`;
+}
+
+/* Ein Ort wie auf seinem Aushang: Raeume, darin Anbieter, darunter deren
+   Stationen. Ohne Aufklappen - die Texte sind kurz, und so findet die Suche
+   im Browser auch, was in einem Raum steht. */
+function FestivalAreaBlock({ area }: { area: FestivalArea }) {
+  return <section className="festival-area" id={areaId(area.venue)} aria-labelledby={`${areaId(area.venue)}-title`}>
+    <h3 id={`${areaId(area.venue)}-title`}>{area.venue}</h3>
+    <p className="festival-area-intro">{area.intro}</p>
+    <div className="festival-rooms">
+      {area.rooms.map((room) => (
+        <article key={room.name} className="festival-room">
+          <h4>{room.name}{room.where ? <small>{room.where}</small> : null}</h4>
+          {room.intro ? <p className="festival-room-intro">{room.intro}</p> : null}
+          <ul className="festival-providers">
+            {room.providers.map((provider) => (
+              <li key={provider.name}>
+                <p className="festival-provider-name">{provider.name}</p>
+                {provider.about ? <p>{provider.about}</p> : null}
+                {provider.offers?.length ? <ul className="festival-offers">
+                  {provider.offers.map((offer) => (
+                    <li key={offer.title}>
+                      <span className="festival-tag" data-kind={offer.kind}>{offerLabels[offer.kind]}</span>
+                      <strong>{offer.title}</strong>
+                      <p>{offer.text}</p>
+                    </li>
+                  ))}
+                </ul> : null}
+              </li>
+            ))}
+          </ul>
+        </article>
+      ))}
+    </div>
+  </section>;
 }

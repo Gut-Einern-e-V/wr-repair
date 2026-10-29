@@ -2214,6 +2214,50 @@ a.made-line:hover, a.made-line:focus-visible { text-decoration: underline; }
   .festival-nav > * { flex: 1 1 auto; justify-content: center; }
 }
 
+/* Rahmenprogramm (Issue #163): Uhrzeit links, Programmpunkt in der Mitte, Ort
+   rechts - so laesst sich die Liste nach Zeit und nach Ort ueberfliegen. */
+.festival-schedule { margin: 0; padding: 0; list-style: none; border-top: var(--line); }
+.festival-schedule > li { display: grid; grid-template-columns: 130px minmax(0, 1fr) 210px; gap: 8px 24px; padding: 18px 0; border-bottom: var(--line); }
+.festival-schedule-time { margin: 2px 0 0; font: 500 15px var(--mono); font-variant-numeric: tabular-nums; }
+.festival-schedule h3 { margin: 0; font-size: 20px; line-height: 1.2; }
+.festival-schedule-by { margin: 6px 0 0; color: var(--red-deep); font-size: 14px; font-weight: 600; }
+.festival-schedule li > div > p:last-child { max-width: 62ch; margin: 8px 0 0; font-size: 16px; line-height: 1.5; }
+.festival-schedule-place { margin: 2px 0 0; font: 12px/1.5 var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+
+/* Rallye und Workshop als kleine Marken - dieselben auf dem Erklaertext und an
+   jeder Station, damit die Legende nicht extra stehen muss. */
+.festival-tag { display: inline-block; padding: 2px 7px; border: 1.5px solid var(--ink); font: 500 10px/1.4 var(--mono); letter-spacing: .06em; text-transform: uppercase; vertical-align: .15em; white-space: nowrap; }
+.festival-tag[data-kind="rallye"] { background: var(--mint-soft); }
+.festival-tag[data-kind="workshop"] { background: var(--yellow); }
+
+.festival-area { margin-top: 46px; scroll-margin-top: 90px; }
+.festival-area > h3 { margin: 0 0 10px; font-size: clamp(1.8rem, 3.5vw, 2.6rem); }
+.festival-area-intro { max-width: 680px; margin: 0 0 22px; font-size: 17px; line-height: 1.5; }
+.festival-rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-top: var(--line); border-left: var(--line); }
+.festival-room { padding: 20px; border-right: var(--line); border-bottom: var(--line); background: var(--paper); }
+.festival-room h4 { margin: 0; font-size: 22px; }
+.festival-room h4 small { display: block; margin-top: 4px; font: 11px var(--mono); letter-spacing: .05em; text-transform: uppercase; }
+.festival-room-intro { margin: 10px 0 0; font-size: 15px; line-height: 1.5; }
+.festival-providers { margin: 14px 0 0; padding: 0; list-style: none; }
+.festival-providers > li { padding: 12px 0; border-top: 1px solid var(--ink); }
+.festival-providers > li > p { margin: 4px 0 0; font-size: 15px; line-height: 1.45; }
+.festival-providers > li > .festival-provider-name { margin: 0; font-weight: 700; }
+.festival-offers { margin: 10px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+.festival-offers strong { margin-left: 8px; font-size: 15px; }
+.festival-offers p { margin: 4px 0 0; font-size: 14px; line-height: 1.45; }
+.section-lead .festival-tag { vertical-align: .1em; }
+
+@media (max-width: 860px) {
+  .festival-schedule > li { grid-template-columns: 110px minmax(0, 1fr); }
+  .festival-schedule-place { grid-column: 2; }
+  .festival-rooms { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 520px) {
+  .festival-schedule > li { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+  .festival-schedule-place { grid-column: auto; }
+  .festival-room { padding: 18px 16px; }
+}
+
 /* --- Seite in Leichter Sprache (/leichte-sprache) --------------------------
    Eigene Flaeche statt `.page-shell`: kein bewegter Hintergrund, keine
    Einblendeffekte, keine Grossbuchstaben. Die Schrift ist deutlich groesser als
