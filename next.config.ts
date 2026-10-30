@@ -69,7 +69,11 @@ const nextConfig: NextConfig = {
        app/api/admin/partners/route.ts) - ein neues Logo ist eine neue URL. */
     minimumCacheTTL: 2678400,
     remotePatterns: supabaseUrl
-      ? [new URL("/storage/v1/object/public/partner-logos/**", supabaseUrl)]
+      ? [
+        new URL("/storage/v1/object/public/partner-logos/**", supabaseUrl),
+        // Fotos veroeffentlichter Highlight-Geschichten (lib/highlight-stories.ts).
+        new URL("/storage/v1/object/public/story-images/**", supabaseUrl),
+      ]
       : [],
   },
 };
