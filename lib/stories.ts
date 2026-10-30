@@ -1,5 +1,6 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
+import { getHighlightStories } from "./highlight-stories";
 import { readImageDimensions } from "./image-dimensions";
 
 const storiesDirectory = path.join(process.cwd(), "content", "stories");
@@ -165,10 +166,12 @@ function isStoryFile(fileName: string) {
   return fileName.endsWith(".md") && fileName !== "README.md" && !fileName.startsWith("_");
 }
 
+/* Zwei Quellen: die Markdown-Dateien im Repository und die im Highlight-Eimer
+   veroeffentlichten Einreichungen (lib/highlight-stories.ts). */
 export async function getStories() {
   const files = (await readdir(storiesDirectory)).filter(isStoryFile);
-  const stories = await Promise.all(files.map(readStory));
-  return stories.sort((left, right) => right.date.localeCompare(left.date));
+  const [stories, highlights] = await Promise.all([Promise.all(files.map(readStory)), getHighlightStories()]);
+  return [...stories, ...highlights].sort((left, right) => right.date.localeCompare(left.date));
 }
 
 export async function getStory(slug: string) {

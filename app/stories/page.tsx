@@ -4,6 +4,10 @@ import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { brandPhotos, storyCover } from "@/lib/brand-photos";
 import { getStoryTeasers } from "@/lib/stories";
 
+/* Veroeffentlichte Highlights kommen aus der Datenbank. Die Freigabe setzt die
+   Seite sofort neu auf; das hier ist nur das Sicherheitsnetz. */
+export const revalidate = 600;
+
 export const metadata = {
   title: "Reparaturgeschichten",
   description: "Reparaturen aus Nordrhein-Westfalen, ausführlich erzählt: was kaputt war, wie es wieder funktioniert und was dabei hängen geblieben ist.",
