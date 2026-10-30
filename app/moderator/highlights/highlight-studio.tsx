@@ -72,7 +72,7 @@ function Bucket({ highlights, counts, error, isLoading, patch, onSearch }: {
         {highlightStatusLabels[status]} <b>{counts[status] ?? 0}</b>
       </button>)}
     </div>
-    <p className="highlight-hint">Auf die Bühne kommt alles ab „Geprüft“, sortiert nach der Reihenfolge-Zahl. „Veröffentlicht“ erscheint zusätzlich unter /stories.</p>
+    <p className="highlight-hint">Auf die Bühne kommt alles ab „Geprüft“ mit Foto, sortiert nach der Reihenfolge-Zahl. „Veröffentlicht“ erscheint zusätzlich unter /stories.</p>
     {error && <p className="form-error" role="alert">{error}</p>}
     {isLoading && !highlights.length && <p className="queue-empty">Lädt …</p>}
     {!isLoading && !shown.length && <div className="queue-empty">
@@ -109,6 +109,7 @@ function HighlightRowView({ highlight, onOpen }: { highlight: Highlight; onOpen:
       <p className="section-index">
         <span className={`highlight-badge is-${highlight.status}`}>{highlightStatusLabels[highlight.status]}</span>
         {" "}#{highlight.sortOrder} · {repair.categoryLabel} · {repair.kreis ?? "ohne Kreis"}
+        {!repair.hasImage && " · ohne Foto, nicht auf der Bühne"}
       </p>
       <h3>{highlight.title || repair.brandModel || "Noch ohne Titel"}</h3>
       <p className="highlight-preview">{highlight.teaser || repair.story}</p>

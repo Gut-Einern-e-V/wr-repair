@@ -16,7 +16,7 @@ export const metadata = {
 const STAGE_SIGN_SECONDS = 12 * 60 * 60;
 
 /**
- * Vollbild-Diashow der geprueften Highlights fuer die Festivalbuehne.
+ * Vollbild-Diashow der geprueften Highlights mit Foto fuer die Festivalbuehne.
  *
  * Unter /moderator, weil die Fotos aus dem privaten Bucket kommen und noch
  * nicht veroeffentlichte Geschichten zeigen. Auf dem Buehnenrechner einmal
@@ -35,7 +35,9 @@ export default async function StagePage() {
 
   const { highlights, error } = await loadHighlights(createSupabaseAdminClient(), { statuses: ["ready", "published"], signSeconds: STAGE_SIGN_SECONDS });
 
-  const slides: StageSlide[] = highlights.map((highlight) => ({
+  /* Auf die Buehne kommt nur, was ein Foto hat - eine Folie nur mit Text
+     traegt nicht im Saal. Im Eimer bleiben solche Geschichten trotzdem. */
+  const slides: StageSlide[] = highlights.filter((highlight) => highlight.repair.imageUrl).map((highlight) => ({
     id: highlight.repairId,
     title: highlight.title,
     teaser: highlight.teaser,
