@@ -13,13 +13,17 @@ import { StoryMosaic } from "@/components/story-mosaic";
 import { brandPhotos } from "@/lib/brand-photos";
 import { campaignPhaseAt, type CampaignDates, type CampaignPhase } from "@/lib/campaign-phase";
 import { repairCategories, repairCategoryLabel, type RepairCategory } from "@/lib/repair-catalog";
-import { faqEntries, goalRecord, repairRecords, repairsToBeatRecord } from "@/lib/repair-records";
+import { closedFaqEntries, DAY_PLACE_RECORD, faqEntries, goalRecord, MONTH_RECORD, recordMargin, repairRecords, repairsToBeatRecord, type RepairRecord } from "@/lib/repair-records";
 import type { StoryTeaser } from "@/lib/stories";
+
+const longDateFormat = new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "long" });
 
 type RepairStats = {
   total: number;
   goal: number;
   categories: Record<string, number>;
+  /** Bester Tag an einem einzelnen Ort - fuer den Tagesrekord nach dem Ende. */
+  bestKreisDay?: { date: string; kreis: string; total: number } | null;
 };
 
 /**
@@ -200,10 +204,47 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
      Eine geratene Zielzahl ist schlechter als gar keine (Issue #74). */
   const goal = repairStats?.goal ?? campaignGoal;
   const isDone = phase === "after" && !isTestRun;
-  const records = [...repairRecords, goalRecord(goal)].filter((record) => record !== null);
+  /* Nach dem Zeitraum misst sich das Ergebnis an den Weltrekorden, nicht am
+     eigenen Ziel: Ein verfehltes Ziel neben einem geknackten Rekord laese sich
+     wie eine Niederlage. Deshalb faellt die Zielkachel dann weg, und der
+     Zaehler vergleicht mit der Monatsbestmarke. */
+  const reference = isDone ? MONTH_RECORD : goal;
+  const recordBroken = isDone && recordMargin(repairCount, MONTH_RECORD) !== null;
+  const bestPlaceDay = repairStats?.bestKreisDay ?? null;
+  const dayRecordBroken = isDone && recordMargin(bestPlaceDay?.total, DAY_PLACE_RECORD) !== null;
+  /* Nach dem Ende stehen die eigenen Rekorde vor den alten Marken. */
+  const ownRecords: RepairRecord[] = [
+    recordBroken && repairCount !== null ? {
+      value: repairCount.toLocaleString("de-DE"),
+      label: "Reparaturen in einem Monat – neuer Weltrekord",
+      detail: `Im Aktionsmonat in ganz Nordrhein-Westfalen gezählt. Die alte Bestmarke lag bei ${MONTH_RECORD.toLocaleString("de-DE")}.`,
+    } : null,
+    dayRecordBroken && bestPlaceDay ? {
+      value: bestPlaceDay.total.toLocaleString("de-DE"),
+      label: "Reparaturen an einem Tag und Ort – neuer Weltrekord",
+      detail: `Am ${longDateFormat.format(new Date(`${bestPlaceDay.date}T12:00:00Z`))} in ${bestPlaceDay.kreis}. Die alte Bestmarke lag bei ${DAY_PLACE_RECORD.toLocaleString("de-DE")}.`,
+    } : null,
+  ].filter((record) => record !== null);
+  const records = [...ownRecords, ...repairRecords, isDone ? null : goalRecord(goal)].filter((record) => record !== null);
   /* Der Stoerer aus Issue #162 - nur solange die Aktion laeuft und die Marke
      noch steht. Zaehlt live mit, statt eine feste Zahl zu nennen. */
   const toBeatRecord = phase === "open" ? repairsToBeatRecord(repairCount) : null;
+
+  /* Nach dem Ende sind die Geschichten das, was es auf der Seite zu entdecken
+     gibt - dann stehen sie gleich hinter den Rekorden statt kurz vor dem Fuss. */
+  const storiesSection = (
+        <section className="stories-section" id="geschichten" aria-labelledby="stories-title">
+          <div className="section-heading">
+            <div>
+              <p className="section-index">Reparaturgeschichten</p>
+              <h2 id="stories-title">Gegenstände mit zweitem Kapitel.</h2>
+              <p className="section-lead">Ausgewählte Reparaturen erzählen wir ausführlich &ndash; mit Foto, Ursache und dem, was am Ende wieder funktioniert.</p>
+            </div>
+            <Link className="text-button" href="/stories">Alle Geschichten <span aria-hidden="true">&#8594;</span></Link>
+          </div>
+          <StoryMosaic stories={stories} />
+        </section>
+  );
 
   return (
     <main className="page-shell">
@@ -220,11 +261,13 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
             {isTestRun && <p className="test-run-flag">Testlauf &ndash; diese Einreichungen zählen nicht</p>}
             <p className="brand-kicker">{copy.kicker}</p>
             <h1 className="sticker-head is-mint" id="hero-title">
-              <span className="sticker">Gemeinsam zum</span>
+              {/* Nach einem geknackten Rekord ist der Weltrekord kein Ziel mehr,
+                  sondern das Ergebnis - die Ueberschrift sagt es. */}
+              <span className="sticker">{recordBroken || dayRecordBroken ? "Gemeinsam den" : "Gemeinsam zum"}</span>
               <span className="sticker">Reparatur-</span>
-              <span className="sticker">Weltrekord</span>
+              <span className="sticker">{recordBroken || dayRecordBroken ? "Weltrekord geknackt" : "Weltrekord"}</span>
             </h1>
-            <p className="hero-intro">{copy.intro}</p>
+            <p className="hero-intro">{recordBroken ? "Wir haben den Weltrekord geknackt! Danke an alle, die mitgemacht haben – jede Zahl im Endstand war einmal ein Gegenstand, der sonst weggeworfen worden wäre." : copy.intro}</p>
             <div className="hero-actions">
               {/* Nach dem Zeitraum fuehrt der Hauptweg nicht mehr ins Formular,
                   sondern zum Rueckblick - der ist dann das, was es zu sehen gibt. */}
@@ -240,6 +283,13 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
           </div>
 
           <div className="hero-side">
+            {(recordBroken || dayRecordBroken) && (
+              <p className="hero-stoerer">
+                <strong>{recordBroken && dayRecordBroken ? "Zwei Weltrekorde!" : "Weltrekord!"}</strong>
+                {recordBroken && <span>{repairCount?.toLocaleString("de-DE")} Reparaturen in einem Monat – die alte Marke: {MONTH_RECORD.toLocaleString("de-DE")}.</span>}
+                {dayRecordBroken && bestPlaceDay && <span>{bestPlaceDay.total.toLocaleString("de-DE")} an einem Tag in {bestPlaceDay.kreis} – die alte Marke: {DAY_PLACE_RECORD.toLocaleString("de-DE")}.</span>}
+              </p>
+            )}
             {toBeatRecord !== null && (
               <p className="hero-stoerer">
                 <strong>Endspurt!</strong>
@@ -253,24 +303,36 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
                 {/* Ohne bekanntes Ziel steht hier gar keine Zeile: Ein
                     Fortschritt gegen eine geratene Zahl waere eine falsche
                     Auskunft, kein Platzhalter (Issue #74). */}
-                {goal !== null && <>
-                  <div className="counter-meta">
-                    <span>{isDone ? "Ziel war" : "Unser Ziel"}: {goal.toLocaleString("de-DE")}</span>
-                    <span>{((repairCount ?? 0) / goal * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
-                  </div>
-                  <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / goal * 100, 100)}%` }} /></div>
-                </>}
+                {/* Nach dem Ende kein Balken mehr: Gegen den alten Rekord
+                    stuende er bei ueber 100 % einfach voll da und saehe aus
+                    wie "Ziel erreicht" - der Stoerer sagt das genauer. */}
+                {reference !== null && (isDone
+                  ? <div className="counter-meta"><span>Bisheriger Weltrekord: {reference.toLocaleString("de-DE")}</span></div>
+                  : <>
+                      <div className="counter-meta">
+                        <span>Unser Ziel: {reference.toLocaleString("de-DE")}</span>
+                        <span>{((repairCount ?? 0) / reference * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %</span>
+                      </div>
+                      <div className="progress-track" aria-hidden="true"><span style={{ width: `${Math.min((repairCount ?? 0) / reference * 100, 100)}%` }} /></div>
+                    </>)}
                 <p className="counter-note">{counterNote(phase, statsState, statsUpdatedAt)}</p>
               </div>
-              <HeroCountdown campaign={campaign} total={repairCount} goal={goal} />
+              {/* Die Uhr hat nach dem Ende nichts mehr zu zaehlen; ihr Kasten
+                  wiederholte nur Endstand und Dank. */}
+              {!isDone && <HeroCountdown campaign={campaign} total={repairCount} />}
             </aside>
           </div>
         </div>
       </section>
 
-      {phase !== "open" && <CampaignWindowNotice status={phase} startAt={campaign.startAt} />}
+      {/* Nach dem Ende steht statt dieses Hinweises "Wie geht's weiter?"
+          weiter unten - direkt unter dem Jubel las sich "beendet" wie eine
+          Absage. Im Testlauf bleibt er, dort ist nichts wirklich vorbei. */}
+      {phase !== "open" && !isDone && <CampaignWindowNotice status={phase} startAt={campaign.startAt} />}
 
-      <section className="how-it-works" aria-labelledby="how-title">
+      {/* Nach dem Ende gibt es nichts mehr einzureichen: Anleitung und
+          Gewinnspiel-Hinweis fallen weg (lib/campaign-closed.ts). */}
+      {!isDone && <section className="how-it-works" aria-labelledby="how-title">
         <div>
           <p className="section-index">Mitmachen</p>
           <h2 id="how-title">Wir in NRW schaffen die meisten reparierten Gegenstände in einem Monat.</h2>
@@ -294,13 +356,20 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
             <i aria-hidden="true">&#8594;</i>
           </Link>
         </div>
-      </section>
+      </section>}
 
       <section className="record-facts" id="zahlen-und-fakten" aria-labelledby="record-facts-title">
         <div className="record-facts-heading">
           <p className="section-index">Zahlen und Fakten</p>
-          <h2 id="record-facts-title">Das sind die Bestleistungen, die wir übertreffen wollen.</h2>
-          <p>Reparaturrekorde werden bisher vor allem in Großbritannien gezählt. Diese Marken sind unser Maßstab für NRW &ndash; die letzte Kachel zeigt, was wir uns selbst vorgenommen haben.</p>
+          {isDone
+            ? <>
+                <h2 id="record-facts-title">Diese Bestleistungen hat NRW übertroffen.</h2>
+                <p>Reparaturrekorde wurden bisher vor allem in Großbritannien gezählt. Vorne stehen die neuen Marken aus Nordrhein-Westfalen, dahinter die alten, an denen wir uns gemessen haben.</p>
+              </>
+            : <>
+                <h2 id="record-facts-title">Das sind die Bestleistungen, die wir übertreffen wollen.</h2>
+                <p>Reparaturrekorde werden bisher vor allem in Großbritannien gezählt. Diese Marken sind unser Maßstab für NRW &ndash; die letzte Kachel zeigt, was wir uns selbst vorgenommen haben.</p>
+              </>}
         </div>
         <ol className="record-list">
           {records.map((record) => (
@@ -321,7 +390,9 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
         </p>
       </section>
 
-      <section className="participation-section" aria-labelledby="participation-title">
+      {isDone && storiesSection}
+
+      {!isDone && <section className="participation-section" aria-labelledby="participation-title">
         <div className="participation-heading"><p className="section-index">Dein Weg zur Reparatur</p><h2 id="participation-title">Mach aus einer Reparatur einen sichtbaren Beitrag.</h2><p>Fachkenntnisse brauchst du dafür nicht. Wichtig ist nur: Die Reparatur ist echt, du beschreibst sie kurz und reichst sie während des Teilnahmezeitraums ein.</p></div>
         {/* Quer statt hochkant: kleines Foto links, Text rechts (Issue #81).
             Vorher waren das drei Kacheln mit grossem Bild oben - dieselbe
@@ -339,7 +410,7 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
           <article><div className="participation-photo"><NextImage src={brandPhotos.bicycle.src} alt={brandPhotos.bicycle.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Mitmachen</p><h3>Du brauchst Hilfe?</h3><p>In Repair Cafés und offenen Werkstätten findest du Menschen, Werkzeuge und Zeit für die nächste Reparatur &ndash; in ganz NRW und kostenlos.</p><Link className="text-button" href="/repair-cafes">Repair Café finden <span aria-hidden="true">&#8594;</span></Link></article>
           <article><div className="participation-photo"><NextImage src={brandPhotos.celebrate.src} alt={brandPhotos.celebrate.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Unterstützen</p><h3>Ihr seid Reparatur-Profis?</h3><p>Dann helft eurer Kundschaft, zum Rekord beizutragen. Unternehmen, Handwerksbetriebe, Schulen, Vereine oder Initiativen tragen sich in den Verteiler ein und bekommen Plakate, Kommunikationsmaterial und alle Infos zum Rekordmonat.</p><p className="link-row"><a className="text-button" href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">In den Verteiler eintragen <span aria-hidden="true">&#8599;</span></a><Link className="text-button" href="/reparaturbetriebe">Für Reparaturbetriebe <span aria-hidden="true">&#8594;</span></Link></p></article>
         </div>
-      </section>
+      </section>}
 
       {/* Aus der Kurzauswertung wird die Bilderwand (Issue #81). Die drei
           Kategoriezahlen sagten dasselbe wie /stats, nur weniger - und
@@ -350,15 +421,17 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
       <section className="home-stats-preview" aria-labelledby="home-stats-title">
         <div><p className="section-index">Aus den Einreichungen</p><h2 id="home-stats-title">{isDone ? "Was repariert wurde." : "Was gerade repariert wird."}</h2><p>Jedes Bild ist eine freigegebene Einreichung. Gezählt wird, was die Moderation geprüft hat. Aus Datenschutzgründen werden keine Orte auf einer Karte dargestellt.</p><Link className="text-button" href="/stats">{isDone ? "Zum Rückblick" : "Alle Zahlen und die Karte"} <span aria-hidden="true">&#8594;</span></Link></div>
         <RepairMosaic fallback={
-          <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? "Die Statistik wird mit dem Start des Weltrekordversuchs freigeschaltet." : "Die ersten Reparaturen erscheinen hier."}</li>}</ol>
+          <ol>{topCategories.length > 0 ? topCategories.map(([categoryName, total]) => <li key={categoryName}><span>{repairCategoryLabel(categoryName)}</span><strong>{total.toLocaleString("de-DE")}</strong></li>) : <li className="home-stats-empty">{statsState === "unavailable" ? (isDone ? "Der Endstand ist gerade nicht verfügbar." : "Die Statistik wird mit dem Start des Weltrekordversuchs freigeschaltet.") : "Die ersten Reparaturen erscheinen hier."}</li>}</ol>
         } />
       </section>
 
-      <section className="category-section" aria-labelledby="category-title">
+      {/* Nach dem Ende sind die Kacheln nicht mehr klickbar und zeigten nur
+          Zahlen, die der Rueckblick auf /stats vollstaendiger hat. */}
+      {!isDone && <section className="category-section" aria-labelledby="category-title">
         <div className="section-heading">
           <div>
-            <p className="section-index">{isDone ? "Nach Kategorien" : "Reparatur eintragen"}</p>
-            <h2 id="category-title">{isDone ? "Das wurde repariert." : "Kategorie wählen und Reparatur eintragen."}</h2>
+            <p className="section-index">Reparatur eintragen</p>
+            <h2 id="category-title">Kategorie wählen und Reparatur eintragen.</h2>
             <p className="section-lead">{copy.categoryLead}</p>
           </div>
           <button className="text-button" type="button" onClick={() => startSubmission()}>{canSubmit ? "Ohne Kategorie starten" : "Teilnahmezeitraum ansehen"} <span aria-hidden="true">&#8594;</span></button>
@@ -381,30 +454,34 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
             </button>
           ))}
         </div>
-      </section>
+      </section>}
 
-      <section className="stories-section" id="geschichten" aria-labelledby="stories-title">
-        <div className="section-heading">
-          <div>
-            <p className="section-index">Reparaturgeschichten</p>
-            <h2 id="stories-title">Gegenstände mit zweitem Kapitel.</h2>
-            <p className="section-lead">Ausgewählte Reparaturen erzählen wir ausführlich &ndash; mit Foto, Ursache und dem, was am Ende wieder funktioniert.</p>
-          </div>
-          <Link className="text-button" href="/stories">Alle Geschichten <span aria-hidden="true">&#8594;</span></Link>
+      {/* Nach dem Ende ersetzt dieser Abschnitt den Hinweis "Zeitraum beendet"
+          und den Weg zur Reparatur: Eingetragen wird nichts mehr, repariert
+          aber weiter. Gleiche Kartenform wie "Dein Weg zur Reparatur", damit
+          das Raster zwei mal zwei bleibt. */}
+      {isDone && <section className="participation-section" id="wie-gehts-weiter" aria-labelledby="next-steps-title">
+        <div className="participation-heading"><p className="section-index">Wie geht&rsquo;s weiter?</p><h2 id="next-steps-title">Der Rekordmonat ist vorbei. Das Reparieren nicht.</h2><p>Eintragen lässt sich nichts mehr &ndash; Repair Cafés, Werkstätten und Fachbetriebe in ganz NRW reparieren aber weiter. Und wer den Oktober noch einmal ansehen will, findet hier alles dazu.</p></div>
+        <div className="participation-options">
+          <article><div className="participation-photo"><NextImage src={brandPhotos.bicycle.src} alt={brandPhotos.bicycle.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Weiter reparieren</p><h3>Etwas ist kaputt?</h3><p>In Repair Cafés und offenen Werkstätten findest du Menschen, Werkzeuge und Zeit für die nächste Reparatur &ndash; in ganz NRW und kostenlos.</p><Link className="text-button" href="/repair-cafes">Repair Café finden <span aria-hidden="true">&#8594;</span></Link></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.celebrate.src} alt={brandPhotos.celebrate.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Festival</p><h3>Der Abschluss in Wuppertal.</h3><p>Am 31. Oktober feierte das Repair &amp; Share Festival in Utopiastadt das Ende des Rekordmonats &ndash; und dort fiel auch der Rekord für die meisten Reparaturen an einem Tag und Ort.</p><Link className="text-button" href="/festival">Zum Festival-Rückblick <span aria-hidden="true">&#8594;</span></Link></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.secondLife.src} alt={brandPhotos.secondLife.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Rückblick</p><h3>Die ganze Bilanz.</h3><p>Wie sich die Reparaturen auf Kategorien, Kreise und Tage verteilen &ndash; der ganze Oktober in Zahlen.</p><Link className="text-button" href="/stats">Zum Rückblick <span aria-hidden="true">&#8594;</span></Link></article>
+          <article><div className="participation-photo"><NextImage src={brandPhotos.workshop.src} alt={brandPhotos.workshop.alt} width={620} height={344} sizes="(max-width: 720px) 25vw, 120px" /></div><p className="participation-kicker">Gewinnspiel</p><h3>Die Ziehung steht noch aus.</h3><p>Wer beim Eintragen das Häkchen gesetzt hat, ist dabei. Gewinnerinnen und Gewinner benachrichtigen wir per E-Mail.</p><Link className="text-button" href="/gewinnspiel">Zum Gewinnspiel <span aria-hidden="true">&#8594;</span></Link></article>
         </div>
-        <StoryMosaic stories={stories} />
-      </section>
+      </section>}
+
+      {!isDone && storiesSection}
 
       <section className="faq-section" id="faq" aria-labelledby="faq-title">
         <div className="section-heading">
           <div>
             <p className="section-index">Häufige Fragen</p>
-            <h2 id="faq-title">Was du vor dem Einreichen wissen solltest.</h2>
+            <h2 id="faq-title">{isDone ? "Was du über den Rekordversuch wissen solltest." : "Was du vor dem Einreichen wissen solltest."}</h2>
           </div>
           <Link className="text-button" href="/about">Mehr über das Projekt <span aria-hidden="true">&#8594;</span></Link>
         </div>
         <div className="faq-list">
-          {faqEntries.map((entry) => (
+          {(isDone ? closedFaqEntries : faqEntries).map((entry) => (
             <details key={entry.question}>
               <summary>{entry.question}<i aria-hidden="true">+</i></summary>
               <p>{entry.answer}{entry.link && <> <Link href={entry.link.href}>{entry.link.label}</Link></>}</p>
@@ -443,7 +520,7 @@ function counterNote(phase: CampaignPhase, statsState: "loading" | "ready" | "un
     if (phase === "before") return "Gezählt wird ab dem Start der Reparaturphase.";
     return phase === "after" ? "Der Endstand ist gerade nicht verfügbar." : "Der Live-Stand ist gerade nicht verfügbar.";
   }
-  if (!updatedAt) return "Live-Stand wird geladen.";
+  if (!updatedAt) return phase === "after" ? "Endstand wird geladen." : "Live-Stand wird geladen.";
   if (phase === "after") return "Endstand nach der Prüfung durch die Moderation.";
 
   return `Aktualisiert um ${updatedAt.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.`;
