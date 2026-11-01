@@ -280,11 +280,12 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
             {isTestRun && <p className="test-run-flag">Testlauf &ndash; diese Einreichungen zählen nicht</p>}
             <p className="brand-kicker">{copy.kicker}</p>
             <h1 className="sticker-head is-mint" id="hero-title">
-              {/* Nach einem geknackten Rekord ist der Weltrekord kein Ziel mehr,
-                  sondern das Ergebnis - die Ueberschrift sagt es. */}
-              <span className="sticker">{recordBroken || dayRecordBroken ? "Gemeinsam den" : "Gemeinsam zum"}</span>
+              <span className="sticker">Gemeinsam zum</span>
               <span className="sticker">Reparatur-</span>
-              <span className="sticker">{recordBroken || dayRecordBroken ? "Weltrekord geknackt" : "Weltrekord"}</span>
+              {/* Nach einem geknackten Rekord bleibt der Slogan, wie ihn alle
+                  kennen, und bekommt einen Aufkleber. Eine umgeschriebene
+                  Zeile "Weltrekord geknackt" brach in vier lange Balken um. */}
+              <span className="sticker">Weltrekord{(recordBroken || dayRecordBroken) && <span className="record-seal"> Geknackt!</span>}</span>
             </h1>
             <p className="hero-intro">{recordBroken ? "Wir haben den Weltrekord geknackt! Danke an alle, die mitgemacht haben – jede Zahl im Endstand war einmal ein Gegenstand, der sonst weggeworfen worden wäre." : copy.intro}</p>
             <div className="hero-actions">
@@ -302,13 +303,6 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
           </div>
 
           <div className="hero-side">
-            {(recordBroken || dayRecordBroken) && (
-              <p className="hero-stoerer">
-                <strong>{recordBroken && dayRecordBroken ? "Zwei Weltrekorde!" : "Weltrekord!"}</strong>
-                {recordBroken && <span>{repairCount?.toLocaleString("de-DE")} Reparaturen in einem Monat – die alte Marke: {MONTH_RECORD.toLocaleString("de-DE")}.</span>}
-                {dayRecordBroken && bestPlaceDay && <span>{bestPlaceDay.total.toLocaleString("de-DE")} an einem Tag in {bestPlaceDay.kreis} – die alte Marke: {DAY_PLACE_RECORD.toLocaleString("de-DE")}.</span>}
-              </p>
-            )}
             {toBeatRecord !== null && (
               <p className="hero-stoerer">
                 <strong>Endspurt!</strong>

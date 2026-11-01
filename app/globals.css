@@ -487,6 +487,17 @@ nav a:hover, .header-link:hover { text-decoration: underline; text-decoration-th
 .hero-stoerer strong { display: block; margin-bottom: 4px; font: 800 13px/1.1 var(--mono); letter-spacing: .12em; text-transform: uppercase; }
 .hero-stoerer span { display: block; font-size: 20px; }
 
+/* Aufkleber am Slogan nach einem geknackten Rekord: klebt schief neben
+   "Weltrekord", in derselben Machart wie der Stoerer. Die Klassenkette
+   schlaegt die gelbe Wort-Auszeichnung fuer Spans in Ueberschriften. */
+.hero-poster .sticker-head .sticker:has(.record-seal) { position: relative; }
+.hero-poster .sticker-head .record-seal {
+  position: absolute; top: 50%; left: 100%; padding: .3em .5em .35em;
+  border: var(--line); background: var(--red); color: var(--paper);
+  box-shadow: 4px 4px 0 var(--ink); transform: translate(.7em, -55%) rotate(-7deg);
+  font: 800 .38em/1 var(--mono); letter-spacing: .1em; text-transform: uppercase; white-space: nowrap;
+}
+
 /* --- Blog: Kartenraster mit grossen Vorschaubildern -------- */
 .story-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
 .story-card { display: flex; flex-direction: column; background: var(--paper); }
