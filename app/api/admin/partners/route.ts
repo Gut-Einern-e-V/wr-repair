@@ -1,9 +1,10 @@
 import { revalidateTag } from "next/cache";
 import { requireAdmin } from "@/lib/admin-auth";
+import { fitLogo, type LogoType } from "@/lib/fit-logo";
 import { PARTNERS_TAG } from "@/lib/partners";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 
-const logoTypes = new Set(["image/png", "image/jpeg", "image/webp", "image/svg+xml"]);
+const logoTypes = new Set<string>(["image/png", "image/jpeg", "image/webp", "image/svg+xml"] satisfies LogoType[]);
 const maxLogoBytes = 1024 * 1024;
 
 function validWebsite(value: string) {
@@ -48,11 +49,15 @@ export async function POST(request: Request) {
     return Response.json({ error: "Name, Link und ein transparentes PNG, WebP, JPG oder SVG bis 1 MB sind erforderlich." }, { status: 400 });
   }
 
+  /* Zu grosse Raster-Logos werden verkleinert (lib/fit-logo.ts, Issue #174). */
+  const logoData = await fitLogo(Buffer.from(await logo.arrayBuffer()), logo.type as LogoType);
+  if (!logoData) return Response.json({ error: "Das Logo lässt sich nicht lesen. Bitte als PNG, WebP, JPG oder SVG neu exportieren." }, { status: 400 });
+
   const supabase = createSupabaseAdminClient();
   const partnerId = crypto.randomUUID();
   const extension = logo.name.split(".").pop()?.toLowerCase() || "png";
   const logoPath = `${partnerId}.${extension}`;
-  const { error: uploadError } = await supabase.storage.from("partner-logos").upload(logoPath, logo, {
+  const { error: uploadError } = await supabase.storage.from("partner-logos").upload(logoPath, logoData, {
     contentType: logo.type,
     upsert: false,
     /* Ein Jahr: Jeder Upload bekommt eine neue UUID als Namen, unter einem
