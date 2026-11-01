@@ -3,7 +3,7 @@ import { categoryPictogramSvg } from "@/components/category-pictogram";
 import { posterCopy } from "@/lib/poster";
 import { successShare, type PublicStats } from "@/lib/public-stats";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
-import { MONTH_RECORD, recordMargin } from "@/lib/repair-records";
+import { DAY_PLACE_RECORD, MONTH_RECORD, recordMargin } from "@/lib/repair-records";
 import type { SharepicLogos } from "./logos";
 import { shareVisualGrounds, type GroundSpec } from "@/lib/share-visual";
 import {
@@ -26,7 +26,9 @@ import {
   formatStand,
   goalPercent,
   kreisStanding,
+  makerShares,
   rankEntries,
+  recordIncreasePercent,
   sharepicFormats,
   sharepicMotifs,
   type SharepicFormat,
@@ -251,6 +253,23 @@ function kit(format: SharepicFormat, lang: SharepicLanguage) {
       {steps.map((step, index) => <div key={step} style={{ ...flexRow, gap: px(28), alignItems: "flex-start" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: "none", width: px(96), height: px(96), border: `5px solid ${ink}`, background: ground.sticker, color: ground.stickerText, fontSize: px(48), fontWeight: 900, transform: `rotate(${index % 2 ? 1.5 : -1.5}deg)` }}>{`0${index + 1}`}</div>
         <Text size={46} weight={800} style={{ flex: 1, paddingTop: px(12) }}>{step}</Text>
+      </div>)}
+    </div>;
+  }
+
+  /**
+   * Ergebnis gegen Bestmarke: je Zeile Name, Zahl und ein Balken. Der eigene
+   * Balken ist gefuellt, der der alten Marke nur umrandet.
+   */
+  function Compare({ rows, ground }: { rows: { label: string; value: number; own: boolean }[]; ground: GroundSpec }) {
+    const max = Math.max(...rows.map((row) => row.value), 1);
+    return <div style={{ ...flexCol, gap: px(26) }}>
+      {rows.map((row) => <div key={row.label} style={{ ...flexCol, gap: px(10) }}>
+        <div style={{ ...flexRow, justifyContent: "space-between", fontSize: px(row.own ? 40 : 34), fontWeight: row.own ? 900 : 700 }}>
+          <span>{row.label}</span>
+          <span>{count(row.value)}</span>
+        </div>
+        <div style={{ display: "flex", width: Math.max(16, Math.round((row.value / max) * INNER)), height: px(row.own ? 60 : 40), border: `5px solid ${ground.text}`, background: row.own ? ground.text : "transparent" }} />
       </div>)}
     </div>;
   }
@@ -603,6 +622,157 @@ function kit(format: SharepicFormat, lang: SharepicLanguage) {
           path: "/stats",
         };
       }
+
+      case "worldRecord": {
+        const margin = recordMargin(stats.total, MONTH_RECORD);
+        const increase = recordIncreasePercent(stats.total, MONTH_RECORD);
+        return {
+          headline: margin !== null ? t("Weltrekord!|NRW repariert", "World record!|NRW repairs").split("|") : [t("Unser Ergebnis", "Our result")],
+          body: <div style={{ ...flexCol, gap: px(48) }}>
+            <div style={{ ...flexCol, gap: px(4) }}>
+              {period && <Kicker ground={ground}>{period}</Kicker>}
+              <BigNumber value={count(stats.total)} size={300} color={ground.text} />
+              <Text size={56} weight={900}>{t("Reparaturen in einem Monat", "repairs in one month")}</Text>
+              {margin !== null && <Text size={44} weight={800} color={ground.muted}>{t(`${count(margin)} mehr als je zuvor`, `${count(margin)} more than ever before`)}{increase ? t(` (+${increase} %)`, ` (+${increase}%)`) : ""}</Text>}
+            </div>
+            <Compare ground={ground} rows={[
+              { label: t("NRW 2026", "NRW 2026"), value: stats.total, own: true },
+              { label: t("Bisheriger Rekord · The BIG FIX 2024", "Previous record · The BIG FIX 2024"), value: MONTH_RECORD, own: false },
+            ]} />
+          </div>,
+          cta: t("Alle Zahlen:", "All the numbers:"),
+          path: "/stats",
+        };
+      }
+
+      case "dayRecord": {
+        const best = stats.bestKreisDay;
+        if (!best) {
+          return {
+            headline: [t("Tagesrekord", "Daily record")],
+            body: <Text size={52} weight={800}>{t("Der beste Tag eines Orts steht noch nicht fest.", "The best day of a single place isn’t known yet.")}</Text>,
+          };
+        }
+        const margin = recordMargin(best.total, DAY_PLACE_RECORD);
+        return {
+          headline: margin !== null ? t("Tagesrekord|geknackt!", "Daily record|broken!").split("|") : [t("Bester Tag", "Best day")],
+          body: <div style={{ ...flexCol, gap: px(48) }}>
+            <div style={{ ...flexCol, gap: px(4) }}>
+              <Kicker ground={ground}>{`${best.kreis} · ${day(best.date)}`}</Kicker>
+              <BigNumber value={count(best.total)} size={300} color={ground.text} />
+              <Text size={56} weight={900}>{t("Reparaturen an einem Tag", "repairs in a single day")}</Text>
+            </div>
+            <Compare ground={ground} rows={[
+              { label: `${best.kreis} 2026`, value: best.total, own: true },
+              { label: t("Bisheriger Rekord · Exeter 2019", "Previous record · Exeter 2019"), value: DAY_PLACE_RECORD, own: false },
+            ]} />
+          </div>,
+          cta: t("Alle Zahlen:", "All the numbers:"),
+          path: "/stats",
+        };
+      }
+
+      case "records": {
+        const best = stats.bestKreisDay;
+        const monthBroken = recordMargin(stats.total, MONTH_RECORD) !== null;
+        const dayBroken = best ? recordMargin(best.total, DAY_PLACE_RECORD) !== null : false;
+        const both = monthBroken && dayBroken;
+        const block = (label: string, value: number, unit: string, before: string) => <div style={{ ...flexCol, gap: px(4) }}>
+          <Kicker ground={ground}>{label}</Kicker>
+          <div style={{ ...flexRow, gap: px(24), alignItems: "flex-end" }}>
+            <BigNumber value={count(value)} size={200} color={ground.text} />
+            <Text size={52} weight={900} style={{ paddingBottom: px(18) }}>{unit}</Text>
+          </div>
+          <Text size={38} weight={700} color={ground.muted}>{before}</Text>
+        </div>;
+        return {
+          headline: both ? t("Zwei|Weltrekorde!", "Two world|records!").split("|") : [t("Unsere Rekorde", "Our records")],
+          body: <div style={{ ...flexCol, gap: px(52) }}>
+            {block(t("In einem Monat", "In one month"), stats.total, t("Reparaturen", "repairs"), t(`bisher: ${count(MONTH_RECORD)} · The BIG FIX 2024`, `before: ${count(MONTH_RECORD)} · The BIG FIX 2024`))}
+            {best && block(t(`An einem Tag · ${best.kreis}`, `In one day · ${best.kreis}`), best.total, t("Reparaturen", "repairs"), t(`bisher: ${count(DAY_PLACE_RECORD)} · Exeter 2019`, `before: ${count(DAY_PLACE_RECORD)} · Exeter 2019`))}
+          </div>,
+          cta: t("Alle Zahlen:", "All the numbers:"),
+          path: "/stats",
+        };
+      }
+
+      case "thanks": {
+        const places = rankEntries(stats.kreise).length;
+        return {
+          headline: t("Danke|an alle!", "Thank you,|everyone!").split("|"),
+          body: <div style={{ ...flexCol, gap: px(36) }}>
+            <Text size={54} weight={800}>{t("Gemeinsam habt ihr NRW zum Reparatur-Weltrekord gebracht.", "Together you brought NRW to a repair world record.")}</Text>
+            <Tiles ground={ground} items={[
+              { label: t("Reparaturen", "Repairs"), value: count(stats.total), sub: period ?? undefined },
+              { label: t("Orte", "Places"), value: count(places), sub: t("Städte und Kreise", "cities and districts") },
+              { label: t("Stunden", "Hours"), value: formatHours(stats.minutesSaved, lang), sub: t("repariert", "repaired") },
+              { label: t("Geschichten", "Stories"), value: count(stats.withStory), sub: t("erzählt", "told") },
+            ]} />
+            <Text size={36} weight={700} color={ground.muted}>{t("Danke an Repair Cafés, Werkstätten, Betriebe, Schulen und Vereine – und an alle, die zu Hause repariert haben.", "Thanks to repair cafés, workshops, businesses, schools and clubs – and to everyone who fixed things at home.")}</Text>
+          </div>,
+          cta: t("Alle Zahlen:", "All the numbers:"),
+          path: "/stats",
+        };
+      }
+
+      case "thanksKreis": {
+        const name = request.kreis ?? topKreis?.key ?? "Wuppertal";
+        const standing = kreisStanding(stats, name);
+        const share = recapSharePercent(standing.count, stats.total);
+        return {
+          headline: [t("Danke,", "Thank you,"), name],
+          body: <div style={{ ...flexCol, gap: px(44) }}>
+            <div style={{ ...flexCol, gap: px(4) }}>
+              {period && <Kicker ground={ground}>{period}</Kicker>}
+              <BigNumber value={count(standing.count)} size={300} color={ground.text} />
+              <Text size={60} weight={900}>{t(`Reparaturen aus ${name}`, `repairs from ${name}`)}</Text>
+            </div>
+            <Tiles ground={ground} items={[
+              { label: t("Platz", "Rank"), value: standing.rank ? t(`${standing.rank}.`, `#${standing.rank}`) : "–", sub: standing.of ? t(`von ${standing.of} in NRW`, `of ${standing.of} in NRW`) : undefined },
+              { label: t("Anteil", "Share"), value: t(`${String(share).replace(".", ",")} %`, `${share}%`), sub: t("am Weltrekord", "of the world record") },
+            ]} />
+            <Text size={42} weight={700} color={ground.muted}>{t(`Danke an alle in ${name}, die mitrepariert haben!`, `Thanks to everyone in ${name} who joined in!`)}</Text>
+          </div>,
+          cta: t("Alle Zahlen:", "All the numbers:"),
+          path: "/stats",
+        };
+      }
+
+      case "makers": {
+        const shares = makerShares(stats.performedBy);
+        const labels: Record<string, string> = {
+          alone: t("haben allein repariert", "fixed it on their own"),
+          with_support: t("mit Unterstützung – etwa im Repair Café", "with support – e.g. at a repair café"),
+          by_someone: t("ließen für sich reparieren", "had it fixed for them"),
+        };
+        return {
+          headline: t("Wer hat|repariert?", "Who did|the fixing?").split("|"),
+          body: shares.length === 0
+            ? <Text size={52} weight={800}>{t("Dazu gibt es noch keine Angaben.", "There’s no data on this yet.")}</Text>
+            : <div style={{ ...flexCol, gap: px(30) }}>
+              {shares.map((item) => <div key={item.key} style={{ ...flexCol, gap: px(0) }}>
+                <BigNumber value={t(`${item.percent} %`, `${item.percent}%`)} size={130} color={ground.text} />
+                <Text size={44} weight={800}>{labels[item.key]}</Text>
+              </div>)}
+              <Text size={36} weight={700} color={ground.muted}>{t("Danke an alle, die selbst Hand angelegt oder anderen geholfen haben.", "Thanks to everyone who got their hands dirty or helped others.")}</Text>
+            </div>,
+          cta: t("Alle Zahlen:", "All the numbers:"),
+          path: "/stats",
+        };
+      }
+
+      case "onward":
+        return {
+          headline: t("Weiter|reparieren!", "Keep on|repairing!").split("|"),
+          body: <div style={{ ...flexCol, gap: px(48) }}>
+            <Text size={56} weight={800}>{t("Der Rekordmonat ist vorbei – das Reparieren nicht.", "The record month is over – repairing isn’t.")}</Text>
+            <Steps ground={ground} steps={lang === "en"
+              ? ["Find a repair café nearby", "Bring along what’s broken", "Fix it together"]
+              : ["Repair Café in der Nähe finden", "Kaputtes mitbringen", "Gemeinsam reparieren"]} />
+          </div>,
+          cta: t("Repair Café finden:", "Find a repair café:"),
+          path: "/repair-cafes",
+        };
 
       case "kreis": {
         const name = request.kreis ?? topKreis?.key ?? "Wuppertal";

@@ -7,11 +7,13 @@ import {
   formatStand,
   goalPercent,
   kreisStanding,
+  makerShares,
   parseHeadline,
   parsePublicSharepicRequest,
   parseSharepicRequest,
   publicSharepicQuery,
   rankEntries,
+  recordIncreasePercent,
   sharepicMotifSpec,
   visibleSharepicMotifs,
 } from "./sharepics";
@@ -182,11 +184,28 @@ describe("Motive nach dem Ende", () => {
   });
 
   it("laesst danach nur den Rueckblick stehen", () => {
-    expect(visibleSharepicMotifs(true)).toEqual(["countdown", "recap", "recapKreis", "final"]);
+    expect(visibleSharepicMotifs(true)).toEqual(["countdown", "recap", "recapKreis", "final", "worldRecord", "dayRecord", "records", "thanks", "thanksKreis", "makers", "onward"]);
   });
 
   it("fuehrt den Countdown danach als \"Vorbei!\" bei den Finalmotiven", () => {
     expect(sharepicMotifSpec("countdown", true)).toMatchObject({ label: "Vorbei!", group: "Finale" });
     expect(sharepicMotifSpec("countdown", false).group).toBe("Laufend");
+  });
+});
+
+describe("Rekorde und Dank", () => {
+  it("rechnet den Vorsprung auf eine Bestmarke nach unten", () => {
+    expect(recordIncreasePercent(3_482, 3_177)).toBe(9);
+    expect(recordIncreasePercent(3_177, 3_177)).toBeNull();
+    expect(recordIncreasePercent(100, 0)).toBeNull();
+  });
+
+  it("teilt nach Antworten auf, nicht nach Rekordstand", () => {
+    expect(makerShares({ alone: 2, with_support: 1, by_someone: 1, unbekannt: 9 })).toEqual([
+      { key: "alone", count: 2, percent: 50 },
+      { key: "with_support", count: 1, percent: 25 },
+      { key: "by_someone", count: 1, percent: 25 },
+    ]);
+    expect(makerShares({})).toEqual([]);
   });
 });
