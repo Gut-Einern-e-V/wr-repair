@@ -90,47 +90,120 @@
   letter-spacing: -.01em;
 }
 
-.recap-days, .recap-numbers, .recap-time, .recap-columns > section {
+.recap-days, .recap-numbers, .recap-plain, .recap-time, .recap-categories, .recap-places, .recap-stories {
   padding: clamp(28px, 4vw, 48px) 0;
   border-top: 1px solid rgba(238, 241, 247, .14);
 }
 
 /* Tagesbalken ------------------------------------------------------------- */
 
+/* Hilfslinien links mit Werten, darueber die Balken. Die Datumszeile unter den
+   Balken hat eine feste Hoehe, damit die Linien genau am Fuss der Balken
+   enden. */
+.recap-chart-frame {
+  --day-label: 38px;
+  position: relative;
+  padding-left: 44px;
+}
+
+.recap-chart-grid {
+  position: absolute;
+  inset: 0 0 calc(var(--day-label) + 8px) 0;
+  pointer-events: none;
+}
+
+.recap-chart-grid > span {
+  position: absolute;
+  left: 44px;
+  right: 0;
+  border-top: 1px solid rgba(238, 241, 247, .1);
+}
+.recap-chart-grid > span:first-child { border-top-color: rgba(238, 241, 247, .3); }
+
+.recap-chart-grid > span > span {
+  position: absolute;
+  right: calc(100% + 10px);
+  transform: translateY(-50%);
+  color: var(--stage-dim);
+  font: 500 11px var(--sans);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .recap-chart {
+  position: relative;
   display: flex;
-  align-items: flex-end;
   gap: clamp(2px, .5vw, 8px);
-  height: clamp(160px, 26vh, 280px);
+  height: clamp(200px, 32vh, 340px);
   margin: 0;
   padding: 0;
   list-style: none;
-  /* Ein langer Zeitraum passt nicht in jede Breite; dann laesst sich die Reihe
-     schieben, statt die Balken auf Haarbreite zu druecken. */
-  overflow-x: auto;
-  overflow-y: hidden;
 }
 
 .recap-chart li {
   display: flex;
-  flex: 1 0 12px;
+  flex: 1 1 0;
   flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
   gap: 8px;
-  height: 100%;
-  min-width: 12px;
+  min-width: 0;
 }
+
+.recap-day-slot { position: relative; flex: 1; }
 
 /* `.recap-day-bar` und nicht `.recap-bar`: Letzteres ist die Kopfzeile. */
 .recap-day-bar {
-  width: 100%;
-  min-height: 2px;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: rgba(149, 212, 187, .55);
 }
+.recap-chart li:hover .recap-day-bar { background: rgba(149, 212, 187, .85); }
+.recap-chart li.is-event .recap-day-bar { background: var(--stage-mint); }
 .recap-chart li.is-best .recap-day-bar { background: var(--stage-yellow); }
 
+/* Zahl und Anlass ueber den beiden Ausreissern. Am rechten Rand rechtsbuendig,
+   sonst ragt die Beschriftung aus der Seite. */
+.recap-day-event {
+  position: absolute;
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  padding-bottom: 6px;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+}
+.recap-chart li.is-end .recap-day-event { left: auto; right: 0; justify-items: end; transform: none; text-align: right; }
+.recap-day-event strong { font-size: clamp(.95rem, 1.6vw, 1.25rem); font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.recap-chart li.is-best .recap-day-event strong { color: var(--stage-yellow); }
+.recap-day-event span { color: var(--stage-dim); font: 600 10px var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+
+/* Anteil des staerksten Ortes im Balken, schraffiert, mit Beschriftung links
+   daneben. */
+.recap-day-place {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: repeating-linear-gradient(135deg, rgba(8, 11, 20, .28) 0 4px, transparent 4px 8px);
+  border-top: 2px solid rgba(8, 11, 20, .55);
+}
+.recap-day-place-label {
+  position: absolute;
+  right: calc(100% + 8px);
+  transform: translateY(50%);
+  padding: 2px 6px;
+  background: #0b1020;
+  color: var(--stage-dim);
+  font: 600 11px var(--sans);
+  white-space: nowrap;
+}
+.recap-day-place-label strong { color: var(--stage-yellow); }
+
 .recap-bar-day {
+  align-self: center;
+  height: var(--day-label);
   color: var(--stage-dim);
   font: 500 9px var(--sans);
   letter-spacing: .02em;
@@ -146,7 +219,9 @@
 
 .recap-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  /* Feste Spaltenzahlen statt auto-fit: Sechs Kacheln gehen in 3, 2 und 1
+     Spalten auf, eine einzelne Kachel in der letzten Reihe gibt es so nicht. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2px;
   margin: 0;
   padding: 0;
@@ -160,14 +235,14 @@
   background: rgba(238, 241, 247, .05);
 }
 
-.recap-tiles strong { font-size: clamp(1.6rem, 3.4vw, 2.6rem); font-weight: 800; letter-spacing: -.02em; line-height: 1; }
+.recap-tiles strong { font-size: clamp(1.6rem, 3.4vw, 2.6rem); white-space: nowrap; font-weight: 800; letter-spacing: -.02em; line-height: 1; }
 .recap-tiles span { color: var(--stage-dim); font-size: 14px; line-height: 1.4; }
 
 /* Zeit je Kategorie ------------------------------------------------------- */
 
 .recap-time-list {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 2px;
   margin: 0;
   padding: 0;
@@ -186,11 +261,62 @@
    components/category-motif.tsx), deshalb hier keine Farbvorgabe. */
 .recap-time-list .category-motif { flex: none; }
 .recap-time-label { flex: 1; font-size: 15px; }
-.recap-time-list strong { font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.recap-time-list strong { white-space: nowrap; font-size: 1.2rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Anschaulich gesagt ------------------------------------------------------ */
+
+.recap-plain-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+.recap-plain-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 15em) minmax(0, 1fr);
+  gap: 8px 28px;
+  align-items: baseline;
+  padding: 18px 20px;
+  background: rgba(238, 241, 247, .05);
+}
+.recap-plain-list strong { color: var(--stage-mint); font-size: clamp(1.1rem, 1.7vw, 1.35rem); text-wrap: balance; font-weight: 800; line-height: 1.15; }
+.recap-plain-list span { color: var(--stage-dim); font-size: 15px; line-height: 1.5; }
 
 /* Ranglisten -------------------------------------------------------------- */
 
-.recap-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 0 clamp(24px, 5vw, 72px); }
+/* Zwoelf Kategorien in zwei Spalten zu je sechs. */
+.recap-ranking.is-wide { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: column; grid-template-rows: repeat(6, auto); gap: 10px clamp(24px, 5vw, 72px); }
+
+/* Karte und Rangliste der Kreise ------------------------------------------- */
+
+.recap-places-body { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(24px, 5vw, 72px); align-items: start; }
+
+.recap-map { margin: 0; }
+.recap-map svg { display: block; width: 100%; max-width: 560px; height: auto; }
+.recap-map path {
+  fill: var(--stage-mint);
+  stroke: #0b1020;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+  transition: fill .15s;
+}
+.recap-map path.is-empty { fill: rgba(238, 241, 247, .06); fill-opacity: 1 !important; }
+.recap-map path.is-active { fill: var(--stage-yellow); fill-opacity: 1 !important; }
+.recap-map figcaption { display: grid; gap: 8px; margin-top: 12px; color: var(--stage-dim); font-size: 13px; }
+.recap-map figcaption p { margin: 0; }
+.recap-map-active { min-height: 1.5em; font-size: 15px; }
+.recap-map-active strong { color: #eef1f7; }
+.recap-map-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.recap-map-legend span { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.recap-map-legend i { display: inline-block; width: 14px; height: 14px; background: var(--stage-mint); }
+.recap-map-credit { font-size: 11px; }
+
+/* Geschichten ------------------------------------------------------------- */
+
+.recap-story-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px; margin: 0; padding: 0; list-style: none; }
+.recap-story-list a { display: grid; gap: 8px; height: 100%; padding: 0 0 20px; background: rgba(238, 241, 247, .05); text-decoration: none; }
+.recap-story-list a:hover strong { text-decoration: underline; text-underline-offset: 4px; }
+.recap-story-image { position: relative; aspect-ratio: 3 / 2; overflow: hidden; }
+.recap-story-image img { object-fit: cover; }
+.recap-story-category, .recap-story-list strong, .recap-story-summary { padding: 0 20px; }
+.recap-story-category { color: var(--stage-mint); font: 800 11px var(--sans); letter-spacing: .12em; text-transform: uppercase; margin-top: 6px; }
+.recap-story-list strong { font-size: 1.15rem; line-height: 1.25; text-wrap: balance; }
+.recap-story-summary { color: var(--stage-dim); font-size: 14px; line-height: 1.5; }
 
 .recap-ranking { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
 .recap-ranking li { display: grid; grid-template-columns: minmax(0, 18ch) minmax(0, 1fr) auto; gap: 12px; align-items: center; font-size: 14px; }
@@ -207,9 +333,23 @@
 .recap-links { display: flex; flex-wrap: wrap; gap: 8px 28px; }
 .recap-links a { color: var(--stage-mint); text-underline-offset: 4px; }
 
+@media (max-width: 900px) {
+  .recap-tiles, .recap-time-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .recap-places-body { grid-template-columns: minmax(0, 1fr); }
+  .recap-story-list { grid-template-columns: minmax(0, 1fr); }
+}
+
 @media (max-width: 640px) {
+  .recap-tiles, .recap-time-list { grid-template-columns: minmax(0, 1fr); }
+  .recap-plain-list li { grid-template-columns: minmax(0, 1fr); }
+  .recap-ranking.is-wide { grid-template-columns: minmax(0, 1fr); grid-auto-flow: row; grid-template-rows: none; }
+  .recap-day-place-label { display: none; }
   .recap-ranking li { grid-template-columns: minmax(0, 1fr) auto; }
   .recap-ranking-track { display: none; }
+  .recap-chart-frame { --day-label: 0px; padding-left: 36px; }
+  .recap-chart-grid { bottom: 0; }
+  .recap-chart-grid > span { left: 36px; }
   .recap-bar-day { display: none; }
+  .recap-day-event span { display: none; }
 }
 
