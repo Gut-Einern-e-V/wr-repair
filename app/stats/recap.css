@@ -77,10 +77,56 @@
 
 .recap-total-label { margin: 14px 0 0; color: var(--stage-dim); font-size: clamp(.95rem, 1.6vw, 1.15rem); }
 
-.recap-records { display: grid; gap: 14px; max-width: 640px; margin: 36px auto 0; padding: 0; list-style: none; }
-.recap-records li { padding: 16px 20px; border: 1px solid rgba(238, 241, 247, .16); color: var(--stage-dim); font-size: 15px; line-height: 1.5; }
-.recap-records strong { display: block; margin-bottom: 4px; color: var(--stage-mint); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+/* Die beiden Rekorde nebeneinander, jeweils mit goldenem Pokal, sobald er
+   gebrochen ist. */
+.recap-records {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+  gap: 16px;
+  max-width: 960px;
+  margin: 44px auto 0;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+.recap-records li {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 22px 24px;
+  border: 1px solid rgba(238, 241, 247, .16);
+  color: var(--stage-dim);
+  font-size: 15px;
+  line-height: 1.5;
+}
+.recap-records li.is-broken {
+  border-color: rgba(255, 196, 50, .45);
+  background: radial-gradient(circle at 0% 50%, rgba(255, 196, 50, .16), transparent 60%), rgba(238, 241, 247, .03);
+  box-shadow: 0 0 40px rgba(255, 196, 50, .08);
+}
+.recap-records p { margin: 0; }
+.recap-records strong { display: block; margin-bottom: 2px; color: var(--stage-mint); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
 .recap-root.is-reached .recap-records strong { color: var(--stage-yellow); }
+.recap-record-value { margin: 2px 0 6px !important; color: #eef1f7; font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 800; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.recap-record-value small { display: block; margin-top: 6px; color: var(--stage-dim); font-size: 13px; font-weight: 500; letter-spacing: 0; }
+
+.recap-trophy {
+  flex: none;
+  width: clamp(64px, 8vw, 92px);
+  height: auto;
+  filter: drop-shadow(0 6px 18px rgba(255, 196, 50, .35));
+  animation: recap-trophy-in .9s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+.recap-records li:nth-child(2) .recap-trophy { animation-delay: .15s; }
+
+@keyframes recap-trophy-in {
+  from { opacity: 0; transform: translateY(12px) rotate(-8deg) scale(.8); }
+  to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recap-trophy { animation: none; }
+}
 
 /* Abschnitte -------------------------------------------------------------- */
 
@@ -265,16 +311,26 @@
 
 /* Anschaulich gesagt ------------------------------------------------------ */
 
-.recap-plain-list { display: grid; gap: 2px; margin: 0; padding: 0; list-style: none; }
+/* Fuenf Kacheln: drei oben, zwei breitere unten. */
+.recap-plain-list { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; margin: 0; padding: 0; list-style: none; }
 .recap-plain-list li {
   display: grid;
-  grid-template-columns: minmax(0, 15em) minmax(0, 1fr);
-  gap: 8px 28px;
-  align-items: baseline;
-  padding: 18px 20px;
+  align-content: start;
+  gap: 10px;
+  grid-column: span 2;
+  padding: 24px 22px 26px;
   background: rgba(238, 241, 247, .05);
 }
-.recap-plain-list strong { color: var(--stage-mint); font-size: clamp(1.1rem, 1.7vw, 1.35rem); text-wrap: balance; font-weight: 800; line-height: 1.15; }
+.recap-plain-list li:nth-child(n + 4) { grid-column: span 3; }
+.recap-fact-icon {
+  width: 54px;
+  height: 54px;
+  padding: 13px;
+  border-radius: 50%;
+  background: rgba(149, 212, 187, .14);
+  color: var(--stage-mint);
+}
+.recap-plain-list strong { color: #eef1f7; font-size: clamp(1.7rem, 3vw, 2.4rem); font-weight: 800; line-height: 1; letter-spacing: -.02em; white-space: nowrap; }
 .recap-plain-list span { color: var(--stage-dim); font-size: 15px; line-height: 1.5; }
 
 /* Ranglisten -------------------------------------------------------------- */
@@ -284,10 +340,11 @@
 
 /* Karte und Rangliste der Kreise ------------------------------------------- */
 
-.recap-places-body { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: clamp(24px, 5vw, 72px); align-items: start; }
+.recap-places-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: clamp(24px, 5vw, 72px); align-items: start; }
 
 .recap-map { margin: 0; }
-.recap-map svg { display: block; width: 100%; max-width: 560px; height: auto; }
+.recap-map-frame { position: relative; }
+.recap-map svg { display: block; width: 100%; height: auto; }
 .recap-map path {
   fill: var(--stage-mint);
   stroke: #0b1020;
@@ -299,8 +356,27 @@
 .recap-map path.is-active { fill: var(--stage-yellow); fill-opacity: 1 !important; }
 .recap-map figcaption { display: grid; gap: 8px; margin-top: 12px; color: var(--stage-dim); font-size: 13px; }
 .recap-map figcaption p { margin: 0; }
-.recap-map-active { min-height: 1.5em; font-size: 15px; }
-.recap-map-active strong { color: #eef1f7; }
+/* Die Karte zum Kreis: folgt dem Zeiger und steht darueber, am rechten Rand
+   links davon, am oberen Rand darunter. */
+.recap-map-card {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  gap: 2px;
+  min-width: 170px;
+  padding: 12px 16px;
+  background: rgba(8, 11, 20, .94);
+  border: 1px solid rgba(255, 196, 50, .5);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+  transform: translate(-50%, calc(-100% - 14px));
+  pointer-events: none;
+}
+.recap-map-card.is-left { transform: translate(calc(-100% - 14px), -50%); }
+.recap-map-card.is-below { transform: translate(-50%, 18px); }
+.recap-map-card.is-left.is-below { transform: translate(calc(-100% - 14px), 10px); }
+.recap-map-card-name { color: #eef1f7; font-size: 14px; font-weight: 700; }
+.recap-map-card strong { color: var(--stage-yellow); font-size: 2rem; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.recap-map-card-meta { color: var(--stage-dim); font-size: 12px; white-space: nowrap; }
 .recap-map-legend { display: flex; flex-wrap: wrap; gap: 6px 18px; }
 .recap-map-legend span { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
 .recap-map-legend i { display: inline-block; width: 14px; height: 14px; background: var(--stage-mint); }
@@ -324,6 +400,14 @@
 .recap-ranking-track { display: block; height: 8px; background: rgba(238, 241, 247, .1); }
 .recap-ranking-track span { display: block; height: 100%; background: var(--stage-mint); }
 .recap-ranking strong { font-variant-numeric: tabular-nums; }
+
+/* Rangliste neben der Karte: mit Platz, und die Zeile unter dem Zeiger
+   leuchtet wie ihr Kreis. */
+.recap-ranking.is-places { gap: 2px; }
+.recap-ranking.is-places li { grid-template-columns: 2.2em minmax(0, 16ch) minmax(0, 1fr) auto; padding: 4px 8px; cursor: default; transition: background .15s; }
+.recap-ranking.is-places li.is-active { background: rgba(255, 196, 50, .12); }
+.recap-ranking.is-places li.is-active .recap-ranking-track span { background: var(--stage-yellow); }
+.recap-ranking-rank { color: var(--stage-dim); font-size: 12px; font-variant-numeric: tabular-nums; }
 .recap-more { margin: 14px 0 0; color: var(--stage-dim); font-size: 13px; }
 
 /* Fuss -------------------------------------------------------------------- */
@@ -337,11 +421,19 @@
   .recap-tiles, .recap-time-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .recap-places-body { grid-template-columns: minmax(0, 1fr); }
   .recap-story-list { grid-template-columns: minmax(0, 1fr); }
+  .recap-plain-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .recap-plain-list li, .recap-plain-list li:nth-child(n + 4) { grid-column: auto; }
+  .recap-plain-list li:last-child { grid-column: 1 / -1; }
 }
 
 @media (max-width: 640px) {
   .recap-tiles, .recap-time-list { grid-template-columns: minmax(0, 1fr); }
-  .recap-plain-list li { grid-template-columns: minmax(0, 1fr); }
+  .recap-plain-list { grid-template-columns: minmax(0, 1fr); }
+  .recap-plain-list li, .recap-plain-list li:nth-child(n + 4) { grid-column: auto; grid-template-columns: 44px minmax(0, 1fr); gap: 4px 14px; padding: 18px 16px; }
+  .recap-plain-list .recap-fact-icon { grid-row: span 2; width: 44px; height: 44px; padding: 10px; }
+  .recap-plain-list strong { font-size: 1.5rem; }
+  .recap-records li { gap: 14px; padding: 18px 16px; }
+  .recap-ranking.is-places li { grid-template-columns: 2.2em minmax(0, 1fr) auto; }
   .recap-ranking.is-wide { grid-template-columns: minmax(0, 1fr); grid-auto-flow: row; grid-template-rows: none; }
   .recap-day-place-label { display: none; }
   .recap-ranking li { grid-template-columns: minmax(0, 1fr) auto; }
