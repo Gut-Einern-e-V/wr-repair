@@ -5,6 +5,7 @@ import { CategoryMotif } from "@/components/category-motif";
 import { ShareButton } from "@/components/share-button";
 import { ShareVisual } from "@/components/share-visual";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 import { getPublicRepairStatus } from "@/lib/repair-status";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
@@ -20,13 +21,14 @@ export async function generateMetadata({ params }: RepairPageProps): Promise<Met
   if (!repair || repair.status !== "approved") {
     return { title: "Deine Reparatur", robots: { index: false, follow: false } };
   }
+  const closed = await getCampaignClosed();
 
   return {
     title: `${repairCategoryLabel(repair.category)} repariert`,
-    description: buildShareText(repairCategoryLabel(repair.category)),
+    description: buildShareText(repairCategoryLabel(repair.category), closed),
     openGraph: {
       title: `${repairCategoryLabel(repair.category)} repariert`,
-      description: buildShareText(repairCategoryLabel(repair.category)),
+      description: buildShareText(repairCategoryLabel(repair.category), closed),
       url: buildRepairUrl(repair.id),
     },
   };
@@ -34,7 +36,7 @@ export async function generateMetadata({ params }: RepairPageProps): Promise<Met
 
 export default async function RepairStatusPage({ params }: RepairPageProps) {
   const { id } = await params;
-  const repair = await getPublicRepairStatus(id);
+  const [repair, closed] = await Promise.all([getPublicRepairStatus(id), getCampaignClosed()]);
   if (!repair) notFound();
 
   const categoryLabel = repairCategoryLabel(repair.category);
@@ -50,7 +52,7 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
       </h1>
 
       {isApproved ? <>
-        <p className="repair-status-lead">Deine Reparatur ist freigegeben und zählt zum Weltrekordversuch. Jetzt darfst du sie teilen.</p>
+        <p className="repair-status-lead">Deine Reparatur ist freigegeben und zählt zum {closed ? "Reparaturrekord NRW" : "Weltrekordversuch"}. Jetzt darfst du sie teilen.</p>
         {repair.imageUrl ? <>
           {/* Signed URLs from the private bucket cannot use Next.js image optimization. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -75,17 +77,18 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
         <ShareVisual
           repairId={repair.id}
           title="Reparaturrekord NRW"
-          text={buildShareText(categoryLabel)}
+          text={buildShareText(categoryLabel, closed)}
         />
         <div className="repair-status-actions">
           <ShareButton
             title="Reparaturrekord NRW"
-            text={buildShareText(categoryLabel)}
+            text={buildShareText(categoryLabel, closed)}
             path={buildRepairPath(repair.id)}
             label="Stattdessen den Link teilen"
             className="button button-secondary"
           />
-          <Link className="button button-secondary" href="/mitmachen">Noch eine Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
+          {/* Nach dem Ende leitet /mitmachen ohnehin auf die Startseite um. */}
+          {!closed && <Link className="button button-secondary" href="/mitmachen">Noch eine Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>}
         </div>
       </> : repair.status === "rejected" ? <>
         <p className="repair-status-lead">Diese Einreichung konnte nicht freigegeben werden. Melde dich gerne bei uns, wenn du dazu Fragen hast.</p>
@@ -95,7 +98,7 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
             und muesste neu hochgeladen werden. */}
         <p className="form-notice">Das eingereichte Foto wurde dabei gelöscht. Wir bewahren keine Bilder auf, die nicht veröffentlicht werden.</p>
         <div className="repair-status-actions">
-          <Link className="button button-primary" href="/mitmachen">Neue Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
+          {!closed && <Link className="button button-primary" href="/mitmachen">Neue Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>}
           <a className="text-button" href={mailto(CONTACT_EMAIL, "Reparaturrekord NRW Einreichung")}>Kontakt aufnehmen <span aria-hidden="true">&#8594;</span></a>
         </div>
       </> : <>
@@ -105,8 +108,8 @@ export default async function RepairStatusPage({ params }: RepairPageProps) {
         <CategoryMotif category={repair.category} size={140} priority />
         <p className="form-notice">Teilen ist erst nach der Freigabe möglich – so landet nichts Ungeprüftes in den sozialen Netzwerken. Speichere dir diese Seite als Lesezeichen und schau später wieder vorbei.</p>
         <div className="repair-status-actions">
-          <Link className="button button-primary" href="/mitmachen">Noch eine Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
-          <Link className="text-button" href="/stats">Live-Stand ansehen <span aria-hidden="true">&#8594;</span></Link>
+          {!closed && <Link className="button button-primary" href="/mitmachen">Noch eine Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>}
+          <Link className="text-button" href="/stats">{closed ? "Ergebnis ansehen" : "Live-Stand ansehen"} <span aria-hidden="true">&#8594;</span></Link>
         </div>
       </>}
     </article>

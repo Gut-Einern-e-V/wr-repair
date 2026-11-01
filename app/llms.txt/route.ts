@@ -1,4 +1,6 @@
 import { getAppSettings } from "@/lib/app-settings";
+import { campaignClosed } from "@/lib/campaign-closed";
+import { DAY_PLACE_RECORD, MONTH_RECORD } from "@/lib/repair-records";
 import { getStoryTeasers } from "@/lib/stories";
 import { getSiteUrl } from "@/lib/share";
 import { CONTACT_EMAIL, circularWeek, operator, operatorAddressLine } from "@/lib/organisation";
@@ -36,24 +38,31 @@ export async function GET() {
   const siteUrl = getSiteUrl() || "http://localhost:3000";
   const [settings, stories] = await Promise.all([getAppSettings(), getStoryTeasers()]);
   const campaign = settings.submissionWindow;
+  const closed = campaignClosed(settings);
 
   const body = `# Reparaturrekord NRW
 
-> Ein Weltrekordversuch der ${circularWeek.name}, organisiert vom ${operator.shortName}: Einen Monat lang zählt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag hält. Wer etwas repariert hat, trägt es mit Foto und ein paar Angaben ein; nach der Prüfung durch die Moderation zählt der Beitrag.
+${closed
+  ? `> Ein Weltrekordversuch der ${circularWeek.name}, organisiert vom ${operator.shortName}: Einen Monat lang hat Nordrhein-Westfalen jede Reparatur gezählt, die einen Gegenstand im Alltag hält - und dabei zwei Weltrekorde geknackt: mehr als ${MONTH_RECORD.toLocaleString("de-DE")} Reparaturen in einem Monat und mehr als ${DAY_PLACE_RECORD.toLocaleString("de-DE")} an einem Tag und Ort.
 
-${campaignLine(campaign.status, campaign.startAt, campaign.endAt)} Das Ziel liegt bei ${settings.recordGoal.toLocaleString("de-DE")} gezählten Reparaturen.
+${campaignLine(campaign.status, campaign.startAt, campaign.endAt)} Das Ergebnis steht unter ${siteUrl}/stats.`
+  : `> Ein Weltrekordversuch der ${circularWeek.name}, organisiert vom ${operator.shortName}: Einen Monat lang zählt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag hält. Wer etwas repariert hat, trägt es mit Foto und ein paar Angaben ein; nach der Prüfung durch die Moderation zählt der Beitrag.
 
-Teilnehmen kann jede Person in Nordrhein-Westfalen, kostenlos und ohne Konto. Es zählt alles, was vorher kaputt oder nur eingeschränkt nutzbar war - geschraubt, genäht und geklebt wird in Repair Cafés, Fachbetrieben und Werkstätten, Schulen, Vereinen und am Küchentisch. Es geht nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als Alternative zum Neukauf zu stärken.
+${campaignLine(campaign.status, campaign.startAt, campaign.endAt)} Das Ziel liegt bei ${settings.recordGoal.toLocaleString("de-DE")} gezählten Reparaturen.`}
+
+${closed ? "Teilnehmen konnte" : "Teilnehmen kann"} jede Person in Nordrhein-Westfalen, kostenlos und ohne Konto. Es zählt alles, was vorher kaputt oder nur eingeschränkt nutzbar war - geschraubt, genäht und geklebt wird in Repair Cafés, Fachbetrieben und Werkstätten, Schulen, Vereinen und am Küchentisch. Es geht nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als Alternative zum Neukauf zu stärken.
 
 ## Hauptseiten
 
-- [Startseite](${siteUrl}/): Worum es geht, aktueller Zählerstand und Einstieg in die Eintragung.
+${closed
+  ? `- [Startseite](${siteUrl}/): Worum es ging und der Endstand.
+- [Ergebnis](${siteUrl}/stats): Rückblick mit allen Zahlen des Rekordversuchs.`
+  : `- [Startseite](${siteUrl}/): Worum es geht, aktueller Zählerstand und Einstieg in die Eintragung.
 - [Reparatur eintragen](${siteUrl}/mitmachen): Formular für die eigene Reparatur, auf das Smartphone ausgelegt.
-- [Live-Stand](${siteUrl}/stats): Aktuelle Zahlen des Rekordversuchs, auch als Bühnenansicht für Veranstaltungen.
+- [Live-Stand](${siteUrl}/stats): Aktuelle Zahlen des Rekordversuchs, auch als Bühnenansicht für Veranstaltungen.`}
 - [Repair Cafés in NRW](${siteUrl}/repair-cafes): Orte und Termine der Reparatur-Initiativen im Land.
 - [Repair & Share Festival](${siteUrl}/festival): Der Abschlusstag des Rekordmonats am 31. Oktober 2026 in Utopiastadt und Wiesenwerken in Wuppertal, 11 bis 17 Uhr, Eintritt frei. Anreise unter ${siteUrl}/festival/anreise.
-- [Für Reparaturbetriebe](${siteUrl}/reparaturbetriebe): Wie Fahrradläden, Handywerkstätten, Schuhmachereien und andere Fachbetriebe mitmachen - Aufsteller mit QR-Code an die Theke, eintragen tut die Kundschaft. Auch Reparaturen vom Fachbetrieb zählen.
-- [Gewinnspiel](${siteUrl}/gewinnspiel): Verlosung unter allen Einreichungen, mit Teilnahmebedingungen.
+${closed ? "" : `- [Für Reparaturbetriebe](${siteUrl}/reparaturbetriebe): Wie Fahrradläden, Handywerkstätten, Schuhmachereien und andere Fachbetriebe mitmachen - Aufsteller mit QR-Code an die Theke, eintragen tut die Kundschaft. Auch Reparaturen vom Fachbetrieb zählen.\n`}- [Gewinnspiel](${siteUrl}/gewinnspiel): Verlosung unter allen Einreichungen, mit Teilnahmebedingungen.
 - [Über das Projekt](${siteUrl}/about): Hintergrund, Ziel und die Regeln der Zählung.
 - [Unterstützung](${siteUrl}/supporters): Die Organisationen, die den Rekordversuch tragen und fördern.
 - [Schnittstellen](${siteUrl}/api-doku): Wie sich die Zahlen ohne API-Key abrufen lassen - für eigene Anzeigen auf ESP32, Arduino oder Raspberry Pi.

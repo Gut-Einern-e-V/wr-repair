@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 
 /* Ohne Manifest legt Chrome auf Android beim "Zum Startbildschirm hinzufuegen"
    nur eine Verknuepfung an und nimmt dafuer das Favicon. Das Icon laeuft dann
@@ -6,12 +7,13 @@ import type { MetadataRoute } from "next";
    wird beschnitten (Issue #43). Deshalb liegen hier ausdrueckliche Icons:
    `purpose: "any"` fuellt die Flaeche randlos, `purpose: "maskable"` haelt das R
    zusaetzlich innerhalb der Safe Zone, damit die Maske nichts abschneidet. */
-export default function manifest(): MetadataRoute.Manifest {
+export default async function manifest(): Promise<MetadataRoute.Manifest> {
+  const closed = await getCampaignClosed();
   return {
     id: "/",
     name: "Reparaturrekord NRW",
     short_name: "Reparaturrekord",
-    description: "Gemeinsam reparieren wir den Weltrekord.",
+    description: closed ? "Gemeinsam haben wir den Reparatur-Weltrekord geknackt." : "Gemeinsam reparieren wir den Weltrekord.",
     lang: "de",
     dir: "ltr",
     start_url: "/",
@@ -46,19 +48,22 @@ export default function manifest(): MetadataRoute.Manifest {
        alle sichtbar. Moderation und Admin gehoeren hier nicht hinein.
 
        Jeder Shortcut hat ein eigenes Icon. Ohne das nimmt Android das App-Icon,
-       und alle angepinnten Verknuepfungen sehen gleich aus. */
+       und alle angepinnten Verknuepfungen sehen gleich aus.
+
+       Nach dem Ende fuehrt kein Shortcut mehr ins Formular (/mitmachen leitet
+       dann um), und der Live-Stand heisst Ergebnis. */
     shortcuts: [
-      {
+      ...(closed ? [] : [{
         name: "Reparatur eintragen",
         short_name: "Eintragen",
         description: "Foto und Angaben zu einer Reparatur direkt eintragen.",
         url: "/mitmachen",
         icons: [{ src: "/icons/shortcut-eintragen-192.png", sizes: "192x192", type: "image/png" }],
-      },
+      }]),
       {
-        name: "Live-Stand",
-        short_name: "Live-Stand",
-        description: "Aktueller Zählerstand des Rekordversuchs.",
+        name: closed ? "Ergebnis" : "Live-Stand",
+        short_name: closed ? "Ergebnis" : "Live-Stand",
+        description: closed ? "Endstand und Rückblick des Rekordversuchs." : "Aktueller Zählerstand des Rekordversuchs.",
         url: "/stats",
         icons: [{ src: "/icons/shortcut-stand-192.png", sizes: "192x192", type: "image/png" }],
       },

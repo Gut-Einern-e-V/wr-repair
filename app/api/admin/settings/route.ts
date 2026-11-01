@@ -1,4 +1,5 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
+import { CAMPAIGN_CLOSED_TAG } from "@/lib/campaign-closed";
 import { requireAdmin } from "@/lib/admin-auth";
 import { isValidIpRule, MAX_ALLOWLIST_ENTRIES } from "@/lib/ip-allowlist";
 import { getClientIp } from "@/lib/rate-limit";
@@ -271,6 +272,7 @@ export async function PUT(request: Request) {
   }
 
   for (const path of SETTINGS_PAGES) revalidatePath(path);
+  revalidateTag(CAMPAIGN_CLOSED_TAG, "max");
 
   const row = await readSettingsRow();
   return Response.json({ ok: true, logoUrl: publicLogoUrl(row?.logo_path ?? null) });

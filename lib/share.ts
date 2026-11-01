@@ -23,8 +23,10 @@ export function buildRepairUrl(repairId: string, origin?: string) {
   return `${getSiteUrl(origin)}${buildRepairPath(repairId)}`;
 }
 
-export function buildShareText(categoryLabel?: string) {
+/** Nach dem Ende (`closed`, siehe `campaignClosed`) ohne Aufruf zum Mitmachen. */
+export function buildShareText(categoryLabel?: string, closed = false) {
+  const call = closed ? "Ich war beim Reparaturrekord NRW dabei!" : "Mach mit beim Reparaturrekord NRW!";
   return categoryLabel
-    ? `Ich habe etwas repariert: ${categoryLabel}. Mach mit beim Reparaturrekord NRW!`
-    : "Ich habe etwas repariert. Mach mit beim Reparaturrekord NRW!";
+    ? `Ich habe etwas repariert: ${categoryLabel}. ${call}`
+    : `Ich habe etwas repariert. ${call}`;
 }

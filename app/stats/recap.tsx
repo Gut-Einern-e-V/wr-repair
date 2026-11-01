@@ -8,13 +8,14 @@ import type { CampaignDates } from "@/lib/campaign-phase";
 import { formatMinutes } from "@/lib/dashboard";
 import { successShare, type PublicStats } from "@/lib/public-stats";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
+import { DAY_PLACE_RECORD, MONTH_RECORD, recordMargin } from "@/lib/repair-records";
 
 /**
  * Rueckblick auf den Weltrekordversuch (Issue #66).
  *
  * Steht unter /stats, sobald der Einreichungszeitraum vorbei ist. Anders als
  * die Buehne fuellt er nicht einen Bildschirm, sondern ist eine Seite zum
- * Scrollen und Lesen: Das Ergebnis am Ziel gemessen, jeder Tag einzeln, und
+ * Scrollen und Lesen: Das Ergebnis an den Rekorden gemessen, jeder Tag einzeln, und
  * ein paar Zahlen, die man sonst nirgends sieht - etwa wie viele Stunden in
  * Uhren steckten.
  *
@@ -70,8 +71,10 @@ export default function Recap({ campaign }: { campaign: CampaignDates }) {
       categories,
       categoryMinutes,
       kreise,
-      reached: stats.goal > 0 && stats.total >= stats.goal,
-      percent: stats.goal > 0 ? (stats.total / stats.goal) * 100 : 0,
+      /* Gemessen wird an den Weltrekorden, nicht am eigenen Ziel - siehe
+         `recordMargin`. */
+      monthMargin: recordMargin(stats.total, MONTH_RECORD),
+      dayMargin: recordMargin(stats.bestKreisDay?.total, DAY_PLACE_RECORD),
       perDay: timeline.length > 0 ? stats.total / timeline.length : 0,
       successRate: successShare(stats.succeeded, stats.attempted, stats.total),
     };
@@ -89,7 +92,7 @@ export default function Recap({ campaign }: { campaign: CampaignDates }) {
   }
 
   return (
-    <main className={`recap-root${derived.reached ? " is-reached" : ""}`}>
+    <main className={`recap-root${derived.monthMargin !== null ? " is-reached" : ""}`}>
       <header className="recap-bar">
         <Link className="recap-brand" href="/">
           <span className="brand-mark" aria-hidden="true">R</span>
@@ -107,22 +110,26 @@ export default function Recap({ campaign }: { campaign: CampaignDates }) {
       <section className="recap-result" aria-labelledby="recap-result-title">
         <p className="recap-kicker">Ergebnis</p>
         <h1 id="recap-result-title">
-          {derived.reached ? "Wir haben das Ziel geknackt." : "So weit sind wir gekommen."}
+          {derived.monthMargin !== null ? "Wir haben den Weltrekord geknackt." : "So weit sind wir gekommen."}
         </h1>
         <p className="recap-total">{stats.total.toLocaleString("de-DE")}</p>
         <p className="recap-total-label">gezählte Reparaturen in Nordrhein-Westfalen</p>
-        <div className="recap-goal">
-          <div className="recap-goal-track" aria-hidden="true">
-            <span style={{ width: `${Math.min(derived.percent, 100)}%` }} />
-          </div>
-          <p>
-            {derived.percent.toLocaleString("de-DE", { maximumFractionDigits: 1 })} % des Ziels von{" "}
-            {stats.goal.toLocaleString("de-DE")}
-            {derived.reached
-              ? ` – ${(stats.total - stats.goal).toLocaleString("de-DE")} mehr als geplant.`
-              : ` – ${(stats.goal - stats.total).toLocaleString("de-DE")} haben gefehlt.`}
-          </p>
-        </div>
+        <ul className="recap-records">
+          <li>
+            <strong>Monatsrekord</strong>
+            {derived.monthMargin !== null
+              ? <>{derived.monthMargin.toLocaleString("de-DE")} Reparaturen mehr als die bisherige Bestmarke von {MONTH_RECORD.toLocaleString("de-DE")} (The BIG FIX 2024).</>
+              : <>Die Bestmarke liegt bei {MONTH_RECORD.toLocaleString("de-DE")} Reparaturen (The BIG FIX 2024).</>}
+          </li>
+          {stats.bestKreisDay && derived.dayMargin !== null && (
+            <li>
+              <strong>Tagesrekord an einem Ort</strong>
+              {stats.bestKreisDay.total.toLocaleString("de-DE")} Reparaturen in {stats.bestKreisDay.kreis} am{" "}
+              {longDayFormat.format(parseDay(stats.bestKreisDay.date))} &ndash; die bisherige Bestmarke lag bei{" "}
+              {DAY_PLACE_RECORD.toLocaleString("de-DE")} (Exeter 2019).
+            </li>
+          )}
+        </ul>
       </section>
 
       <section className="recap-days" aria-labelledby="recap-days-title">

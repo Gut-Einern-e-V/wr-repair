@@ -2,6 +2,8 @@ import Link from "next/link";
 import { AccessBar } from "@/components/access-bar";
 import { circularWeek, operator } from "@/lib/organisation";
 import { QuickSubmission } from "./quick-submission";
+import { redirect } from "next/navigation";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 
 export const metadata = {
   title: "Reparatur eintragen",
@@ -10,7 +12,12 @@ export const metadata = {
   manifest: "/mitmachen/manifest.webmanifest",
 };
 
-export default function QuickSubmissionPage() {
+/* Nach dem Ende der Aktion gibt es hier nichts mehr zu tun - alte QR-Codes und
+   Links landen auf der Startseite mit dem Ergebnis. Mit einem neuen Zeitraum
+   ist die Seite wieder da (lib/campaign-closed.ts). */
+export default async function QuickSubmissionPage() {
+  if (await getCampaignClosed()) redirect("/");
+
   return <main className="quick-submit-page">
     <AccessBar />
     <header className="quick-submit-header">

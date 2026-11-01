@@ -8,11 +8,12 @@ import { PartnerStrip } from "@/components/partner-strip";
 import { ConsentSettingsLink } from "@/components/consent-settings-link";
 import { MadeInWuppertal } from "@/components/made-in-wuppertal";
 import { circularWeek, operator } from "@/lib/organisation";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 
 const messages = getMessages();
 
 export async function SiteHeader() {
-  const logoUrl = await getSiteLogoUrl();
+  const [logoUrl, closed] = await Promise.all([getSiteLogoUrl(), getCampaignClosed()]);
 
   return <>
     <AccessBar />
@@ -21,7 +22,7 @@ export async function SiteHeader() {
       // eslint-disable-next-line @next/next/no-img-element -- Logo aus Supabase Storage ohne bekannte Groesse.
       ? <img className="brand-logo" src={logoUrl} alt="" />
       : <span className="brand-mark">R</span>}<span>Reparaturrekord<br />NRW</span></Link>
-    <nav aria-label="Hauptnavigation"><Link href="/stories">{messages.navigation.stories}</Link><Link href="/about">{messages.navigation.project}</Link><Link href="/reparaturbetriebe">{messages.navigation.business}</Link><Link href="/supporters">{messages.navigation.supporters}</Link><Link href="/mitmachen">{messages.navigation.submit}</Link></nav>
+    <nav aria-label="Hauptnavigation"><Link href="/stories">{messages.navigation.stories}</Link><Link href="/about">{messages.navigation.project}</Link>{!closed && <Link href="/reparaturbetriebe">{messages.navigation.business}</Link>}<Link href="/supporters">{messages.navigation.supporters}</Link>{!closed && <Link href="/mitmachen">{messages.navigation.submit}</Link>}</nav>
     {/* Eigener Knopf statt eines weiteren Navigationspunkts (Issue #33): Das
         Festival ist ein Termin mit Datum, kein Dauerthema wie "Projekt" oder
         "Geschichten" - und es faellt in der Reihe gleich aussehender Links
@@ -34,9 +35,9 @@ export async function SiteHeader() {
         Seite sind. */}
     <div className="header-actions">
       <Link className="header-festival" href="/festival"><span>{messages.navigation.festival}</span></Link>
-      <Link className="header-link" href="/stats">{messages.navigation.live}</Link>
+      <Link className="header-link" href="/stats">{closed ? messages.navigation.result : messages.navigation.live}</Link>
     </div>
-    <MobileNavigation />
+    <MobileNavigation closed={closed} />
     </header>
   </>;
 }

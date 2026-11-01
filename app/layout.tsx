@@ -7,6 +7,7 @@ import { AppBoundary } from "@/components/app-boundary";
 import { ConsentAnalytics } from "@/components/consent-analytics";
 import { ConsentBanner } from "@/components/consent-banner";
 import { ScrollReveal } from "@/components/scroll-reveal";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 
 /* Vorgaben fuer alle Seiten (Issue #67). Einzelne Seiten ueberschreiben Titel
    und Beschreibung; alles andere - Vorschaubild, Sprache, Indexierung - gilt
@@ -16,7 +17,7 @@ import { ScrollReveal } from "@/components/scroll-reveal";
    nennen deshalb nur ihr eigenes Thema - schreiben sie den Namen selbst mit
    hinein, steht er zweimal im Titel. Wo eine Seite ihn gar nicht tragen soll,
    umgeht `title: { absolute: "..." }` das Template. */
-export const metadata: Metadata = {
+const baseMetadata: Metadata = {
   // Ohne metadataBase wuerden geteilte Links und Bilder relativ bleiben.
   metadataBase: new URL(getSiteUrl() || "http://localhost:3000"),
   title: {
@@ -52,6 +53,17 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true, "max-snippet": -1, "max-image-preview": "large", "max-video-preview": -1 },
   },
 };
+
+/* Nach dem Ende laedt die Beschreibung nicht mehr zum Mitmachen ein, sondern
+   nennt das Ergebnis (lib/campaign-closed.ts). */
+export async function generateMetadata(): Promise<Metadata> {
+  if (!(await getCampaignClosed())) return baseMetadata;
+  return {
+    ...baseMetadata,
+    description: "Im Oktober 2026 hat Nordrhein-Westfalen einen Monat lang jede Reparatur gezählt – und gemeinsam den Reparatur-Weltrekord geknackt.",
+    openGraph: { ...baseMetadata.openGraph, description: "Ganz NRW hat einen Monat lang repariert und den Reparatur-Weltrekord geknackt." },
+  };
+}
 
 /* Faerbt Adressleiste und Statusleiste. Ohne diesen Wert waehlt Chrome auf
    Android selbst - im installierten Zustand wurde daraus ein dunkler Balken

@@ -69,6 +69,36 @@ export const sharepicMotifs: Record<SharepicMotif, SharepicMotifSpec> = {
 
 export const sharepicMotifOrder = Object.keys(sharepicMotifs) as SharepicMotif[];
 
+/**
+ * Die Motive nach dem Ende der Aktion (siehe `campaignClosed`).
+ *
+ * Dann bleibt nur, was zurueckblickt: Endergebnis, Rueckschau und der
+ * Countdown, der ab dem Ende "Vorbei!" zeichnet - unter neuem Namen bei den
+ * Finalmotiven. Start, Laufend und die Extras rufen zum Eintragen auf
+ * ("Unser Ziel", "Mach mit, Stadt", "Hier eintragen") und fallen weg.
+ */
+const archiveMotifs: Partial<Record<SharepicMotif, Partial<SharepicMotifSpec>>> = {
+  final: {},
+  countdown: { label: "Vorbei!", hint: "Danke an alle, die mitgemacht haben", group: "Finale" },
+  recap: {},
+  recapKreis: {},
+};
+
+/** Das Motiv so, wie das Studio es zeigt - nach dem Ende teils umbenannt. */
+export function sharepicMotifSpec(motif: SharepicMotif, closed: boolean): SharepicMotifSpec {
+  return closed ? { ...sharepicMotifs[motif], ...archiveMotifs[motif] } : sharepicMotifs[motif];
+}
+
+/** Die Motive, die das Studio anbietet - nach dem Ende nur die zum Rueckblick. */
+export function visibleSharepicMotifs(closed: boolean): SharepicMotif[] {
+  return closed ? sharepicMotifOrder.filter((motif) => motif in archiveMotifs) : sharepicMotifOrder;
+}
+
+/** Womit das Studio startet: vor dem Ende der Start, danach das Endergebnis. */
+export function defaultSharepicMotif(closed: boolean): SharepicMotif {
+  return closed ? "final" : "launch";
+}
+
 export function isSharepicMotif(value: unknown): value is SharepicMotif {
   return typeof value === "string" && value in sharepicMotifs;
 }

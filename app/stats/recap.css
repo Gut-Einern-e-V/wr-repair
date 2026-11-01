@@ -68,7 +68,7 @@
   font-weight: 800;
   line-height: .86;
   letter-spacing: -.04em;
-  /* Nur bei erreichtem Ziel die Jubelfarbe. Die Zahl soll das Ergebnis
+  /* Nur bei geknacktem Weltrekord die Jubelfarbe. Die Zahl soll das Ergebnis
      wiedergeben und nicht jedes Ergebnis gleich feiern. */
   color: #eef1f7;
   font-variant-numeric: tabular-nums;
@@ -77,11 +77,10 @@
 
 .recap-total-label { margin: 14px 0 0; color: var(--stage-dim); font-size: clamp(.95rem, 1.6vw, 1.15rem); }
 
-.recap-goal { max-width: 640px; margin: 36px auto 0; }
-.recap-goal-track { display: block; height: 10px; background: rgba(238, 241, 247, .12); }
-.recap-goal-track span { display: block; height: 100%; background: var(--stage-mint); }
-.recap-root.is-reached .recap-goal-track span { background: var(--stage-yellow); }
-.recap-goal p { margin: 12px 0 0; color: var(--stage-dim); font-size: 15px; line-height: 1.5; }
+.recap-records { display: grid; gap: 14px; max-width: 640px; margin: 36px auto 0; padding: 0; list-style: none; }
+.recap-records li { padding: 16px 20px; border: 1px solid rgba(238, 241, 247, .16); color: var(--stage-dim); font-size: 15px; line-height: 1.5; }
+.recap-records strong { display: block; margin-bottom: 4px; color: var(--stage-mint); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+.recap-root.is-reached .recap-records strong { color: var(--stage-yellow); }
 
 /* Abschnitte -------------------------------------------------------------- */
 

@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getAppSettings } from "@/lib/app-settings";
+import { campaignClosed } from "@/lib/campaign-closed";
 import { readPrizes } from "@/lib/lottery-store";
 import { totalPrizeCount } from "@/lib/prize-list";
 import { readPublicStats, timelineRange, type PublicStats } from "@/lib/public-stats";
@@ -19,7 +20,7 @@ import { SharepicCard } from "./sharepic-card";
  * und hat weder eigene Ueberschrift noch Beispielzahlen.
  */
 
-async function loadStats(): Promise<{ stats: PublicStats; prizeCount: number }> {
+async function loadStats(): Promise<{ stats: PublicStats; prizeCount: number; closed: boolean }> {
   const settings = await getAppSettings();
   const campaign = settings.submissionWindow;
   const context = {
@@ -37,7 +38,7 @@ async function loadStats(): Promise<{ stats: PublicStats; prizeCount: number }> 
   ]);
   if (statsResult.error) throw new Error(statsResult.error.message);
 
-  return { stats: readPublicStats(statsResult.data, context), prizeCount: totalPrizeCount(prizes.rows ?? []) };
+  return { stats: readPublicStats(statsResult.data, context), prizeCount: totalPrizeCount(prizes.rows ?? []), closed: campaignClosed(settings) };
 }
 
 /**
@@ -91,7 +92,7 @@ export async function renderSharepic(sharepic: SharepicRequest, { domain, cacheC
   const [fonts, logos] = await Promise.all([sharepicFonts(), sharepicLogos()]);
 
   return new ImageResponse(
-    <SharepicCard request={sharepic} stats={stats} now={now} domain={domain} logos={logos} prizeCount={loaded.prizeCount || (sharepic.demo ? 25 : 0)} recap={recap?.recap ?? null} recapKreis={recap?.kreis ?? null} />,
+    <SharepicCard request={sharepic} stats={stats} now={now} domain={domain} logos={logos} prizeCount={loaded.prizeCount || (sharepic.demo ? 25 : 0)} recap={recap?.recap ?? null} recapKreis={recap?.kreis ?? null} closed={loaded.closed} />,
     {
       width: sharepicFormats[sharepic.format].width,
       height: sharepicFormats[sharepic.format].height,

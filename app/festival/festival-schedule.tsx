@@ -39,8 +39,8 @@ export function FestivalNow({ schedule }: { schedule: readonly FestivalSlot[] })
 }
 
 function NowContent({ clock, schedule }: { clock: FestivalClock | null; schedule: readonly FestivalSlot[] }) {
-  if (!clock || clock.phase === "before") {
-    const label = !clock ? "Samstag, 11 bis 17 Uhr" : clock.daysLeft === 1 ? "Morgen geht’s los" : `Noch ${clock.daysLeft} Tage`;
+  if (clock?.phase === "before") {
+    const label = clock.daysLeft === 1 ? "Morgen geht’s los" : `Noch ${clock.daysLeft} Tage`;
     return <>
       <p className="festival-now-label">{label}</p>
       <p className="festival-now-lead">Zum Auftakt:</p>
@@ -48,11 +48,13 @@ function NowContent({ clock, schedule }: { clock: FestivalClock | null; schedule
     </>;
   }
 
-  if (clock.phase === "after" || clock.minutes >= toMinutes("17:00")) {
+  /* Ohne Uhr (Server und erster Durchlauf) gilt der Rueckblick: Das Festival
+     ist vorbei, und so steht beim Laden nicht kurz der Auftakt da. */
+  if (!clock || clock.phase === "after" || clock.minutes >= toMinutes("17:00")) {
     return <>
       <p className="festival-now-label">Danke fürs Kommen!</p>
-      <p className="festival-now-lead">Das Festival ist vorbei. Wie viele Reparaturen es geworden sind, steht in der Bilanz.</p>
-      <p className="festival-now-links"><a href="/stats">Zur Bilanz <span aria-hidden="true">&#8594;</span></a></p>
+      <p className="festival-now-lead">Das Festival ist vorbei. Wie viele Reparaturen es geworden sind, steht im Ergebnis.</p>
+      <p className="festival-now-links"><a href="/stats">Zum Ergebnis <span aria-hidden="true">&#8594;</span></a></p>
     </>;
   }
 

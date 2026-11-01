@@ -3,6 +3,7 @@ import NextImage from "next/image";
 import { PartnerLogoGrid } from "@/components/partner-logo-grid";
 import { RegionTriangle } from "@/components/region-triangle";
 import { getAppSettings } from "@/lib/app-settings";
+import { campaignClosed } from "@/lib/campaign-closed";
 import { brandPhotos } from "@/lib/brand-photos";
 import { CONTACT_EMAIL, circularWeek, mailto, operator } from "@/lib/organisation";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
@@ -27,7 +28,11 @@ export const revalidate = 3600;
    Sache im Erzaehlbogen verdient - sie hat jetzt eine eigene Seite und hier nur
    noch eine Zeile unter "Mitmachen". */
 export default async function AboutPage() {
-  const { recordGoal } = await getAppSettings();
+  const settings = await getAppSettings();
+  const { recordGoal } = settings;
+  /* Nach der Aktion erzaehlt die Seite in der Vergangenheit und nennt die
+     beiden geschlagenen Rekorde statt der Zielzahl (lib/campaign-closed.ts). */
+  const closed = campaignClosed(settings);
   return <main className="page-shell content-page">
     <SiteHeader />
 
@@ -49,11 +54,13 @@ export default async function AboutPage() {
         <p>Etwas selbst zu reparieren war einmal selbstverständlich. Heute ist Neukaufen oft schneller und billiger – und so verschwindet mit jedem weggeworfenen Gerät auch das Wissen, wie man es wieder hinbekommt.</p>
         <p>Dabei passiert Reparatur längst überall: in <Link href="/repair-cafes">Repair Cafés</Link>, in offenen Werkstätten, an Küchentischen und in Hinterhöfen. Nur zählt sie niemand.</p>
         <p>Genau das ändert ein Rekordversuch. Er gibt vielen einzelnen Handgriffen eine gemeinsame Zahl und macht daraus ein Signal: Dinge verdienen ein zweites Leben, und Reparaturwissen gehört in die Mitte der Gesellschaft.</p>
-        <p>Der Rekord ist dabei Mittel, nicht Zweck. Uns geht es nicht um einen Eintrag ins Guinness-Buch, sondern um das, was auf dem Weg dorthin entsteht – nachzulesen in den <Link href="/stories">Geschichten</Link> der Menschen, die mitmachen.</p>
-        <p>Unser Maßstab sind die dokumentierten Bestleistungen aus Großbritannien. Für Nordrhein-Westfalen haben wir uns {recordGoal.toLocaleString("de-DE")} Reparaturen vorgenommen.</p>
+        <p>Der Rekord ist dabei Mittel, nicht Zweck. Uns geht es nicht um einen Eintrag ins Guinness-Buch, sondern um das, was auf dem Weg dorthin entsteht – nachzulesen in den <Link href="/stories">Geschichten</Link> der Menschen, die {closed ? "mitgemacht haben" : "mitmachen"}.</p>
+        {closed
+          ? <p>Unser Maßstab waren die dokumentierten Bestleistungen aus Großbritannien – und beide hat Nordrhein-Westfalen übertroffen: den Rekord für die meisten Reparaturen in einem Monat und, beim Festival in Wuppertal, den für die meisten Reparaturen an einem Tag und einem Ort.</p>
+          : <p>Unser Maßstab sind die dokumentierten Bestleistungen aus Großbritannien. Für Nordrhein-Westfalen haben wir uns {recordGoal.toLocaleString("de-DE")} Reparaturen vorgenommen.</p>}
         <p className="link-row">
           <Link className="text-button" href="/#zahlen-und-fakten">Alle Rekordzahlen und Quellen <span aria-hidden="true">&#8594;</span></Link>
-          <Link className="text-button" href="/stats">Aktueller Stand <span aria-hidden="true">&#8594;</span></Link>
+          <Link className="text-button" href="/stats">{closed ? "Zum Ergebnis" : "Aktueller Stand"} <span aria-hidden="true">&#8594;</span></Link>
         </p>
       </div>
     </section>
@@ -84,7 +91,7 @@ export default async function AboutPage() {
 
     <section className="content-section contribution-grid" aria-labelledby="contribute-title">
       <div>
-        <p className="section-index">Mitmachen</p>
+        <p className="section-index">{closed ? "Weitermachen" : "Mitmachen"}</p>
         {/* Hier stand "Ein Rekord ist Gemeinschaftsarbeit." (Issue #114). Das
             Wort ist 20 Zeichen lang, die Ueberschriftenspalte dieses Rasters
             aber auch auf dem grossen Bildschirm nur knapp 500 Pixel breit -
@@ -95,20 +102,20 @@ export default async function AboutPage() {
             auch Ueberschriften getrennt, die von allein gepasst haetten. Die
             Zeile sagt jetzt dasselbe mit kuerzeren Woertern - das haelt in
             jeder Spaltenbreite. */}
-        <h2 id="contribute-title">Ein Rekord entsteht gemeinsam.</h2>
+        <h2 id="contribute-title">{closed ? "Reparieren hört nicht auf." : "Ein Rekord entsteht gemeinsam."}</h2>
       </div>
       <div>
         <ol>
-          <li><p>Eine Reparatur dokumentieren und während des Zeitraums <Link href="/mitmachen">eintragen</Link>.</p></li>
+          {!closed && <li><p>Eine Reparatur dokumentieren und während des Zeitraums <Link href="/mitmachen">eintragen</Link>.</p></li>}
           <li><p>Reparaturwissen in Werkstatt, Schule oder Nachbarschaft teilen – Einrichtungen bekommen Plakate und Material über den <a href="https://www.fab-bergisch.org/reparatur-weltrekord-in-nrw" target="_blank" rel="noreferrer">Verteiler</a>.</p></li>
           <li><p>Diese Website weiterentwickeln oder für die eigene Region nachnutzen – der Quelltext ist <Link href="/open-source">offen</Link>.</p></li>
         </ol>
         {/* Betriebe stehen nicht in der Dreierliste, weil sie nichts anderes
             tun als der erste Punkt - sie tun es nur fuer viele Menschen auf
             einmal. Ihr Weg dorthin steht deshalb daneben (Issue #114). */}
-        <p className="link-row">
+        {!closed && <p className="link-row">
           <Link className="text-button" href="/reparaturbetriebe">Für Reparaturbetriebe <span aria-hidden="true">&#8594;</span></Link>
-        </p>
+        </p>}
       </div>
     </section>
 
