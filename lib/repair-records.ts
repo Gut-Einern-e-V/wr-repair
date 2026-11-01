@@ -102,13 +102,12 @@ export function recordMargin(total: number | null | undefined, record: number): 
 
 export type FaqEntry = { question: string; answer: string; link?: { href: string; label: string } };
 
-/** Die Fragen nach dem Ende der Aktion: Rueckblick statt Anleitung. */
+/**
+ * Die Fragen nach dem Ende der Aktion: Rueckblick statt Anleitung. Die
+ * Rekorde und der Guinness-Hinweis fehlen hier mit Absicht - beides steht auf
+ * der Startseite schon in "Zahlen und Fakten".
+ */
 export const closedFaqEntries: FaqEntry[] = [
-  {
-    question: "Welche Rekorde hat NRW geknackt?",
-    answer: `Zwei: Im Oktober 2026 wurden in Nordrhein-Westfalen mehr Reparaturen in einem Monat gezählt als die bisherige Bestmarke von ${MONTH_RECORD.toLocaleString("de-DE")} aus Großbritannien. Und am Festivaltag in Wuppertal kamen an einem Ort mehr als die bisherigen ${DAY_PLACE_RECORD.toLocaleString("de-DE")} Reparaturen an einem Tag zusammen.`,
-    link: { href: "/stats", label: "Zum Ergebnis" },
-  },
   {
     question: "Kann ich noch eine Reparatur eintragen?",
     answer: "Nein, der Einreichungszeitraum ist beendet. Reparieren lohnt sich natürlich weiterhin – Hilfe gibt es in Repair Cafés und offenen Werkstätten in ganz NRW.",
@@ -126,10 +125,6 @@ export const closedFaqEntries: FaqEntry[] = [
   {
     question: "Was passiert mit meinem Foto und meinen Daten?",
     answer: "Fotos bleiben nur veröffentlicht, wenn du zugestimmt hast. Orte zeigen wir nie punktgenau auf einer Karte. Soll ein Foto verschwinden, schreib uns – wir löschen es, und die Reparatur zählt trotzdem weiter. Details stehen in der Datenschutzerklärung.",
-  },
-  {
-    question: "Ist das ein Guinness-Weltrekord?",
-    answer: "Nein. Uns ging es nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als echte Alternative zum Neukauf zu stärken.",
   },
 ];
 
