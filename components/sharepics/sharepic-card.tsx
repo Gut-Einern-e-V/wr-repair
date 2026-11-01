@@ -3,6 +3,7 @@ import { categoryPictogramSvg } from "@/components/category-pictogram";
 import { posterCopy } from "@/lib/poster";
 import { successShare, type PublicStats } from "@/lib/public-stats";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
+import { MONTH_RECORD, recordMargin } from "@/lib/repair-records";
 import type { SharepicLogos } from "./logos";
 import { shareVisualGrounds, type GroundSpec } from "@/lib/share-visual";
 import {
@@ -59,6 +60,8 @@ export type SharepicInput = {
   recapKreis: string | null;
   /** Die Foerderlogos in Graustufen, als data-URLs (siehe logos.ts). */
   logos: SharepicLogos;
+  /** Aktion vorbei (siehe `campaignClosed`): Die Fusszeile ruft nicht mehr zum Mitmachen auf. */
+  closed?: boolean;
 };
 
 const ink = "#101626";
@@ -577,16 +580,17 @@ function kit(format: SharepicFormat, lang: SharepicLanguage) {
         };
 
       case "final": {
-        const reached = stats.total >= stats.goal;
+        /* Gemessen am Weltrekord, nicht am eigenen Ziel (siehe `recordMargin`). */
+        const margin = recordMargin(stats.total, MONTH_RECORD);
         const tileWidth = Math.floor((INNER - px(24)) / 2);
         return {
-          headline: reached ? t("Ziel|erreicht!", "Goal|reached!").split("|") : [t("Danke, NRW!", "Thank you, NRW!")],
+          headline: margin !== null ? t("Weltrekord|geknackt!", "World record|broken!").split("|") : [t("Danke, NRW!", "Thank you, NRW!")],
           body: <div style={{ ...flexCol, gap: px(40) }}>
             <div style={{ ...flexCol, gap: px(4) }}>
               {period && <Kicker ground={ground}>{period}</Kicker>}
               <BigNumber value={count(stats.total)} size={240} color={ground.text} />
               <Text size={56} weight={900}>{t("Reparaturen", "repairs")}</Text>
-              <Text size={40} weight={700} color={ground.muted}>{t(`${goalPercent(stats.total, stats.goal)} % vom Ziel (${count(stats.goal)})`, `${goalPercent(stats.total, stats.goal)}% of the goal (${count(stats.goal)})`)}</Text>
+              {margin !== null && <Text size={40} weight={700} color={ground.muted}>{t(`${count(margin)} mehr als der alte Weltrekord (${count(MONTH_RECORD)})`, `${count(margin)} more than the old world record (${count(MONTH_RECORD)})`)}</Text>}
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: px(24) }}>
               <Tile ground={ground} width={tileWidth} label={t("Stunden", "Hours")} value={formatHours(stats.minutesSaved, lang)} sub={t("repariert", "repaired")} />
@@ -742,7 +746,7 @@ export function SharepicCard(input: SharepicInput) {
       <div style={{ ...flexCol, gap: px(10) }}>
         {live && <div style={{ display: "flex", fontSize: px(28), fontWeight: 700, color: ground.muted }}>{formatStand(now, request.lang)}</div>}
         <div style={{ ...flexRow, gap: px(18), flexWrap: "wrap", fontSize: px(44), fontWeight: 900 }}>
-          <span>{cta ?? t("Mach mit:", "Join in:")}</span>
+          <span>{cta ?? (input.closed ? t("Mehr:", "More:") : t("Mach mit:", "Join in:"))}</span>
           <div style={{ display: "flex", padding: "2px 18px 8px", background: request.ground === "ink" ? yellow : ink, color: request.ground === "ink" ? ink : bg, transform: "rotate(-1deg)" }}>{`${domain}${path}`}</div>
         </div>
         {input.logos.length > 0 && <div style={{ ...flexCol, marginTop: px(18) }}><FundingStrip logos={input.logos} /></div>}

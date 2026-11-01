@@ -12,6 +12,8 @@ import {
   parseSharepicRequest,
   publicSharepicQuery,
   rankEntries,
+  sharepicMotifSpec,
+  visibleSharepicMotifs,
 } from "./sharepics";
 
 const start = "2026-09-30T22:00:00.000Z"; // 1. Oktober, 0 Uhr in Berlin
@@ -170,5 +172,21 @@ describe("Anfrage der Rueckschau", () => {
   it("faellt bei unbekannten Angaben auf die Vorgabe zurueck", () => {
     const request = parse("motif=recap&period=jahr&view=torte");
     expect([request.period, request.view]).toEqual(["week", "total"]);
+  });
+});
+
+describe("Motive nach dem Ende", () => {
+  it("bietet vorher alle Motive an", () => {
+    expect(visibleSharepicMotifs(false)).toContain("launch");
+    expect(visibleSharepicMotifs(false)).toContain("howto");
+  });
+
+  it("laesst danach nur den Rueckblick stehen", () => {
+    expect(visibleSharepicMotifs(true)).toEqual(["countdown", "recap", "recapKreis", "final"]);
+  });
+
+  it("fuehrt den Countdown danach als \"Vorbei!\" bei den Finalmotiven", () => {
+    expect(sharepicMotifSpec("countdown", true)).toMatchObject({ label: "Vorbei!", group: "Finale" });
+    expect(sharepicMotifSpec("countdown", false).group).toBe("Laufend");
   });
 });

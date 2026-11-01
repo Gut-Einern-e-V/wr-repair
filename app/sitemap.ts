@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getStoryTeasers } from "@/lib/stories";
 import { getSiteUrl } from "@/lib/share";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 
 /**
  * Sitemap der oeffentlichen Seiten (Issue #67).
@@ -56,7 +57,7 @@ const staticPages: StaticEntry[] = [
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl() || "http://localhost:3000";
-  const stories = await getStoryTeasers();
+  const [stories, closed] = await Promise.all([getStoryTeasers(), getCampaignClosed()]);
   /* Ohne eigenes Datum fuer die statischen Seiten: das juengste
      Veroeffentlichungsdatum ist die beste Angabe, die ohne Buildzeitstempel zu
      haben ist - und ein Zeitstempel aus dem Build wuerde bei jedem Deploy alle
@@ -64,7 +65,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const latestStory = stories[0]?.date;
 
   return [
-    ...staticPages.map((page) => ({
+    /* Nach dem Ende leiten diese beiden Seiten auf die Startseite um und
+       gehoeren nicht mehr in den Index. */
+    ...staticPages.filter((page) => !closed || (page.path !== "/mitmachen" && page.path !== "/reparaturbetriebe")).map((page) => ({
       url: `${siteUrl}${page.path}`,
       ...(latestStory ? { lastModified: latestStory } : {}),
       changeFrequency: page.changeFrequency,

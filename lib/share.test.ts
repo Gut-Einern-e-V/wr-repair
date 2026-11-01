@@ -42,4 +42,10 @@ describe("share links", () => {
     expect(buildShareText("Fahrrad")).toContain("Fahrrad");
     expect(buildShareText()).toContain("Reparaturrekord NRW");
   });
+
+  it("stops calling to join in once the campaign is closed", () => {
+    expect(buildShareText("Fahrrad")).toContain("Mach mit");
+    expect(buildShareText("Fahrrad", true)).not.toContain("Mach mit");
+    expect(buildShareText("Fahrrad", true)).toContain("dabei");
+  });
 });

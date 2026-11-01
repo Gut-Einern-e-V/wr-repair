@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { categoryPictogramSvg } from "@/components/category-pictogram";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 import { getPublicRepairStatus } from "@/lib/repair-status";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 
@@ -31,7 +32,7 @@ function pictogramDataUri(category: string) {
   return `data:image/svg+xml;base64,${Buffer.from(categoryPictogramSvg(category, "#101626", 240)).toString("base64")}`;
 }
 export default async function RepairShareImage({ params }: ImageProps) {
-  const repair = await getPublicRepairStatus((await params).id);
+  const [repair, closed] = await Promise.all([getPublicRepairStatus((await params).id), getCampaignClosed()]);
   const isApproved = repair?.status === "approved";
   const headline = isApproved ? repairCategoryLabel(repair.category) : "Reparatur";
 
@@ -72,7 +73,7 @@ export default async function RepairShareImage({ params }: ImageProps) {
             <div style={{ display: "flex", padding: "8px 22px", background: "#ffc432", fontSize: 56, fontWeight: 800 }}>{headline}</div>
           </div>
         </div>
-        <div style={{ display: "flex", fontSize: 30, fontWeight: 600 }}>Mach mit und trage deine Reparatur ein.</div>
+        <div style={{ display: "flex", fontSize: 30, fontWeight: 600 }}>{closed ? "Teil des Reparaturrekords NRW." : "Mach mit und trage deine Reparatur ein."}</div>
       </div>
     ),
     {

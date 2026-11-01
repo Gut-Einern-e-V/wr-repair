@@ -1,26 +1,36 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { FundingLogos } from "@/components/funding-strip";
 import { PartnerLogoGrid } from "@/components/partner-logo-grid";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 import { CONTACT_EMAIL, circularWeek, mailto, operator, projectCredits } from "@/lib/organisation";
 import { ministry } from "@/lib/funding";
 
 const CONTACT = mailto(CONTACT_EMAIL, "Reparaturrekord NRW unterstützen");
 
-export const metadata = {
-  title: "Unterstützung",
-  description:
-    "Danke an alle, die den Reparaturrekord NRW mittragen – und eine Einladung an alle, die dazukommen möchten: mit einem Preis fürs Gewinnspiel, mit Reichweite, Räumen oder Material.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  return {
+    title: "Unterstützung",
+    description: await getCampaignClosed()
+      ? "Danke an alle, die den Reparaturrekord NRW mitgetragen haben: Partnerorganisationen, Förderung und alle, die mit Preisen, Reichweite, Räumen oder Material geholfen haben."
+      : "Danke an alle, die den Reparaturrekord NRW mittragen – und eine Einladung an alle, die dazukommen möchten: mit einem Preis fürs Gewinnspiel, mit Reichweite, Räumen oder Material.",
+  };
+}
 
 /* Weil die Foerderlogos hier gross im Inhalt stehen, laesst diese Seite die
    Foerderleiste im Footer weg. Die Logos kommen aus lib/funding.ts, dieselbe
    Quelle wie im Footer. */
 
-export default function SupportersPage() {
+/* Nach der Aktion bleibt der Dank, die Bitten um Unterstuetzung fallen weg
+   (lib/campaign-closed.ts). */
+export default async function SupportersPage() {
+  const closed = await getCampaignClosed();
   return <main className="page-shell content-page">
     <SiteHeader />
-    <section id="inhalt" className="content-hero" aria-labelledby="supporters-title"><p className="brand-kicker">Unterstützung</p><h1 className="sticker-head is-mint" id="supporters-title"><span className="sticker">Reparatur braucht</span><span className="sticker">Rückenwind</span></h1><p>Der Weltrekordversuch verbindet Menschen, Orte und Wissen. Er gehört zur <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>; diese Partnerorganisationen tragen ihn in der Region mit.</p></section>
+    <section id="inhalt" className="content-hero" aria-labelledby="supporters-title"><p className="brand-kicker">Unterstützung</p><h1 className="sticker-head is-mint" id="supporters-title"><span className="sticker">Reparatur braucht</span><span className="sticker">Rückenwind</span></h1>{closed
+      ? <p>Der Weltrekordversuch hat Menschen, Orte und Wissen verbunden. Er gehörte zur <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>; diese Partnerorganisationen haben ihn in der Region mitgetragen.</p>
+      : <p>Der Weltrekordversuch verbindet Menschen, Orte und Wissen. Er gehört zur <a href={circularWeek.url} target="_blank" rel="noreferrer">{circularWeek.name}</a>; diese Partnerorganisationen tragen ihn in der Region mit.</p>}</section>
     {/* Die Logowand hatte nur ein `aria-label` und darueber kein Wort (Issue
         #114). Was hier fehlte, war das Naheliegendste: der Dank. */}
     <section className="content-section" aria-labelledby="partners-title">
@@ -28,7 +38,9 @@ export default function SupportersPage() {
         <div>
           <p className="section-index">Danke</p>
           <h2 id="partners-title">Ohne diese Häuser bliebe es eine Idee.</h2>
-          <p className="section-lead">Sie stellen Räume, Werkzeug, Reichweite und Preise für das Gewinnspiel – und sie tun das, weil ihnen Reparatur genauso wichtig ist wie uns. Dafür ein großes Dankeschön.</p>
+          {closed
+            ? <p className="section-lead">Sie haben Räume, Werkzeug, Reichweite und Preise für das Gewinnspiel gestellt – weil ihnen Reparatur genauso wichtig ist wie uns. Dafür ein großes Dankeschön.</p>
+            : <p className="section-lead">Sie stellen Räume, Werkzeug, Reichweite und Preise für das Gewinnspiel – und sie tun das, weil ihnen Reparatur genauso wichtig ist wie uns. Dafür ein großes Dankeschön.</p>}
         </div>
       </div>
       <PartnerLogoGrid />
@@ -61,7 +73,21 @@ export default function SupportersPage() {
         ohne Weg hinein liest sich wie ein geschlossener Kreis. Die vier Wege
         sind die, nach denen wirklich gefragt wird - fuer alles andere steht
         die Adresse darunter. */}
-    <section className="content-section two-column-copy" aria-labelledby="join-title">
+    {closed
+      ? <section className="content-section two-column-copy" aria-labelledby="join-title">
+          <div>
+            <p className="section-index">Danke</p>
+            <h2 id="join-title">Danke an alle, die mitgetragen haben.</h2>
+          </div>
+          <div>
+            <p>Ein Rekord lebt davon, dass viele ein kleines Stück beitragen: mit Preisen für das Gewinnspiel, mit Reichweite, mit Räumen, Werkbänken, Ersatzteilen und Verpflegung für Helfende. Ohne all das stünde in Nordrhein-Westfalen heute kein Weltrekord.</p>
+            <p>Ihr habt eine Idee, wie es mit Reparatur in NRW weitergeht? Schreibt uns.</p>
+            <p className="link-row">
+              <a className="text-button" href={CONTACT}>{CONTACT_EMAIL} <span aria-hidden="true">&#8594;</span></a>
+            </p>
+          </div>
+        </section>
+      : <section className="content-section two-column-copy" aria-labelledby="join-title">
       <div>
         <p className="section-index">Mithelfen</p>
         <h2 id="join-title">Ihr möchtet dazugehören?</h2>
@@ -80,7 +106,7 @@ export default function SupportersPage() {
           <a className="text-button" href={CONTACT}>{CONTACT_EMAIL} <span aria-hidden="true">&#8594;</span></a>
         </p>
       </div>
-    </section>
+    </section>}
     <section className="funding-note" aria-labelledby="funding-title">
       <p className="section-index">Förderhinweis</p>
       <h2 id="funding-title">Gefördert vom Umweltministerium NRW.</h2>

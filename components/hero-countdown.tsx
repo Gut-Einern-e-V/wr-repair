@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { campaignPhaseAt, type CampaignDates } from "@/lib/campaign-phase";
+import { MONTH_RECORD, recordMargin } from "@/lib/repair-records";
 
 export type HeroCountdownProps = {
   campaign: CampaignDates;
-  /** Endstand und Ziel, sobald sie geladen sind - fuer die Bilanz nach dem Ende. */
+  /** Endstand, sobald er geladen ist - fuer die Bilanz nach dem Ende. */
   total: number | null;
-  goal: number | null;
 };
 
 type CountdownParts = { days: number; hours: number; minutes: number; seconds: number };
@@ -40,7 +40,7 @@ const dateFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "long" });
  * Uhr, deshalb kann `now` gefahrlos mit 0 starten und Server und erster
  * Browser-Durchlauf zeigen dasselbe.
  */
-export function HeroCountdown({ campaign, total, goal }: HeroCountdownProps) {
+export function HeroCountdown({ campaign, total }: HeroCountdownProps) {
   const [now, setNow] = useState(0);
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export function HeroCountdown({ campaign, total, goal }: HeroCountdownProps) {
   if (phase === "after") {
     return <div className="hero-countdown is-done">
       <p className="hero-countdown-label">Reparaturphase beendet</p>
-      <p className="hero-countdown-result">{resultLine(total, goal)}</p>
+      <p className="hero-countdown-result">{resultLine(total)}</p>
       <p className="hero-countdown-note">
         {campaign.endAt
           ? <>Letzter Eintrag: <time dateTime={campaign.endAt}>{dateFormat.format(new Date(campaign.endAt))}</time>. Danke an alle, die mitgemacht haben.</>
@@ -105,16 +105,15 @@ export function HeroCountdown({ campaign, total, goal }: HeroCountdownProps) {
 }
 
 /**
- * Die eine Zeile, die nach dem Ende zaehlt: Ist das Ziel gefallen oder nicht?
+ * Die eine Zeile, die nach dem Ende zaehlt: Ist der Weltrekord gefallen?
  *
- * Solange die Zahlen noch laden, bleibt es bei der neutralen Aussage - eine
- * Ueberschrift, die von "Ziel knapp verfehlt" auf "Ziel geknackt" springt,
- * sobald die Antwort da ist, waere schlimmer als eine Sekunde ohne Wertung.
+ * Gemessen wird an der Monatsbestmarke, nicht am eigenen Ziel - ein Prozentwert
+ * unter 100 neben einem geknackten Weltrekord liest sich wie eine Niederlage.
+ * Solange die Zahlen noch laden, bleibt es bei der neutralen Aussage.
  */
-function resultLine(total: number | null, goal: number | null) {
-  if (total === null || !goal) return "Alle Reparaturen sind gezählt.";
-  if (total >= goal) return `Ziel geknackt: ${total.toLocaleString("de-DE")} von ${goal.toLocaleString("de-DE")} Reparaturen.`;
-
-  const percent = Math.round((total / goal) * 100);
-  return `${percent} % des Ziels: ${total.toLocaleString("de-DE")} von ${goal.toLocaleString("de-DE")} Reparaturen.`;
+function resultLine(total: number | null) {
+  if (total === null) return "Alle Reparaturen sind gezählt.";
+  const margin = recordMargin(total, MONTH_RECORD);
+  if (margin !== null) return `Weltrekord geknackt: ${total.toLocaleString("de-DE")} Reparaturen, ${margin.toLocaleString("de-DE")} mehr als die alte Bestmarke.`;
+  return `${total.toLocaleString("de-DE")} Reparaturen gezählt.`;
 }

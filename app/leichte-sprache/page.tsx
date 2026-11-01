@@ -1,13 +1,14 @@
 import { Fragment } from "react";
 import Link from "next/link";
 import { getAppSettings } from "@/lib/app-settings";
+import { campaignClosed } from "@/lib/campaign-closed";
 import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { QuickSubmission } from "@/app/mitmachen/quick-submission";
 
 export const metadata = {
   title: "Leichte Sprache",
   description:
-    "Der Reparaturrekord NRW in Leichter Sprache: Worum es geht, wie du mitmachst, wo du Hilfe beim Reparieren findest und an wen du dich wendest, wenn etwas nicht funktioniert.",
+    "Der Reparaturrekord NRW in Leichter Sprache: Worum es geht, wo du Hilfe beim Reparieren findest und an wen du dich wendest, wenn etwas nicht funktioniert.",
 };
 
 /* Die Zielzahl ist im Backend einstellbar (Issue #74) und steht auch hier.
@@ -38,7 +39,11 @@ export const revalidate = 3600;
  * nach der ersten Aenderung falsch.
  */
 export default async function EasyLanguagePage() {
-  const { recordGoal } = await getAppSettings();
+  const settings = await getAppSettings();
+  const { recordGoal } = settings;
+  /* Nach der Aktion: Rueckblick statt Mitmachen, kein Formular
+     (lib/campaign-closed.ts). */
+  const closed = campaignClosed(settings);
 
   return <main className="easy-shell" data-reveal="off">
     <a className="skip-link" href="#inhalt">Zum Inhalt springen</a>
@@ -56,7 +61,7 @@ export default async function EasyLanguagePage() {
         <p>Diese <W>Internet·seite</W> ist vom <W>Reparatur·rekord</W> NRW.</p>
         <p>NRW ist die Abkürzung für Nordrhein-Westfalen.</p>
         <p>Nordrhein-Westfalen ist ein <W>Bundes·land</W> in Deutschland.</p>
-        <p>Wir sammeln Reparaturen.</p>
+        <p>{closed ? "Wir haben Reparaturen gesammelt." : "Wir sammeln Reparaturen."}</p>
         <p className="easy-define">Eine Reparatur ist:<br />Etwas ist kaputt.<br />Jemand macht es wieder heil.</p>
         <p>Ein Beispiel:</p>
         <p>Ein Stuhl wackelt.</p>
@@ -66,13 +71,28 @@ export default async function EasyLanguagePage() {
       </section>
 
       <section aria-labelledby="easy-why">
-        <h2 id="easy-why">Warum machen wir das?</h2>
-        <p>Wir wollen einen <W>Welt·rekord</W> aufstellen.</p>
-        <p className="easy-define">Ein <W>Welt·rekord</W> ist:<br />Die beste Leistung auf der ganzen Welt.</p>
-        <p>Unser Ziel sind {recordGoal.toLocaleString("de-DE")} Reparaturen.</p>
-        <p>Das ist eine sehr große Zahl.</p>
-        <p>Alle Reparaturen zusammen zählen.</p>
-        <p>Auch deine Reparatur zählt.</p>
+        {closed
+          ? <>
+              <h2 id="easy-why">Wir haben einen <W>Welt·rekord</W> aufgestellt</h2>
+              <p className="easy-define">Ein <W>Welt·rekord</W> ist:<br />Die beste Leistung auf der ganzen Welt.</p>
+              <p>Im Oktober 2026 haben Menschen in NRW sehr viele Sachen repariert.</p>
+              <p>So viele Reparaturen in einem Monat gab es noch nie.</p>
+              <p>Das ist ein <W>Welt·rekord</W>.</p>
+              <p>Am 31. Oktober war ein Fest in Wuppertal.</p>
+              <p>Dort haben Menschen an einem Tag sehr viele Sachen repariert.</p>
+              <p>Auch das gab es noch nie.</p>
+              <p>Das ist noch ein <W>Welt·rekord</W>.</p>
+              <p>Danke an alle, die mitgemacht haben.</p>
+            </>
+          : <>
+              <h2 id="easy-why">Warum machen wir das?</h2>
+              <p>Wir wollen einen <W>Welt·rekord</W> aufstellen.</p>
+              <p className="easy-define">Ein <W>Welt·rekord</W> ist:<br />Die beste Leistung auf der ganzen Welt.</p>
+              <p>Unser Ziel sind {recordGoal.toLocaleString("de-DE")} Reparaturen.</p>
+              <p>Das ist eine sehr große Zahl.</p>
+              <p>Alle Reparaturen zusammen zählen.</p>
+              <p>Auch deine Reparatur zählt.</p>
+            </>}
         <p>Warum ist uns das wichtig?</p>
         <p>Viele Sachen landen im Müll.</p>
         <p>Dabei sind die Sachen nur ein bisschen kaputt.</p>
@@ -85,7 +105,7 @@ export default async function EasyLanguagePage() {
         <p>Mit dem Rekord wird es sichtbar.</p>
       </section>
 
-      <section aria-labelledby="easy-steps">
+      {!closed && <section aria-labelledby="easy-steps">
         <h2 id="easy-steps">So machst du mit</h2>
         <ol className="easy-steps">
           <li>Du reparierst etwas.</li>
@@ -106,9 +126,9 @@ export default async function EasyLanguagePage() {
         <p>Du musst in Nordrhein-Westfalen reparieren.</p>
         <p>Im Formular kannst du auch beim <W>Gewinn·spiel</W> mitmachen.</p>
         <p>Dann kannst du etwas gewinnen.</p>
-      </section>
+      </section>}
 
-      <section aria-labelledby="easy-form">
+      {!closed && <section aria-labelledby="easy-form">
         <h2 id="easy-form">Hier trägst du deine Reparatur ein</h2>
         <p className="easy-warning">Achtung:<br />Das Formular ist nicht in Leichter Sprache.</p>
         <p>Brauchst du Hilfe beim Ausfüllen?</p>
@@ -117,7 +137,7 @@ export default async function EasyLanguagePage() {
         <div className="easy-form">
           <QuickSubmission />
         </div>
-      </section>
+      </section>}
 
       <section aria-labelledby="easy-help">
         <h2 id="easy-help">Du brauchst Hilfe beim Reparieren?</h2>
@@ -134,7 +154,7 @@ export default async function EasyLanguagePage() {
         <p>Dort repariert sie ein <W>Fach·betrieb</W>.</p>
         <p className="easy-define">Ein <W>Fach·betrieb</W> ist:<br />Eine Firma.<br />Dort reparieren Menschen als Beruf.</p>
         <p>Das kostet meistens Geld.</p>
-        <p>Diese Reparatur zählt auch zum Rekord.</p>
+        {!closed && <p>Diese Reparatur zählt auch zum Rekord.</p>}
       </section>
 
       <section aria-labelledby="easy-navigation">
@@ -145,11 +165,15 @@ export default async function EasyLanguagePage() {
         <p>Diese Seiten gibt es:</p>
         <ul className="easy-pages">
           <li><Link href="/">Start·seite</Link><br />Hier steht das Wichtigste über den Rekord.</li>
-          <li><Link href="/stats">Live-Stand</Link><br />Hier siehst du: So viele Reparaturen sind schon gezählt.</li>
-          <li><Link href="/mitmachen">Einreichen</Link><br />Hier trägst du deine Reparatur ein.</li>
+          {closed
+            ? <li><Link href="/stats">Ergebnis</Link><br />Hier siehst du: So viele Reparaturen haben wir gezählt.</li>
+            : <>
+                <li><Link href="/stats">Live-Stand</Link><br />Hier siehst du: So viele Reparaturen sind schon gezählt.</li>
+                <li><Link href="/mitmachen">Einreichen</Link><br />Hier trägst du deine Reparatur ein.</li>
+              </>}
           <li><Link href="/stories">Geschichten</Link><br />Hier erzählen Menschen von ihrer Reparatur.</li>
           <li><Link href="/repair-cafes">Repair Cafés</Link><br />Hier findest du Hilfe beim Reparieren.</li>
-          <li><Link href="/reparaturbetriebe">Für <W>Reparatur·betriebe</W></Link><br />Hier steht: So machen Läden und Werkstätten mit.</li>
+          {!closed && <li><Link href="/reparaturbetriebe">Für <W>Reparatur·betriebe</W></Link><br />Hier steht: So machen Läden und Werkstätten mit.</li>}
           <li><Link href="/about">Projekt</Link><br />Hier steht, wer wir sind.</li>
         </ul>
       </section>

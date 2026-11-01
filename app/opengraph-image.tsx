@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { circularWeek } from "@/lib/organisation";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 
 /**
  * Vorschaubild fuer geteilte Links (Issue #67).
@@ -25,7 +26,10 @@ const YELLOW = "#ffc432";
 
 /* ImageResponse kennt keine Standardschrift mit Umlauten in Wunschqualitaet,
    aber Satzbau und Zeichen hier sind einfach genug fuer die eingebaute. */
-export default function OpengraphImage() {
+export default async function OpengraphImage() {
+  /* Nach dem Ende ist der Aufruf zum Einreichen falsch - dann steht das
+     Ergebnis in der Zeile. */
+  const closed = await getCampaignClosed();
   return new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", background: BG, padding: "56px 64px", border: `12px solid ${INK}` }}>
@@ -45,13 +49,13 @@ export default function OpengraphImage() {
               Wortmarke darueber. Rot ist im Projekt fuer Fehler und
               Ablehnungen reserviert und traegt laut Styleguide keinen
               Fliesstext (design.md, Abschnitt 4). */}
-          {["Gemeinsam zum", "Reparatur-", "Weltrekord"].map((line) => (
+          {(closed ? ["Gemeinsam den", "Reparatur-Weltrekord", "geknackt"] : ["Gemeinsam zum", "Reparatur-", "Weltrekord"]).map((line) => (
             <div key={line} style={{ display: "flex", background: MINT, color: INK, padding: "6px 18px", fontSize: 72, fontWeight: 700, lineHeight: 1.05 }}>{line}</div>
           ))}
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", color: INK, fontSize: 28 }}>
-          <span style={{ maxWidth: 760 }}>Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein.</span>
+          <span style={{ maxWidth: 760 }}>{closed ? "Ganz NRW hat gezeigt, was noch funktioniert. Danke an alle!" : "Ganz NRW zeigt, was noch funktioniert. Reiche deine Reparatur ein."}</span>
           <span style={{ fontSize: 22, letterSpacing: 2, textTransform: "uppercase" }}>{circularWeek.name}</span>
         </div>
       </div>

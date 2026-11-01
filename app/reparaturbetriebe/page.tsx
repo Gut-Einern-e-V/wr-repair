@@ -3,6 +3,8 @@ import NextImage from "next/image";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { brandPhotos } from "@/lib/brand-photos";
 import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
+import { redirect } from "next/navigation";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 
 const CONTACT = mailto(CONTACT_EMAIL, "Reparaturrekord NRW - Betrieb");
 
@@ -28,7 +30,12 @@ export const metadata = {
  * die Rekordzahl selbst gilt das nicht: Eine echte Reparatur zaehlt, egal wer
  * sie eintraegt. Nur eben einmal.
  */
-export default function RepairBusinessPage() {
+/* Nach dem Ende der Aktion gibt es hier nichts mehr zu tun - alte QR-Codes und
+   Links landen auf der Startseite mit dem Ergebnis. Mit einem neuen Zeitraum
+   ist die Seite wieder da (lib/campaign-closed.ts). */
+export default async function RepairBusinessPage() {
+  if (await getCampaignClosed()) redirect("/");
+
   return <main className="page-shell content-page">
     <SiteHeader />
 
