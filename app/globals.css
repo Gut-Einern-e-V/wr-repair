@@ -187,7 +187,6 @@ h2 { margin-bottom: 0; font-size: clamp(2rem, 4vw, 3.6rem); line-height: .96; le
 @media (max-width: 720px) { .category-card { min-height: 108px; }.category-card strong { font-size: 17px; }.supporter-card { min-height: 132px; padding: 18px; } }
 
 .page-shell { position: relative; isolation: isolate; }
-.page-shell::before { content: ""; position: fixed; z-index: -1; inset: 0; opacity: .35; pointer-events: none; background-image: linear-gradient(90deg, rgba(16, 22, 38, 0.055) 1px, transparent 1px), linear-gradient(0deg, rgba(16, 22, 38, 0.055) 1px, transparent 1px), repeating-linear-gradient(135deg, transparent 0 36px, rgba(255, 196, 50, 0.16) 36px 38px); background-size: 42px 42px, 42px 42px, 180px 180px; animation: workshop-grid 24s linear infinite; }
 .participation-section { max-width: 1240px; margin: 0 auto; padding: 76px 24px; border-bottom: var(--line); background: rgba(255, 196, 50, 0.14); }.participation-heading { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 28px 50px; margin-bottom: 36px; }.participation-heading .section-index { grid-column: 1 / -1; margin-bottom: 0; }.participation-heading h2 { max-width: 560px; }.participation-heading > p:last-child { max-width: 520px; margin: 4px 0 0; font-size: 18px; line-height: 1.5; }.participation-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: var(--line); border-right: 0; border-bottom: 0; }.participation-options article { min-height: 220px; border-right: var(--line); border-bottom: var(--line); background: var(--paper); }.participation-options p { line-height: 1.45; }
 
 .project-hero { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(260px, .85fr); gap: 36px; align-items: stretch; }.project-hero-visual { position: relative; min-height: 320px; overflow: hidden; border: var(--line); background: repeating-linear-gradient(135deg, transparent 0 18px, rgba(16, 22, 38, 0.12) 18px 20px), var(--mint); }.project-facts, .project-supporters { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 50px; }.project-facts > div:last-child { max-width: 620px; font-size: 17px; line-height: 1.5; }.project-facts .text-button { display: inline-block; margin-top: 10px; }.project-supporters > div:first-child > p:not(.section-index) { max-width: 420px; margin-top: 20px; line-height: 1.45; }.project-contact-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; }
@@ -195,7 +194,7 @@ h2 { margin-bottom: 0; font-size: clamp(2rem, 4vw, 3.6rem); line-height: .96; le
 
 .steps li { position: relative; min-height: 190px; padding-top: 72px; }.steps .step-number { position: absolute; top: 17px; left: 15px; display: grid; place-items: center; width: 40px; height: 40px; border: var(--line); border-radius: 50%; background: var(--yellow); color: var(--ink); font: 500 11px var(--mono); }.steps li:nth-child(2) .step-number { background: var(--green); }.steps li:nth-child(3) .step-number { background: var(--blue); color: var(--paper); }
 
-@media (max-width: 720px) { .page-shell::before { animation-duration: 36s; background-size: 30px 30px, 30px 30px, 140px 140px; }.participation-section { padding: 52px 16px; }.participation-heading, .participation-options, .project-hero, .project-facts, .project-supporters { grid-template-columns: 1fr; gap: 26px; }.participation-options article { min-height: 0; grid-template-columns: 88px minmax(0, 1fr); column-gap: 14px; padding: 16px; }.participation-photo { width: 88px; height: 88px; }.project-hero-visual { min-height: 240px; }.project-supporters { padding-top: 52px; padding-bottom: 52px; }.steps li { min-height: 100px; padding: 18px 15px 18px 72px; }.steps .step-number { top: 50%; left: 15px; transform: translateY(-50%); }.steps p { margin: 0; } }
+@media (max-width: 720px) {.participation-section { padding: 52px 16px; }.participation-heading, .participation-options, .project-hero, .project-facts, .project-supporters { grid-template-columns: 1fr; gap: 26px; }.participation-options article { min-height: 0; grid-template-columns: 88px minmax(0, 1fr); column-gap: 14px; padding: 16px; }.participation-photo { width: 88px; height: 88px; }.project-hero-visual { min-height: 240px; }.project-supporters { padding-top: 52px; padding-bottom: 52px; }.steps li { min-height: 100px; padding: 18px 15px 18px 72px; }.steps .step-number { top: 50%; left: 15px; transform: translateY(-50%); }.steps p { margin: 0; } }
 .gallery-mini-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; border: var(--line); border-right: 0; border-bottom: 0; }
 .gallery-mini-card { min-width: 0; border-right: var(--line); border-bottom: var(--line); background: var(--bg); }
 .gallery-mini-card > img, .gallery-placeholder { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
@@ -292,16 +291,21 @@ select:focus-visible, textarea:focus-visible {
 .icon-button { background: var(--yellow); }
 .mobile-nav-toggle { background: var(--yellow); }
 
-/* --- Papier-Grundflaeche statt technischem Raster ---------- */
-.page-shell::before {
-  background-image:
+/* --- Papier-Grundflaeche statt technischem Raster ----------
+   Die Struktur liegt als gewoehnlicher Hintergrund auf `.page-shell` und
+   scrollt mit. Bis Issue #174 lag sie in einem `position: fixed`-Pseudo-
+   element mit `z-index: -1`, das endlos driftete: WebKit musste dafuer die
+   ganze, seitenlange `.page-shell` als eigene Grafikebene fuehren. Auf
+   iPhones lief beim Scrollen der Speicher voll, der Tab stuerzte ab, lud neu
+   und sprang nach oben - in Safari wie in Chrome, auf allen Seiten ausser
+   /stats und /leichte-sprache, die diese Flaeche nicht haben. Keine fixierte
+   oder animierte Ebene mehr hinter dem Seiteninhalt. */
+.page-shell {
+  background:
     repeating-linear-gradient(0deg, transparent 0 3px, rgba(16, 22, 38, .05) 3px 4px),
-    repeating-linear-gradient(90deg, transparent 0 3px, rgba(16, 22, 38, .035) 3px 4px);
-  background-size: auto, auto;
-  opacity: .55;
-  animation: paper-drift 90s linear infinite;
+    repeating-linear-gradient(90deg, transparent 0 3px, rgba(16, 22, 38, .02) 3px 4px),
+    var(--bg);
 }
-@keyframes paper-drift { from { background-position: 0 0, 0 0; } to { background-position: 0 40px, 40px 0; } }
 
 /* --- Poster-Hero ------------------------------------------- */
 .hero-poster {
