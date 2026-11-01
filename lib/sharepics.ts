@@ -28,6 +28,13 @@ export type SharepicMotif =
   | "milestone"
   | "impact"
   | "final"
+  | "worldRecord"
+  | "dayRecord"
+  | "records"
+  | "thanks"
+  | "thanksKreis"
+  | "makers"
+  | "onward"
   | "kreis"
   | "duel"
   | "lottery"
@@ -60,6 +67,13 @@ export const sharepicMotifs: Record<SharepicMotif, SharepicMotifSpec> = {
   recap: { label: "Rückschau NRW", hint: "Woche oder seit Anfang an", group: "Rückschau", params: ["period", "view"], ground: "paper", live: true },
   recapKreis: { label: "Rückschau Stadt", hint: "Woche oder seit Anfang an, ein Ort", group: "Rückschau", params: ["kreis", "period", "view"], ground: "mint", live: true },
   final: { label: "Endergebnis", hint: "Rückblick nach dem Ende", group: "Finale", params: [], ground: "ink", live: true },
+  worldRecord: { label: "Weltrekord", hint: "NRW gegen die alte Monatsbestmarke", group: "Finale", params: [], ground: "yellow", live: true },
+  dayRecord: { label: "Tagesrekord", hint: "Bester Tag an einem Ort gegen Exeter", group: "Finale", params: [], ground: "mint", live: true },
+  records: { label: "Beide Rekorde", hint: "Monat und Tag auf einem Bild", group: "Finale", params: [], ground: "ink", live: true },
+  thanks: { label: "Danke an alle", hint: "Was alle zusammen geschafft haben", group: "Finale", params: [], ground: "mint", live: true },
+  thanksKreis: { label: "Danke, Stadt", hint: "Endstand und Platz eines Orts", group: "Finale", params: ["kreis"], ground: "yellow", live: true },
+  makers: { label: "Wer hat repariert", hint: "Allein, mit Hilfe, für andere", group: "Finale", params: [], ground: "paper", live: true },
+  onward: { label: "Weiter reparieren", hint: "Aktion vorbei, Reparieren nicht", group: "Finale", params: [], ground: "paper", live: false },
   kreis: { label: "Eine Stadt", hint: "Stand und Platz eines Orts", group: "Extras", params: ["kreis"], ground: "mint", live: true },
   duel: { label: "Stadt-Duell", hint: "Zwei Orte gegeneinander", group: "Extras", params: ["kreis", "kreisB"], ground: "yellow", live: true },
   lottery: { label: "Gewinnspiel", hint: "Reparieren und gewinnen", group: "Extras", params: [], ground: "mint", live: false },
@@ -68,6 +82,43 @@ export const sharepicMotifs: Record<SharepicMotif, SharepicMotifSpec> = {
 };
 
 export const sharepicMotifOrder = Object.keys(sharepicMotifs) as SharepicMotif[];
+
+/**
+ * Die Motive nach dem Ende der Aktion (siehe `campaignClosed`).
+ *
+ * Dann bleibt nur, was zurueckblickt: die Finalmotive, Rueckschau und der
+ * Countdown, der ab dem Ende "Vorbei!" zeichnet - unter neuem Namen bei den
+ * Finalmotiven. Start, Laufend und die Extras rufen zum Eintragen auf
+ * ("Unser Ziel", "Mach mit, Stadt", "Hier eintragen") und fallen weg.
+ */
+const archiveMotifs: Partial<Record<SharepicMotif, Partial<SharepicMotifSpec>>> = {
+  final: {},
+  worldRecord: {},
+  dayRecord: {},
+  records: {},
+  thanks: {},
+  thanksKreis: {},
+  makers: {},
+  onward: {},
+  countdown: { label: "Vorbei!", hint: "Danke an alle, die mitgemacht haben", group: "Finale" },
+  recap: {},
+  recapKreis: {},
+};
+
+/** Das Motiv so, wie das Studio es zeigt - nach dem Ende teils umbenannt. */
+export function sharepicMotifSpec(motif: SharepicMotif, closed: boolean): SharepicMotifSpec {
+  return closed ? { ...sharepicMotifs[motif], ...archiveMotifs[motif] } : sharepicMotifs[motif];
+}
+
+/** Die Motive, die das Studio anbietet - nach dem Ende nur die zum Rueckblick. */
+export function visibleSharepicMotifs(closed: boolean): SharepicMotif[] {
+  return closed ? sharepicMotifOrder.filter((motif) => motif in archiveMotifs) : sharepicMotifOrder;
+}
+
+/** Womit das Studio startet: vor dem Ende der Start, danach das Endergebnis. */
+export function defaultSharepicMotif(closed: boolean): SharepicMotif {
+  return closed ? "final" : "launch";
+}
 
 export function isSharepicMotif(value: unknown): value is SharepicMotif {
   return typeof value === "string" && value in sharepicMotifs;
@@ -291,6 +342,29 @@ export function autoMilestone(total: number) {
   return [...steps].reverse().find((step) => step <= total) ?? total;
 }
 
+/**
+ * Um wie viel Prozent ein Ergebnis eine Bestmarke uebertrifft, nach unten
+ * gerundet wie `goalPercent`. `null`, solange die Marke steht.
+ */
+export function recordIncreasePercent(total: number, record: number) {
+  return record > 0 && total > record ? Math.floor(((total - record) / record) * 100) : null;
+}
+
+/** Wer repariert hat, in der Reihenfolge des Formulars (siehe `performedByLabels`). */
+export const makerKeys = ["alone", "with_support", "by_someone"] as const;
+export type MakerKey = (typeof makerKeys)[number];
+
+/**
+ * Anteile von "allein", "mit Hilfe" und "fuer mich repariert" in ganzen
+ * Prozent. Bezug ist, wer die Frage beantwortet hat - nicht der Rekordstand,
+ * sonst ergaeben die drei Teile nie 100. Leer, solange niemand geantwortet hat.
+ */
+export function makerShares(performedBy: Record<string, number>): { key: MakerKey; count: number; percent: number }[] {
+  const answered = makerKeys.reduce((sum, key) => sum + (performedBy[key] ?? 0), 0);
+  if (answered <= 0) return [];
+  return makerKeys.map((key) => ({ key, count: performedBy[key] ?? 0, percent: Math.round(((performedBy[key] ?? 0) / answered) * 100) }));
+}
+
 export type Countdown = {
   /** Worauf gezaehlt wird. */
   target: "start" | "end" | "over";
@@ -402,13 +476,13 @@ export function demoStats(now: Date): PublicStats {
     bestDay: { date: shiftDay(today, -2), total: 391 },
     dayRecord: 450,
     todayKreise: { Wuppertal: 38, Köln: 31, Dortmund: 22, Solingen: 17 },
-    bestKreisDay: { date: shiftDay(today, -2), kreis: "Wuppertal", total: 64 },
+    bestKreisDay: { date: shiftDay(today, -2), kreis: "Wuppertal", total: 312 },
     attempted: 3_910,
     succeeded: 3_482,
     withStory: 812,
     minutesSaved: 187_400,
     valueSavedEuros: 412_900,
-    performedBy: { self: 2_100, supported: 1_020, other: 362 },
+    performedBy: { alone: 2_100, with_support: 1_020, by_someone: 362 },
     categories: {
       bicycle: 842,
       textiles: 611,

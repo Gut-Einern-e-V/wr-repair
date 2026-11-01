@@ -5,9 +5,11 @@ import { useEffect, useMemo, useState } from "react";
 import { posterBackgrounds } from "@/lib/poster";
 import { shareVisualGroundOrder, type ShareVisualGround } from "@/lib/share-visual";
 import { recapPeriodOrder, recapPeriods, recapViewOrder, recapViews, type RecapPeriod, type RecapView } from "@/lib/sharepic-recap";
-import { HEADLINE_MAX_CHARS, HEADLINE_MAX_LINES, sharepicFormatOrder, sharepicFormats, sharepicLanguageOrder, sharepicLanguages, sharepicMotifOrder, sharepicMotifs, type SharepicFormat, type SharepicLanguage, type SharepicMotif } from "@/lib/sharepics";
+import { defaultSharepicMotif, HEADLINE_MAX_CHARS, HEADLINE_MAX_LINES, sharepicFormatOrder, sharepicFormats, sharepicLanguageOrder, sharepicLanguages, sharepicMotifSpec, visibleSharepicMotifs, type SharepicFormat, type SharepicLanguage, type SharepicMotif } from "@/lib/sharepics";
 
 const groups = ["Start", "Laufend", "Rückschau", "Finale", "Extras"] as const;
+/* Nach dem Ende steht das Endergebnis vorn. */
+const archiveGroups = ["Finale", "Rückschau"] as const;
 
 /** Wie lange nach dem letzten Tastendruck die Vorschau neu gezeichnet wird. */
 const TYPING_DELAY_MS = 450;
@@ -19,14 +21,17 @@ const TYPING_DELAY_MS = 450;
  * Meilensteinzahl, Beispielzahlen. `public` (/sharepics) zeigt nur, was die
  * oeffentliche Bildroute auch zeichnet - die uebrigen Felder fehlen, statt
  * still ignoriert zu werden.
+ *
+ * `closed` (siehe `campaignClosed`) schaltet nach dem Ende auf Rueckblick:
+ * nur noch Endergebnis, Rueckschau und "Vorbei!", Texte in der Vergangenheit.
  */
-export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant: "moderation" | "public" }) {
+export function SharepicStudio({ kreise, variant, closed = false }: { kreise: string[]; variant: "moderation" | "public"; closed?: boolean }) {
   const moderation = variant === "moderation";
   const imagePath = moderation ? "/moderator/sharepics/image" : "/sharepics/image";
-  const [motif, setMotif] = useState<SharepicMotif>("launch");
+  const [motif, setMotif] = useState<SharepicMotif>(defaultSharepicMotif(closed));
   const [format, setFormat] = useState<SharepicFormat>("story");
   const [lang, setLang] = useState<SharepicLanguage>("de");
-  const [ground, setGround] = useState<ShareVisualGround>(sharepicMotifs.launch.ground);
+  const [ground, setGround] = useState<ShareVisualGround>(sharepicMotifSpec(defaultSharepicMotif(closed), closed).ground);
   const [kreis, setKreis] = useState("");
   const [kreisB, setKreisB] = useState("");
   const [period, setPeriod] = useState<RecapPeriod>("week");
@@ -42,7 +47,7 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
   const [loadedSrc, setLoadedSrc] = useState("");
   const [failedSrc, setFailedSrc] = useState("");
 
-  const spec = sharepicMotifs[motif];
+  const spec = sharepicMotifSpec(motif, closed);
   const size = sharepicFormats[format];
 
   const query = useMemo(() => {
@@ -76,35 +81,38 @@ export function SharepicStudio({ kreise, variant }: { kreise: string[]; variant:
 
   function chooseMotif(value: SharepicMotif) {
     setMotif(value);
-    setGround(sharepicMotifs[value].ground);
+    setGround(sharepicMotifSpec(value, closed).ground);
     setHeadline("");
   }
 
   return <main className="poster-page sharepic-page" data-reveal="off">
     <section className="poster-intro">
-      <p className="brand-kicker">{moderation ? "Moderation" : "Mitmachen"}</p>
+      <p className="brand-kicker">{moderation ? "Moderation" : closed ? "Rückblick" : "Mitmachen"}</p>
       <h1 className="sticker-head is-mint"><span className="sticker">Sharepics</span><span className="sticker">zum Teilen</span></h1>
       {moderation ? <p>
         Motiv und Format wählen, Vorschau ansehen, herunterladen. Die Zahlen sind der Live-Stand in dem Moment, in dem du
         das Bild lädst – unten auf dem Bild steht, wann das war. In der Story bleibt oben und unten Platz für die
         Bedienelemente von Instagram und den Link-Sticker.
+      </p> : closed ? <p>
+        Erzähl weiter, was NRW repariert hat: Motiv und Format wählen, herunterladen und in deiner Story oder deinem
+        Feed teilen. Die Zahlen sind der Endstand, unten auf dem Bild steht, von wann.
       </p> : <p>
         Erzähl weiter, was NRW gerade repariert: Motiv und Format wählen, herunterladen und in deiner Story oder deinem
         Feed teilen. Die Zahlen sind der Live-Stand, unten auf dem Bild steht, von wann.
       </p>}
       <p className="link-row">{moderation
         ? <Link className="text-button" href="/moderator"><span aria-hidden="true">&#8592;</span> Zurück zur Moderation</Link>
-        : <Link className="text-button" href="/stats"><span aria-hidden="true">&#8592;</span> Zum Live-Stand</Link>}</p>
+        : <Link className="text-button" href="/stats"><span aria-hidden="true">&#8592;</span> {closed ? "Zum Ergebnis" : "Zum Live-Stand"}</Link>}</p>
     </section>
 
     <div className="sharepic-layout">
       <form className="poster-controls" onSubmit={(event) => event.preventDefault()}>
-        {groups.map((group) => <fieldset key={group}>
+        {(closed ? archiveGroups : groups).map((group) => <fieldset key={group}>
           <legend>{group}</legend>
           <div className="poster-choices">
-            {sharepicMotifOrder.filter((value) => sharepicMotifs[value].group === group).map((value) => <label key={value}>
+            {visibleSharepicMotifs(closed).filter((value) => sharepicMotifSpec(value, closed).group === group).map((value) => <label key={value}>
               <input type="radio" name="sharepic-motif" value={value} checked={motif === value} onChange={() => chooseMotif(value)} />
-              <span>{sharepicMotifs[value].label}<small>{sharepicMotifs[value].hint}</small></span>
+              <span>{sharepicMotifSpec(value, closed).label}<small>{sharepicMotifSpec(value, closed).hint}</small></span>
             </label>)}
           </div>
         </fieldset>)}

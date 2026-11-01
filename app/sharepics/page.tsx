@@ -1,9 +1,10 @@
 import { SharepicStudio } from "@/components/sharepics/sharepic-studio";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 import { nrwKreiseList } from "@/lib/nrw-kreise-list";
 
 export const metadata = {
   title: "Sharepics zum Teilen",
-  description: "Bilder mit dem Live-Stand des Reparaturrekords NRW für Story und Feed – Motiv und Format wählen, herunterladen, teilen.",
+  description: "Bilder mit den Zahlen des Reparaturrekords NRW für Story und Feed – Motiv und Format wählen, herunterladen, teilen.",
 };
 
 /**
@@ -11,9 +12,10 @@ export const metadata = {
  *
  * Dasselbe Studio wie in der Moderation, aber ohne eigene Ueberschrift,
  * Beispielzahlen und freie Meilensteine - die oeffentliche Bildroute zeichnet
- * nur feste Motive mit echten Zahlen.
+ * nur feste Motive mit echten Zahlen. Nach dem Ende bietet es nur noch die
+ * Motive zum Rueckblick an (siehe `visibleSharepicMotifs`).
  */
-export default function PublicSharepicsPage() {
+export default async function PublicSharepicsPage() {
   const kreise = nrwKreiseList.map((kreis) => kreis.name).sort((a, b) => a.localeCompare(b, "de"));
-  return <SharepicStudio kreise={kreise} variant="public" />;
+  return <SharepicStudio kreise={kreise} variant="public" closed={await getCampaignClosed()} />;
 }

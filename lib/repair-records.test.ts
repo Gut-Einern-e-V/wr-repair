@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { faqEntries, goalRecord, MONTH_RECORD, repairRecords, repairsToBeatRecord } from "./repair-records";
+import { faqEntries, goalRecord, MONTH_RECORD, recordMargin, repairRecords, repairsToBeatRecord } from "./repair-records";
 
 describe("Rekordzahlen", () => {
   it("nennt zu jeder fremden Bestmarke eine oeffentlich pruefbare Quelle", () => {
@@ -55,5 +55,13 @@ describe("Haeufige Fragen", () => {
     for (const entry of faqEntries) {
       expect(entry.answer.trim()).not.toBe("");
     }
+  });
+});
+
+describe("recordMargin", () => {
+  it("zaehlt nur, was ueber der Marke liegt", () => {
+    expect(recordMargin(3_451, MONTH_RECORD)).toBe(274);
+    expect(recordMargin(MONTH_RECORD, MONTH_RECORD)).toBeNull();
+    expect(recordMargin(null, MONTH_RECORD)).toBeNull();
   });
 });
