@@ -10,7 +10,8 @@ import { formatMinutes } from "@/lib/dashboard";
 import { successShare, type PublicStats } from "@/lib/public-stats";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { DAY_PLACE_RECORD, MONTH_RECORD, recordMargin } from "@/lib/repair-records";
-import { RecapMap } from "./recap-map";
+import { FactIcon, Trophy, type FactIconName } from "./recap-icons";
+import { RecapPlaces } from "./recap-map";
 
 /**
  * Rueckblick auf den Weltrekordversuch (Issue #66).
@@ -127,13 +128,32 @@ export default function Recap({ campaign, stories }: { campaign: CampaignDates; 
       minutesPerRepair: stats.total > 0 ? (timeline.length * 24 * 60) / stats.total : 0,
       euroPerRepair: stats.total > 0 ? stats.valueSavedEuros / stats.total : 0,
       co2Tonnes: (stats.total * CO2_KG_PER_REPAIR) / 1000,
-      performedBy: (() => {
-        const all = Object.values(stats.performedBy).reduce((sum, value) => sum + value, 0);
-        const share = (key: string) => (all > 0 ? ((stats.performedBy[key] ?? 0) / all) * 100 : 0);
-        return all > 0 ? { alone: share("alone"), support: share("with_support"), other: share("by_someone") } : null;
-      })(),
     };
   }, [stats]);
+
+  /* Die Zahlen unter "Anschaulich gesagt", jeweils mit Zeichen. Fehlt eine
+     Groesse, faellt die Kachel weg statt eine Null zu zeigen. */
+  const facts = useMemo(() => {
+    if (!stats || !derived) return [];
+    const all = Object.values(stats.performedBy).reduce((sum, value) => sum + value, 0);
+    const share = (key: string) => (all > 0 ? Math.round(((stats.performedBy[key] ?? 0) / all) * 100) : 0);
+    const list: { icon: FactIconName; value: React.ReactNode; text: React.ReactNode }[] = [];
+    if (derived.minutesPerRepair > 0) {
+      list.push({ icon: "clock", value: <>alle {Math.round(derived.minutesPerRepair).toLocaleString("de-DE")}&nbsp;Minuten</>, text: <>eine gelungene Reparatur &ndash; {derived.timeline.length.toLocaleString("de-DE")} Tage lang, Tag und Nacht.</> });
+    }
+    if (derived.hours > 0) {
+      list.push({ icon: "hourglass", value: <>{Math.round(derived.hours / 24).toLocaleString("de-DE")}&nbsp;Tage</>, text: <>würde eine Person ohne Pause brauchen, um alles allein zu reparieren &ndash; rund {(derived.hours / 1_700).toLocaleString("de-DE", { maximumFractionDigits: 1 })} Arbeitsjahre.</> });
+    }
+    if (derived.euroPerRepair > 0) {
+      list.push({ icon: "euro", value: <>{Math.round(derived.euroPerRepair).toLocaleString("de-DE")}&nbsp;&euro;</>, text: "war ein geretteter Gegenstand im Schnitt wert – Geld, das nicht in Neues gehen musste." });
+    }
+    if (all > 0) {
+      list.push({ icon: "wrench", value: <>{(share("alone") + share("with_support")).toLocaleString("de-DE")}&nbsp;%</>, text: <>selbst repariert: {share("alone").toLocaleString("de-DE")}&nbsp;% ganz allein, {share("with_support").toLocaleString("de-DE")}&nbsp;% mit Hilfe &ndash; etwa im Repair Café.</> });
+    }
+    list.push({ icon: "leaf", value: <>&asymp;&nbsp;{Math.round(derived.co2Tonnes).toLocaleString("de-DE")}&nbsp;t&nbsp;CO&#8322;e</>, text: <>eingespart, grob geschätzt nach dem Verhältnis von The BIG FIX 2025 (etwa {Math.round(CO2_KG_PER_REPAIR)}&nbsp;kg je Reparatur). Einen eigenen Bericht mit genaueren Zahlen für NRW erarbeiten wir gerade.</> });
+    return list;
+  }, [stats, derived]);
+
 
   if (state !== "ready" || !stats || !derived) {
     return (
@@ -170,18 +190,37 @@ export default function Recap({ campaign, stories }: { campaign: CampaignDates; 
         <p className="recap-total">{stats.total.toLocaleString("de-DE")}</p>
         <p className="recap-total-label">gezählte Reparaturen in Nordrhein-Westfalen</p>
         <ul className="recap-records">
-          <li>
-            <strong>Monatsrekord</strong>
-            {derived.monthMargin !== null
-              ? <>{derived.monthMargin.toLocaleString("de-DE")} Reparaturen mehr als die bisherige Bestmarke von {MONTH_RECORD.toLocaleString("de-DE")} (The BIG FIX 2024).</>
-              : <>Die Bestmarke liegt bei {MONTH_RECORD.toLocaleString("de-DE")} Reparaturen (The BIG FIX 2024).</>}
+          <li className={derived.monthMargin !== null ? "is-broken" : undefined}>
+            {derived.monthMargin !== null && <Trophy />}
+            <div>
+              <strong>Monatsrekord</strong>
+              {derived.monthMargin !== null && (
+                <p className="recap-record-value">
+                  +{derived.monthMargin.toLocaleString("de-DE")}
+                  <small>über der alten Bestmarke</small>
+                </p>
+              )}
+              <p>
+                {derived.monthMargin !== null
+                  ? <>{stats.total.toLocaleString("de-DE")} statt {MONTH_RECORD.toLocaleString("de-DE")} Reparaturen in einem Monat &ndash; die bisherige Bestmarke stammt von The BIG FIX 2024.</>
+                  : <>Die Bestmarke liegt bei {MONTH_RECORD.toLocaleString("de-DE")} Reparaturen (The BIG FIX 2024).</>}
+              </p>
+            </div>
           </li>
           {stats.bestKreisDay && derived.dayMargin !== null && (
-            <li>
-              <strong>Tagesrekord an einem Ort</strong>
-              {stats.bestKreisDay.total.toLocaleString("de-DE")} Reparaturen in {stats.bestKreisDay.kreis} am{" "}
-              {longDayFormat.format(parseDay(stats.bestKreisDay.date))} &ndash; die bisherige Bestmarke lag bei{" "}
-              {DAY_PLACE_RECORD.toLocaleString("de-DE")} (Exeter 2019).
+            <li className="is-broken">
+              <Trophy />
+              <div>
+                <strong>Tagesrekord an einem Ort</strong>
+                <p className="recap-record-value">
+                  {stats.bestKreisDay.total.toLocaleString("de-DE")}
+                  <small>an einem Tag in {stats.bestKreisDay.kreis}</small>
+                </p>
+                <p>
+                  Am {longDayFormat.format(parseDay(stats.bestKreisDay.date))} &ndash; die bisherige Bestmarke lag bei{" "}
+                  {DAY_PLACE_RECORD.toLocaleString("de-DE")} (Exeter 2019).
+                </p>
+              </div>
             </li>
           )}
         </ul>
@@ -266,34 +305,13 @@ export default function Recap({ campaign, stories }: { campaign: CampaignDates; 
       <section className="recap-plain" aria-labelledby="recap-plain-title">
         <h2 id="recap-plain-title">Anschaulich gesagt</h2>
         <ol className="recap-plain-list">
-          {derived.minutesPerRepair > 0 && (
-            <li>
-              <strong>alle {Math.round(derived.minutesPerRepair).toLocaleString("de-DE")} Minuten</strong>
-              <span>eine gelungene Reparatur &ndash; {derived.timeline.length.toLocaleString("de-DE")} Tage lang, Tag und Nacht.</span>
+          {facts.map((fact) => (
+            <li key={fact.icon}>
+              <FactIcon name={fact.icon} />
+              <strong>{fact.value}</strong>
+              <span>{fact.text}</span>
             </li>
-          )}
-          {derived.hours > 0 && (
-            <li>
-              <strong>{Math.round(derived.hours / 24).toLocaleString("de-DE")} Tage am Stück</strong>
-              <span>würde eine Person brauchen, um ohne Pause alles allein zu reparieren &ndash; oder rund {(derived.hours / 1_700).toLocaleString("de-DE", { maximumFractionDigits: 1 })} Arbeitsjahre.</span>
-            </li>
-          )}
-          {derived.euroPerRepair > 0 && (
-            <li>
-              <strong>{Math.round(derived.euroPerRepair).toLocaleString("de-DE")}&nbsp;&euro; je Reparatur</strong>
-              <span>war ein geretteter Gegenstand im Schnitt wert &ndash; Geld, das nicht in Neues gehen musste.</span>
-            </li>
-          )}
-          {derived.performedBy && (
-            <li>
-              <strong>{Math.round(derived.performedBy.alone + derived.performedBy.support).toLocaleString("de-DE")}&nbsp;% selbst repariert</strong>
-              <span>{Math.round(derived.performedBy.alone).toLocaleString("de-DE")}&nbsp;% ganz allein, {Math.round(derived.performedBy.support).toLocaleString("de-DE")}&nbsp;% mit Hilfe &ndash; etwa im Repair Café.</span>
-            </li>
-          )}
-          <li>
-            <strong>rund {Math.round(derived.co2Tonnes).toLocaleString("de-DE")}&nbsp;t CO&#8322;e</strong>
-            <span>eingespart, grob geschätzt nach dem Verhältnis, das The BIG FIX 2025 gemeldet hat (etwa {Math.round(CO2_KG_PER_REPAIR)}&nbsp;kg je Reparatur). Einen eigenen Bericht mit genaueren Zahlen für NRW erarbeiten wir gerade.</span>
-          </li>
+          ))}
         </ol>
       </section>
 
@@ -329,25 +347,7 @@ export default function Recap({ campaign, stories }: { campaign: CampaignDates; 
 
       <section className="recap-places" aria-labelledby="recap-kreise-title">
         <h2 id="recap-kreise-title">Wo repariert wurde</h2>
-        <div className="recap-places-body">
-          <RecapMap kreise={stats.kreise} />
-          <div>
-            <ol className="recap-ranking">
-              {derived.kreise.slice(0, 12).map(([kreis, amount]) => (
-                <li key={kreis}>
-                  <span className="recap-ranking-label">{kreis}</span>
-                  <span className="recap-ranking-track" aria-hidden="true">
-                    <span style={{ width: `${(amount / (derived.kreise[0]?.[1] || 1)) * 100}%` }} />
-                  </span>
-                  <strong>{amount.toLocaleString("de-DE")}</strong>
-                </li>
-              ))}
-            </ol>
-            {derived.kreise.length > 12 && (
-              <p className="recap-more">und {(derived.kreise.length - 12).toLocaleString("de-DE")} weitere</p>
-            )}
-          </div>
-        </div>
+        <RecapPlaces kreise={stats.kreise} />
       </section>
 
       {stories.length > 0 && (
