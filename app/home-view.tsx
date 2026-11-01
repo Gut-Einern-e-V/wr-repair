@@ -13,10 +13,19 @@ import { StoryMosaic } from "@/components/story-mosaic";
 import { brandPhotos } from "@/lib/brand-photos";
 import { campaignPhaseAt, type CampaignDates, type CampaignPhase } from "@/lib/campaign-phase";
 import { repairCategories, repairCategoryLabel, type RepairCategory } from "@/lib/repair-catalog";
-import { closedFaqEntries, DAY_PLACE_RECORD, faqEntries, goalRecord, MONTH_RECORD, recordMargin, repairRecords, repairsToBeatRecord, type RepairRecord } from "@/lib/repair-records";
+import { bigFixSource, closedFaqEntries, DAY_PLACE_RECORD, faqEntries, goalRecord, MONTH_RECORD, recordMargin, repairRecords, repairsToBeatRecord } from "@/lib/repair-records";
 import type { StoryTeaser } from "@/lib/stories";
 
 const longDateFormat = new Intl.DateTimeFormat("de-DE", { day: "numeric", month: "long" });
+
+type RecordDuel = {
+  title: string;
+  ours: number;
+  oursLabel: string;
+  oursShort: string;
+  old: number;
+  oldShort: string;
+};
 
 type RepairStats = {
   total: number;
@@ -212,20 +221,30 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
   const recordBroken = isDone && recordMargin(repairCount, MONTH_RECORD) !== null;
   const bestPlaceDay = repairStats?.bestKreisDay ?? null;
   const dayRecordBroken = isDone && recordMargin(bestPlaceDay?.total, DAY_PLACE_RECORD) !== null;
-  /* Nach dem Ende stehen die eigenen Rekorde vor den alten Marken. */
-  const ownRecords: RepairRecord[] = [
-    recordBroken && repairCount !== null ? {
-      value: repairCount.toLocaleString("de-DE"),
-      label: "Reparaturen in einem Monat – neuer Weltrekord",
-      detail: `Im Aktionsmonat in ganz Nordrhein-Westfalen gezählt. Die alte Bestmarke lag bei ${MONTH_RECORD.toLocaleString("de-DE")}.`,
+  /* Nach dem Ende tritt jede eigene Zahl direkt gegen die alte Marke an, eine
+     Karte je Rekord. Vorher standen neue und alte Rekorde als gleich aussehende
+     Kacheln nebeneinander, und dieselben Zahlen kamen zweimal vor - man musste
+     selbst zusammensuchen, was gegen was lief. */
+  const duels: RecordDuel[] = isDone ? [
+    repairCount !== null ? {
+      title: "Monatsrekord",
+      ours: repairCount,
+      oursLabel: "Reparaturen im Oktober in ganz Nordrhein-Westfalen",
+      oursShort: "NRW 2026",
+      old: MONTH_RECORD,
+      oldShort: "The BIG FIX 2024",
     } : null,
-    dayRecordBroken && bestPlaceDay ? {
-      value: bestPlaceDay.total.toLocaleString("de-DE"),
-      label: "Reparaturen an einem Tag und Ort – neuer Weltrekord",
-      detail: `Am ${longDateFormat.format(new Date(`${bestPlaceDay.date}T12:00:00Z`))} in ${bestPlaceDay.kreis}. Die alte Bestmarke lag bei ${DAY_PLACE_RECORD.toLocaleString("de-DE")}.`,
+    bestPlaceDay ? {
+      title: "Tagesrekord an einem Ort",
+      ours: bestPlaceDay.total,
+      oursLabel: `Reparaturen am ${longDateFormat.format(new Date(`${bestPlaceDay.date}T12:00:00Z`))} in ${bestPlaceDay.kreis}`,
+      oursShort: bestPlaceDay.kreis,
+      old: DAY_PLACE_RECORD,
+      oldShort: "Exeter 2019",
     } : null,
-  ].filter((record) => record !== null);
-  const records = [...ownRecords, ...repairRecords, isDone ? null : goalRecord(goal)].filter((record) => record !== null);
+  ].filter((duel) => duel !== null) : [];
+  const brokenCount = duels.filter((duel) => recordMargin(duel.ours, duel.old) !== null).length;
+  const records = isDone ? [] : [...repairRecords, goalRecord(goal)].filter((record) => record !== null);
   /* Der Stoerer aus Issue #162 - nur solange die Aktion laeuft und die Marke
      noch steht. Zaehlt live mit, statt eine feste Zahl zu nennen. */
   const toBeatRecord = phase === "open" ? repairsToBeatRecord(repairCount) : null;
@@ -261,11 +280,12 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
             {isTestRun && <p className="test-run-flag">Testlauf &ndash; diese Einreichungen zählen nicht</p>}
             <p className="brand-kicker">{copy.kicker}</p>
             <h1 className="sticker-head is-mint" id="hero-title">
-              {/* Nach einem geknackten Rekord ist der Weltrekord kein Ziel mehr,
-                  sondern das Ergebnis - die Ueberschrift sagt es. */}
-              <span className="sticker">{recordBroken || dayRecordBroken ? "Gemeinsam den" : "Gemeinsam zum"}</span>
+              <span className="sticker">Gemeinsam zum</span>
               <span className="sticker">Reparatur-</span>
-              <span className="sticker">{recordBroken || dayRecordBroken ? "Weltrekord geknackt" : "Weltrekord"}</span>
+              {/* Nach einem geknackten Rekord bleibt der Slogan, wie ihn alle
+                  kennen, und bekommt einen Aufkleber. Eine umgeschriebene
+                  Zeile "Weltrekord geknackt" brach in vier lange Balken um. */}
+              <span className="sticker">Weltrekord{(recordBroken || dayRecordBroken) && <span className="record-seal"> Geknackt!</span>}</span>
             </h1>
             <p className="hero-intro">{recordBroken ? "Wir haben den Weltrekord geknackt! Danke an alle, die mitgemacht haben – jede Zahl im Endstand war einmal ein Gegenstand, der sonst weggeworfen worden wäre." : copy.intro}</p>
             <div className="hero-actions">
@@ -283,13 +303,6 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
           </div>
 
           <div className="hero-side">
-            {(recordBroken || dayRecordBroken) && (
-              <p className="hero-stoerer">
-                <strong>{recordBroken && dayRecordBroken ? "Zwei Weltrekorde!" : "Weltrekord!"}</strong>
-                {recordBroken && <span>{repairCount?.toLocaleString("de-DE")} Reparaturen in einem Monat – die alte Marke: {MONTH_RECORD.toLocaleString("de-DE")}.</span>}
-                {dayRecordBroken && bestPlaceDay && <span>{bestPlaceDay.total.toLocaleString("de-DE")} an einem Tag in {bestPlaceDay.kreis} – die alte Marke: {DAY_PLACE_RECORD.toLocaleString("de-DE")}.</span>}
-              </p>
-            )}
             {toBeatRecord !== null && (
               <p className="hero-stoerer">
                 <strong>Endspurt!</strong>
@@ -363,15 +376,36 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
           <p className="section-index">Zahlen und Fakten</p>
           {isDone
             ? <>
-                <h2 id="record-facts-title">Diese Bestleistungen hat NRW übertroffen.</h2>
-                <p>Reparaturrekorde wurden bisher vor allem in Großbritannien gezählt. Vorne stehen die neuen Marken aus Nordrhein-Westfalen, dahinter die alten, an denen wir uns gemessen haben.</p>
+                <h2 id="record-facts-title">{brokenCount === 2 ? "Zwei Weltrekorde für NRW." : brokenCount === 1 ? "Ein Weltrekord für NRW." : "NRW gegen die Bestmarken."}</h2>
+                <p>Reparaturrekorde wurden bisher vor allem in Großbritannien gezählt. An zwei Marken von dort hat sich Nordrhein-Westfalen im Oktober gemessen &ndash; so ist es ausgegangen.</p>
               </>
             : <>
                 <h2 id="record-facts-title">Das sind die Bestleistungen, die wir übertreffen wollen.</h2>
                 <p>Reparaturrekorde werden bisher vor allem in Großbritannien gezählt. Diese Marken sind unser Maßstab für NRW &ndash; die letzte Kachel zeigt, was wir uns selbst vorgenommen haben.</p>
               </>}
         </div>
-        <ol className="record-list">
+        {isDone && duels.length > 0 && <ol className="record-duels">
+          {duels.map((duel) => {
+            const margin = recordMargin(duel.ours, duel.old);
+            const scale = Math.max(duel.ours, duel.old);
+            return <li key={duel.title} className={margin !== null ? "is-broken" : undefined}>
+              <p className="record-duel-head"><span>{duel.title}</span><span className="record-duel-badge">{margin !== null ? "Neuer Weltrekord" : "Bestmarke hält"}</span></p>
+              <strong>{duel.ours.toLocaleString("de-DE")}</strong>
+              <p className="record-duel-label">{duel.oursLabel}</p>
+              {/* Die Balken zeigen das Verhaeltnis; die Zahlen stehen daneben
+                  im Text, deshalb sind sie fuer Screenreader ausgeblendet. */}
+              <dl className="record-duel-bars">
+                <div><dt>{duel.oursShort}</dt><dd>{duel.ours.toLocaleString("de-DE")}</dd><i aria-hidden="true" style={{ width: `${duel.ours / scale * 100}%` }} /></div>
+                <div className="is-old"><dt>Bisher: {duel.oldShort}</dt><dd>{duel.old.toLocaleString("de-DE")}</dd><i aria-hidden="true" style={{ width: `${duel.old / scale * 100}%` }} /></div>
+              </dl>
+              <p className="record-duel-margin">{margin !== null
+                ? `${margin.toLocaleString("de-DE")} Reparaturen über der alten Marke.`
+                : `${(duel.old - duel.ours).toLocaleString("de-DE")} Reparaturen fehlten zur alten Marke.`}</p>
+              <a href={bigFixSource.href} target="_blank" rel="noreferrer">Quelle der alten Marke: {bigFixSource.label} <span aria-hidden="true">&#8599;</span></a>
+            </li>;
+          })}
+        </ol>}
+        {records.length > 0 && <ol className="record-list">
           {records.map((record) => (
             <li key={record.label}>
               <strong>{record.value}</strong>
@@ -384,7 +418,7 @@ export function HomeView({ stories, header, footer }: HomeViewProps) {
               )}
             </li>
           ))}
-        </ol>
+        </ol>}
         <p className="record-note">
           <strong>Wichtig:</strong> Es geht uns nicht um einen Eintrag ins Guinness-Buch, sondern darum, Reparatur sichtbar zu machen und als echte Alternative zum Neukauf zu stärken.
         </p>

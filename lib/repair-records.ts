@@ -22,7 +22,8 @@ export const MONTH_RECORD = 3_177;
 /** Die Bestmarke an einem Tag und Ort - Exeter 2019 (Issue #75). */
 export const DAY_PLACE_RECORD = 268;
 
-const bigFix = {
+/** Quelle beider alten Bestmarken - auch fuer die Vergleichskarten nach dem Ende. */
+export const bigFixSource = {
   label: "The BIG FIX, Recycle Devon",
   href: "https://www.recycledevon.org/thebigfix",
 };
@@ -32,13 +33,13 @@ export const repairRecords: RepairRecord[] = [
     value: DAY_PLACE_RECORD.toLocaleString("de-DE"),
     label: "Reparaturen an einem Tag und Ort",
     detail: "2019 in Exeter (Großbritannien) aufgestellt – die Bestmarke für eine einzelne Veranstaltung. Auf dem Live-Stand läuft deshalb der Kreis mit dem höchsten Tagesstand dagegen an, nicht ganz NRW.",
-    source: bigFix,
+    source: bigFixSource,
   },
   {
     value: MONTH_RECORD.toLocaleString("de-DE"),
     label: "Reparaturen in einem Monat landesweit",
     detail: "2024 während der landesweiten Kampagne The BIG FIX in Großbritannien gezählt.",
-    source: bigFix,
+    source: bigFixSource,
   },
   {
     value: "2.532",
