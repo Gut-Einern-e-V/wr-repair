@@ -5,7 +5,6 @@ describe("Reparaturgeschichten", () => {
   it("ueberspringt die Redaktionsanleitung im Inhaltsordner", async () => {
     const slugs = (await getStories()).map((story) => story.slug);
     expect(slugs).not.toContain("README");
-    expect(slugs.length).toBeGreaterThan(0);
   });
 
   it("liefert jede Geschichte mit vollstaendigen Kopfdaten", async () => {
@@ -25,15 +24,15 @@ describe("Reparaturgeschichten", () => {
   });
 
   it("loest Bilder samt Massen und Nachweis auf", async () => {
-    /* Mindestens eine Geschichte bringt ein eigenes Bild mit; alle Bilder
-       muessen aufgeloest sein, sonst haette der Aufruf geworfen (Issue #60). */
+    /* Alle Bilder muessen aufgeloest sein, sonst haette der Aufruf geworfen
+       (Issue #60). Der Ordner darf leer sein: Die Platzhalter-Geschichten aus
+       dem September sind entfernt, die echten kommen aus dem Highlight-Eimer. */
     const stories = await getStories();
     const images = stories.flatMap((story) => [
       ...(story.image ? [story.image] : []),
       ...story.blocks.flatMap((block) => (block.type === "image" ? [block.image] : [])),
     ]);
 
-    expect(images.length).toBeGreaterThan(0);
     for (const image of images) {
       expect(image.src.startsWith("/")).toBe(true);
       expect(image.width).toBeGreaterThan(0);
