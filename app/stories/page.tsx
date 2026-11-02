@@ -2,7 +2,12 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { brandPhotos, storyCover } from "@/lib/brand-photos";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 import { getStoryTeasers } from "@/lib/stories";
+
+/* Veroeffentlichte Highlights kommen aus der Datenbank. Die Freigabe setzt die
+   Seite sofort neu auf; das hier ist nur das Sicherheitsnetz. */
+export const revalidate = 600;
 
 export const metadata = {
   title: "Reparaturgeschichten",
@@ -12,14 +17,14 @@ export const metadata = {
 const dateFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "long" });
 
 export default async function StoriesPage() {
-  const stories = await getStoryTeasers();
+  const [stories, closed] = await Promise.all([getStoryTeasers(), getCampaignClosed()]);
 
   return <main className="page-shell content-page">
     <SiteHeader />
     <section id="inhalt" className="content-hero" aria-labelledby="stories-title">
-      <p className="brand-kicker">Den ganzen Oktober lang reparieren &hellip;</p>
+      <p className="brand-kicker">{closed ? <>Den ganzen Oktober lang repariert &hellip;</> : <>Den ganzen Oktober lang reparieren &hellip;</>}</p>
       <h1 className="sticker-head is-mint" id="stories-title"><span className="sticker">Was bleibt,</span><span className="sticker">wenn wir es</span><span className="sticker">reparieren</span></h1>
-      <p>Manche Reparaturen erzählen wir ausführlich: was kaputt war, wer sich darangesetzt hat und was am Ende wieder funktioniert. Während des Weltrekordversuchs kommen laufend neue Geschichten dazu.</p>
+      <p>Manche Reparaturen erzählen wir ausführlich: was kaputt war, wer sich darangesetzt hat und was am Ende wieder funktioniert. {closed ? "Diese Geschichten sind während des Weltrekordversuchs entstanden." : "Während des Weltrekordversuchs kommen laufend neue Geschichten dazu."}</p>
     </section>
     <section className="content-section" aria-label="Alle Reparaturgeschichten"><div className="story-grid">
       {stories.map((story, index) => {
@@ -38,8 +43,17 @@ export default async function StoriesPage() {
     </div></section>
     <section className="content-callout">
       <div className="banner-photo" aria-hidden="true"><NextImage src={brandPhotos.secondLife.src} alt="" fill sizes="(max-width: 1120px) 100vw, 1120px" /></div>
-      <p>Du hast auch etwas gerettet? Jede Reparatur zählt für den Rekord.</p>
-      <Link className="button button-secondary" href="/mitmachen">Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
+      {/* Nach der Aktion fuehrt der Abbinder dorthin, wo weiter repariert
+          wird - eintragen laesst sich dann nichts mehr. */}
+      {closed
+        ? <>
+            <p>Bei dir ist auch etwas kaputt? In Repair Cafés hilft man dir weiter.</p>
+            <Link className="button button-secondary" href="/repair-cafes">Repair Café finden <span aria-hidden="true">&#8594;</span></Link>
+          </>
+        : <>
+            <p>Du hast auch etwas gerettet? Jede Reparatur zählt für den Rekord.</p>
+            <Link className="button button-secondary" href="/mitmachen">Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
+          </>}
     </section>
     <SiteFooter />
   </main>;

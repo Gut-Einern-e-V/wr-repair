@@ -2,14 +2,18 @@ import Link from "next/link";
 import NextImage from "next/image";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { brandPhotos } from "@/lib/brand-photos";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 import { cityEventsUrl, repairCafeCities, repairCafeDirectories } from "@/lib/repair-cafes";
 
 export const metadata = {
   title: "Repair Café finden",
-  description: "Wo es in Nordrhein-Westfalen Hilfe beim Reparieren gibt: Termine der Reparatur-Initiativen, Repair Cafés in den großen Städten und die Termine im Rekordmonat.",
+  description: "Wo es in Nordrhein-Westfalen Hilfe beim Reparieren gibt: Termine der Reparatur-Initiativen, und Repair Cafés in den großen Städten.",
 };
 
-export default function RepairCafesPage() {
+/* Nach der Aktion bleibt die Seite ein zeitloses Verzeichnis: Die Termine im
+   Rekordmonat und der Aufruf zum Eintragen fallen weg (lib/campaign-closed.ts). */
+export default async function RepairCafesPage() {
+  const closed = await getCampaignClosed();
   return <main className="page-shell content-page">
     <SiteHeader />
 
@@ -58,7 +62,7 @@ export default function RepairCafesPage() {
       </ul>
     </section>
 
-    <section className="content-section" aria-labelledby="dates-title">
+    {!closed && <section className="content-section" aria-labelledby="dates-title">
       <div className="section-heading">
         <div>
           <p className="section-index">Im Rekordmonat</p>
@@ -78,13 +82,13 @@ export default function RepairCafesPage() {
           <Link className="text-button" href="/festival">Infos zum Festival <span aria-hidden="true">&#8594;</span></Link>
         </li>
       </ol>
-    </section>
+    </section>}
 
-    <section className="content-callout">
+    {!closed && <section className="content-callout">
       <div className="banner-photo" aria-hidden="true"><NextImage src={brandPhotos.bicycle.src} alt="" fill sizes="(max-width: 1120px) 100vw, 1120px" /></div>
       <p>Reparatur geglückt? Dann zählt sie für den Rekord.</p>
       <Link className="button button-secondary" href="/mitmachen">Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
-    </section>
+    </section>}
 
     <SiteFooter />
   </main>;

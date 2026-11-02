@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-export type BackendArea = "moderation" | "admin";
+export type BackendArea = "moderation" | "highlights" | "admin";
 
 /**
  * Kopfzeile fuer Moderation und Administration. Beide Bereiche sind getrennt,
@@ -21,6 +21,8 @@ export default function BackendHeader({ area, email, logoUrl, canAdminister }: {
             steht die Leiste jetzt auch ohne Verwaltungsrecht da. */}
         <nav aria-label="Backend-Bereiche">
           <Link className={area === "moderation" ? "is-current" : ""} href="/moderator">Moderation</Link>
+          <Link className={area === "highlights" ? "is-current" : ""} href="/moderator/highlights">Highlights</Link>
+          <Link href="/moderator/buehne">Bühne</Link>
           <Link href="/moderator/sharepics">Sharepics</Link>
           {canAdminister && <Link className={area === "admin" ? "is-current" : ""} href="/admin">Administration</Link>}
         </nav>

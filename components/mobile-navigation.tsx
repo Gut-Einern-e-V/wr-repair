@@ -30,6 +30,13 @@ const pages = [
   ["/supporters", "Unterstützung"],
 ] as const;
 
+/* Nach dem Ende fuehrt nichts mehr ins Formular oder zu den Betrieben - beide
+   Seiten leiten dann auf die Startseite um. */
+const closedPages = [
+  ["/stats", "Ergebnis"],
+  ...pages.filter(([href]) => href !== "/mitmachen" && href !== "/stats" && href !== "/reparaturbetriebe"),
+] as const;
+
 const legalLinks = [
   ["/privacy", "Datenschutz"],
   ["/imprint", "Impressum"],
@@ -37,7 +44,7 @@ const legalLinks = [
   ["/leichte-sprache", "Leichte Sprache"],
 ] as const;
 
-export function MobileNavigation() {
+export function MobileNavigation({ closed = false }: { closed?: boolean }) {
   const [isOpen, setIsOpen] = useState(false);
   const closeRef = useRef<HTMLButtonElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
@@ -85,7 +92,7 @@ export function MobileNavigation() {
           </button>
         </div>
         <nav className="mobile-nav-pages" aria-label="Hauptnavigation">
-          {pages.map(([href, label]) => <Link href={href} key={href} onClick={() => setIsOpen(false)}>{label}<i aria-hidden="true">&#8594;</i></Link>)}
+          {(closed ? closedPages : pages).map(([href, label]) => <Link href={href} key={href} onClick={() => setIsOpen(false)}>{label}<i aria-hidden="true">&#8594;</i></Link>)}
         </nav>
         <div className="mobile-nav-legal">
           {legalLinks.map(([href, label]) => <Link href={href} key={href} onClick={() => setIsOpen(false)}>{label}</Link>)}

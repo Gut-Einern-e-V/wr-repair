@@ -11,6 +11,7 @@ import { checkSubmissionGate, retryHint, submissionLimit } from "@/lib/submissio
 import { logAbandonedSubmission, logSubmissionFailure, logSubmissionFailureOnce, type AbandonedSubmission, type FailureStage } from "@/lib/submission-log";
 import { repairCategoryValues } from "@/lib/repair-catalog";
 import { isCaptchaSolution } from "@/lib/captcha-token";
+import { captchaRejectionTags } from "@/lib/submission-tags";
 import { screenImage, type ScreeningResult } from "@/lib/image-screening";
 
 export const runtime = "nodejs";
@@ -350,6 +351,9 @@ export async function POST(request: Request) {
      Eine Einreichung, die nur durchkam, weil der Spam-Schutz nicht antwortete,
      soll als solche im Fehlerprotokoll stehen. */
   let captchaUnavailable: string | null = null;
+  /* Fehlercode einer Absage von Friendly Captcha, die trotzdem angenommen
+     wird (Issue #167). Bestimmt den Tag fuer die Moderation. */
+  let captchaRejected: string | null = null;
 
   if (process.env.NEXT_PUBLIC_CAPTCHA_ENABLED !== "false") {
     if (typeof captchaToken !== "string" || !captchaToken) {
@@ -403,18 +407,22 @@ export async function POST(request: Request) {
     }
 
     if (captcha.outcome === "invalid") {
-      /* Ein definitives "ungueltig" von Friendly Captcha - der eigentliche
-         Spam-Fall. Kommen die Absagen in Serie, liegt es eher an einem
-         verbrauchten Loesungswort oder einem falsch zugeordneten Sitekey als
-         an Spam; genau dafuer steht die Anzahl im Admin-Backend. Und weil
-         hinter so einer Absage eine echte Reparatur stecken kann, wird sie
-         nicht nur gezaehlt, sondern aufgehoben (Issue #107). */
-      const detail = captcha.detail ?? "siteverify meldet ungültig";
-      after(async () => {
-        await logSubmissionFailureOnce(supabase, request, { stage: "captcha", reason: "captcha_invalid", detail });
-        await logAbandonedSubmission(supabase, request, abandoned("captcha", "captcha_invalid", detail));
-      });
-      return withTimings(captchaResponse("Der Spam-Schutz konnte nicht bestätigt werden. Bitte sende gleich noch einmal - deine Angaben bleiben stehen."));
+      /* Ein definitives "ungueltig" von Friendly Captcha: annehmen, markieren,
+         die Moderation entscheiden lassen (Issue #167).
+
+         Vorher war das eine Absage, und die abgebrochenen Einreichungen
+         zeigten, was sie gekostet hat: ueberwiegend echte Reparaturen, viele
+         mit `response_duplicate` - ein schon einmal eingeloestes, also von
+         einem Menschen geloestes Wort. Dieselbe Abwaegung wie bei
+         `unavailable` weiter unten: Spam kostet in der Moderation einen
+         Klick, eine verworfene Reparatur ist endgueltig weg. Den Tag dafuer
+         setzt der Insert (siehe lib/submission-tags.ts); gezaehlt wird die
+         Absage trotzdem, damit eine Serie im Systemstatus auffaellt.
+
+         Was bleibt, sind die Absagen davor: ohne Token und mit unfertigem
+         Widget-Zustand. Ein Skript muss also immerhin ein Wort in der Form
+         eines Loesungsworts schicken, und die Limitpruefung gilt wie immer. */
+      captchaRejected = captcha.detail ?? "siteverify meldet ungültig";
     }
 
     /* Zeitueberschreitung oder Stoerung bei Friendly Captcha: annehmen und
@@ -532,6 +540,10 @@ export async function POST(request: Request) {
      Nachlauf gar nicht mehr zum Zug kommt, und die Moderation saehe dauerhaft
      ein kaputtes Bild. So ist der schlechteste Fall eine Einreichung ohne
      Foto, und die ist in sich richtig. */
+  const tags = [
+    ...(settings.testRun ? ["testlauf"] : []),
+    ...(captchaRejected ? captchaRejectionTags(captchaRejected) : []),
+  ];
   const insertStartedAt = Date.now();
   const { error: insertError } = await supabase.from("repairs").insert({
     id: repairId,
@@ -555,7 +567,7 @@ export async function POST(request: Request) {
        auch aendern. Eine neue Spalte waere zwischen Deployment und Migration
        ein Insert auf ein Feld, das es noch nicht gibt - und damit jede
        Einreichung abgewiesen. */
-    ...(settings.testRun ? { tags: ["testlauf"] } : {}),
+    ...(tags.length ? { tags } : {}),
     image_path: null,
     consent_publication: true,
     location_region: origin.regionLabel,
@@ -724,6 +736,15 @@ export async function POST(request: Request) {
         stage: "gate",
         reason: "idempotency_unavailable",
         detail: "submission_gate fehlt - Migration 202608310001 noch nicht ausgerollt?",
+        repairId,
+      });
+    }
+
+    if (captchaRejected) {
+      await logSubmissionFailure(supabase, request, {
+        stage: "captcha",
+        reason: "captcha_invalid",
+        detail: captchaRejected,
         repairId,
       });
     }

@@ -23,12 +23,19 @@ export function CampaignWindowNotice({ status, startAt }: CampaignWindowNoticePr
   return <section className="campaign-window" id="campaign-window" aria-labelledby="campaign-window-title">
     <p className="section-index">Weltrekordversuch NRW</p>
     <h2 id="campaign-window-title">{heading}</h2>
-    <p>
-      Die Idee ist einfach: Einen Monat lang zählt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag
-      hält &ndash; geschraubt, genäht und geklebt wird in Repair Cafés, Werkstätten, Schulen, Vereinen und am
-      Küchentisch. Wer mitmacht, fotografiert die Reparatur und beantwortet ein paar Fragen. Nach der Prüfung zählt
-      der Beitrag für den Rekord.
-    </p>
+    {status === "after"
+      ? <p>
+          Die Idee war einfach: Einen Monat lang hat Nordrhein-Westfalen jede Reparatur gezählt, die einen Gegenstand im
+          Alltag hält &ndash; geschraubt, genäht und geklebt wurde in Repair Cafés, Werkstätten, Schulen, Vereinen und am
+          Küchentisch. Wer mitgemacht hat, hat die Reparatur fotografiert und ein paar Fragen beantwortet. Nach der
+          Prüfung hat der Beitrag für den Rekord gezählt.
+        </p>
+      : <p>
+          Die Idee ist einfach: Einen Monat lang zählt Nordrhein-Westfalen jede Reparatur, die einen Gegenstand im Alltag
+          hält &ndash; geschraubt, genäht und geklebt wird in Repair Cafés, Werkstätten, Schulen, Vereinen und am
+          Küchentisch. Wer mitmacht, fotografiert die Reparatur und beantwortet ein paar Fragen. Nach der Prüfung zählt
+          der Beitrag für den Rekord.
+        </p>}
     <p>
       {status === "after"
         ? "Danke an alle Menschen, die Reparatur sichtbar gemacht haben. Die veröffentlichten Geschichten bleiben Teil des Projekts."

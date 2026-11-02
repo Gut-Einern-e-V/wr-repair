@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CategoryPictogram } from "@/components/category-pictogram";
 import { repairCategories, repairCategoryLabel } from "@/lib/repair-catalog";
 import { useJsonResource } from "@/lib/use-json-resource";
+import { submissionWarnings } from "@/lib/submission-tags";
 import { decideRepair, deleteRepair, deleteRepairImage, saveRepairMetadata } from "./moderation-api";
 import RepairDetail from "./repair-detail";
 import ScreenedImage from "./screened-image";
@@ -205,6 +206,7 @@ export default function RepairTable({ isAdmin }: { isAdmin: boolean }) {
                       {repair.origin?.kreis ?? repair.location_region ?? "–"}
                       {originWarning(repair) && <span className="table-sub is-warning">{originWarning(repair)}</span>}
                       {screeningWarning(repair) && <span className="table-sub is-warning">{screeningWarning(repair)}</span>}
+                      {submissionWarnings(repair.tags).map((warning) => <span key={warning.tag} className="table-sub is-warning">{warning.title}</span>)}
                     </td>
                     <td>{repair.consent_publication ? "Ja" : "Nein"}</td>
                     <td>

@@ -3,6 +3,8 @@ import { Noto_Sans_Arabic } from "next/font/google";
 import { getSiteUrl } from "@/lib/share";
 import { buildQrGlyph } from "@/lib/qr-glyph";
 import { PosterStudio } from "./poster-studio";
+import { redirect } from "next/navigation";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 
 /* Nunito deckt kein Arabisch ab - ohne eigene Schrift faellt die arabische
    Fassung auf eine beliebige Systemschrift zurueck und passt nicht zum Rest.
@@ -22,7 +24,12 @@ export const metadata = {
 
 export const dynamic = "force-dynamic";
 
+/* Nach dem Ende der Aktion gibt es hier nichts mehr zu tun - alte QR-Codes und
+   Links landen auf der Startseite mit dem Ergebnis. Mit einem neuen Zeitraum
+   ist die Seite wieder da (lib/campaign-closed.ts). */
 export default async function PosterPage() {
+  if (await getCampaignClosed()) redirect("/");
+
   /* Ohne Rueckfallebene stand auf dem gedruckten Aufsteller `localhost:3000`,
      sobald `NEXT_PUBLIC_SITE_URL` fehlte (Issue #92). Der Host aus der Anfrage
      ist immer die Domain, unter der jemand den Generator gerade aufruft. */

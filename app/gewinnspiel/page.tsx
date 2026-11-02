@@ -3,6 +3,7 @@ import NextImage from "next/image";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { brandPhotos } from "@/lib/brand-photos";
 import { getAppSettings } from "@/lib/app-settings";
+import { campaignClosed } from "@/lib/campaign-closed";
 import { CONTACT_EMAIL, mailto } from "@/lib/organisation";
 import { readPrizes, type PrizeRow } from "@/lib/lottery-store";
 import { isPrizeListBinding, placeLabel, prizeListLead, totalPrizeCount } from "@/lib/prize-list";
@@ -40,7 +41,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/server";
 export const metadata = {
   // Nur das Thema: Den Projektnamen haengt `title.template` aus app/layout.tsx an.
   title: "Gewinnspiel",
-  description: "Jede eingereichte Reparatur kann am Gewinnspiel teilnehmen – kostenlos, unabhängig davon, ob die Reparatur geglückt ist. Teilnahmebedingungen und Ablauf der Verlosung.",
+  description: "Das Gewinnspiel zum Reparaturrekord NRW: kostenlos, unabhängig davon, ob die Reparatur geglückt ist. Preise, Teilnahmebedingungen und Ablauf der Verlosung.",
 };
 
 /* Zeitraum, Preise und Veranstalter kommen aus dem Backend. Ein Preis wird oft
@@ -63,6 +64,12 @@ const dayFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "long", timeZone
 function periodLine(startAt: Date | null, endAt: Date | null) {
   if (!startAt || !endAt) return "Der genaue Zeitraum wird gerade festgelegt und steht hier, sobald er feststeht.";
   return `Teilnehmen kannst du mit jeder Reparatur, die du zwischen dem ${dateFormat.format(startAt)} Uhr und dem ${dateFormat.format(endAt)} Uhr einreichst.`;
+}
+
+/** Derselbe Satz nach der Aktion: Teilnehmen kann niemand mehr. */
+function closedPeriodLine(startAt: Date | null, endAt: Date | null) {
+  if (!startAt || !endAt) return "Teilnehmen konnte jede Reparatur, die während des Rekordmonats eingereicht wurde.";
+  return `Teilnehmen konnte jede Reparatur, die zwischen dem ${dateFormat.format(startAt)} Uhr und dem ${dateFormat.format(endAt)} Uhr eingereicht wurde.`;
 }
 
 /**
@@ -173,10 +180,15 @@ export default async function LotteryPage() {
   /* Zeitraum, Gebiet und Veranstalter kommen aus den Einstellungen, damit hier
      dasselbe steht wie im Formular - auch wenn das Backend sie waehrend der
      Aktion aendert. */
-  const [{ submissionWindow, region, lotteryOrganizer: organizer }, prizes] = await Promise.all([
+  const [settings, prizes] = await Promise.all([
     getAppSettings(),
     loadPrizes(),
   ]);
+  const { submissionWindow, region, lotteryOrganizer: organizer } = settings;
+  /* Nach der Aktion bleibt die Seite als Nachweis stehen: Bedingungen und
+     Preise unveraendert, aber ohne Aufforderung zum Mitmachen - die Ziehung
+     steht dann noch aus oder ist gelaufen. */
+  const closed = campaignClosed(settings);
   const regionLabel = region.label || "Nordrhein-Westfalen";
   /* Ab dem Start der Teilnahme ist die Preisliste verbindlich (Issue #110).
      Dieselbe Regel gilt im Backend, wo sie das Entfernen verhindert. */
@@ -195,10 +207,15 @@ export default async function LotteryPage() {
           ueber einen geteilten Link hier einsteigt, hat die Startseite nie
           gesehen - dann steht "Rekord" ohne alles da und kann alles
           Moegliche heissen. */}
-      <p>Jede Reparatur, die du einreichst, kann am Gewinnspiel teilnehmen. Die Teilnahme ist kostenlos, freiwillig und hat keinen Einfluss darauf, ob dein Beitrag für den Rekord zählt. Was es mit dem Rekordversuch auf sich hat, steht unter <Link href="/#zahlen-und-fakten">Zahlen und Fakten</Link> und auf der Seite <Link href="/about">Über das Projekt</Link>.</p>
+      {closed
+        ? <>
+            <p>{closedPeriodLine(submissionWindow.startAt, submissionWindow.endAt)} Die Teilnahme war kostenlos, freiwillig und hatte keinen Einfluss darauf, ob ein Beitrag für den Rekord zählt. Was es mit dem Rekord auf sich hat, steht auf der Seite <Link href="/about">Über das Projekt</Link>.</p>
+            <p>Die Ziehung steht noch aus – die Gewinnerinnen und Gewinner werden per E-Mail benachrichtigt.</p>
+          </>
+        : <p>Jede Reparatur, die du einreichst, kann am Gewinnspiel teilnehmen. Die Teilnahme ist kostenlos, freiwillig und hat keinen Einfluss darauf, ob dein Beitrag für den Rekord zählt. Was es mit dem Rekordversuch auf sich hat, steht unter <Link href="/#zahlen-und-fakten">Zahlen und Fakten</Link> und auf der Seite <Link href="/about">Über das Projekt</Link>.</p>}
     </section>
 
-    <section className="content-section" aria-labelledby="lottery-how-title">
+    {!closed && <section className="content-section" aria-labelledby="lottery-how-title">
       <div className="section-heading">
         <div>
           <p className="section-index">In drei Schritten</p>
@@ -230,19 +247,19 @@ export default async function LotteryPage() {
           </div>
         </li>
       </ol>
-    </section>
+    </section>}
 
     <section className="content-section" aria-labelledby="lottery-prizes-title">
       <div className="section-heading">
         <div>
           <p className="section-index">Die Preise</p>
           <h2 id="lottery-prizes-title">Was es zu gewinnen gibt.</h2>
-          <p className="section-lead">{prizeListLead(prizesAreBinding, submissionWindow.startAt ? dayFormat.format(submissionWindow.startAt) : null, totalPrizeCount(prizes))}</p>
+          <p className="section-lead">{prizeListLead(prizesAreBinding, submissionWindow.startAt ? dayFormat.format(submissionWindow.startAt) : null, totalPrizeCount(prizes), closed)}</p>
         </div>
       </div>
       {prizes.length > 0
         ? <><ul className="prize-list">{prizes.map((prize) => <PrizeCard key={prize.id} prize={prize} />)}</ul>
-            <ContributeNote /></>
+            {!closed && <ContributeNote />}</>
         : prizesAreBinding
         ? <PrizesUnavailableNote />
         : <><ul className="prize-placeholder">
@@ -346,8 +363,15 @@ export default async function LotteryPage() {
 
     <section className="content-callout">
       <div className="banner-photo" aria-hidden="true"><NextImage src={brandPhotos.celebrate.src} alt="" fill sizes="(max-width: 1120px) 100vw, 1120px" /></div>
-      <p>Erst reparieren. Dann eintragen. Dann Daumen drücken.</p>
-      <Link className="button button-secondary" href="/mitmachen">Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
+      {closed
+        ? <>
+            <p>Danke an alle, die mitgemacht haben. Jetzt heißt es Daumen drücken.</p>
+            <Link className="button button-secondary" href="/stats">Zum Ergebnis <span aria-hidden="true">&#8594;</span></Link>
+          </>
+        : <>
+            <p>Erst reparieren. Dann eintragen. Dann Daumen drücken.</p>
+            <Link className="button button-secondary" href="/mitmachen">Reparatur eintragen <span aria-hidden="true">&#8594;</span></Link>
+          </>}
     </section>
 
     <SiteFooter />

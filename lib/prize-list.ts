@@ -78,9 +78,17 @@ export function prizeOverrideReason(roles: string[], reasonRaw: unknown): { allo
  *
  * `startLabel` ist der fertig formatierte Tag oder null, wenn kein Zeitraum
  * eingestellt ist. Die Seite formatiert ihn, damit hier keine Zeitzone steht.
+ *
+ * `closed` steht fuer die Zeit nach der Aktion (lib/campaign-closed.ts): Dann
+ * nimmt niemand mehr teil, und die Einladung zum Mitmachen waere falsch. Die
+ * Zusage selbst bleibt - gezogen wird unter genau diesen Preisen.
  */
-export function prizeListLead(binding: boolean, startLabel: string | null, total: number): string {
+export function prizeListLead(binding: boolean, startLabel: string | null, total: number, closed = false): string {
   const start = startLabel ? ` am ${startLabel}` : "";
+
+  if (closed && total > 0) {
+    return `Unter allen gültigen Teilnahmen ${total === 1 ? "wird der folgende Preis" : `werden die folgenden ${total} Preise`} verlost. Seit dem Start der Teilnahme${start} ist diese Liste verbindlich.`;
+  }
 
   /* Keine Preise und die Teilnahme laeuft schon: Dann ist etwas kaputt, denn
      bis zum Start muss die Liste stehen. Erfundene Beispiele waeren hier

@@ -2,13 +2,15 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { LooseZero, NotFoundTicket } from "@/components/error-scene";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 
 /* Greift fuer jede Adresse, die es nicht gibt, und fuer jedes `notFound()`
    ohne eigene not-found.tsx im Segment (Stories, private Reparaturlinks).
    `noindex` setzt Next.js bei 404 selbst. */
 export const metadata: Metadata = { title: "Seite nicht gefunden" };
 
-export default function NotFound() {
+export default async function NotFound() {
+  const closed = await getCampaignClosed();
   return <main className="page-shell content-page">
     <SiteHeader />
     <section id="inhalt" className="error-stage" aria-labelledby="not-found-title">
@@ -24,8 +26,8 @@ export default function NotFound() {
         </p>
         <div className="error-actions">
           <Link className="button button-primary" href="/">Zur Startseite</Link>
-          <Link className="button button-secondary" href="/mitmachen">Etwas Echtes reparieren</Link>
-          <Link className="text-button" href="/stats">Zum Live-Stand</Link>
+          <Link className="button button-secondary" href="/repair-cafes">Etwas Echtes reparieren</Link>
+          <Link className="text-button" href="/stats">{closed ? "Zum Ergebnis" : "Zum Live-Stand"}</Link>
         </div>
       </div>
       <div className="error-visual">

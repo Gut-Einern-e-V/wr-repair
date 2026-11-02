@@ -37,6 +37,8 @@ type AbandonedRow = {
   story: string | null;
   has_image: boolean;
   wants_lottery: boolean;
+  client_key: string | null;
+  detail: string | null;
 };
 type Usage = {
   databaseBytes: number;
@@ -138,11 +140,23 @@ export async function GET() {
     timed(async () => {
       const { data, error } = await supabase
         .from("abandoned_submissions")
-        .select("id, created_at, last_at, attempts, stage, reason, ip_region, kreis, origin_source, category, brand_model, duration_minutes, item_value_euros, performed_by, story, has_image, wants_lottery")
+        .select("id, created_at, last_at, attempts, stage, reason, detail, client_key, ip_region, kreis, origin_source, category, brand_model, duration_minutes, item_value_euros, performed_by, story, has_image, wants_lottery")
         .order("last_at", { ascending: false })
         .limit(25);
       if (error) throw new Error(error.message);
-      return (data ?? []) as AbandonedRow[];
+      const rows = (data ?? []) as AbandonedRow[];
+
+      /* Ein Sendevorgang, der beim naechsten Versuch doch noch ankam, ist
+         nicht verloren (Issue #167). Das Formular holt nach einer Absage ein
+         frisches Loesungswort; klappt der Versuch dann, bleibt die Zeile hier
+         trotzdem stehen - und sah aus wie eine verlorene Reparatur. Derselbe
+         `client_key` in `repairs` heiszt: angekommen. */
+      const keys = rows.map((row) => row.client_key).filter((key): key is string => Boolean(key));
+      if (!keys.length) return rows;
+      const { data: landed, error: landedError } = await supabase.from("repairs").select("client_key").in("client_key", keys);
+      if (landedError) throw new Error(landedError.message);
+      const landedKeys = new Set((landed ?? []).map((row) => row.client_key as string));
+      return rows.filter((row) => !row.client_key || !landedKeys.has(row.client_key));
     }),
   ]);
 
@@ -234,6 +248,7 @@ export async function GET() {
           attempts: row.attempts,
           stage: row.stage,
           reason: row.reason,
+          detail: row.detail,
           ipRegion: row.ip_region,
           kreis: row.kreis,
           originSource: row.origin_source,

@@ -6,6 +6,10 @@ import { SiteFooter, SiteHeader } from "@/components/site-chrome";
 import { BreadcrumbStructuredData, StoryStructuredData } from "@/components/structured-data";
 import { getStories, getStory, type StoryImage } from "@/lib/stories";
 
+/* Veroeffentlichte Highlights kommen aus der Datenbank. Die Freigabe setzt die
+   Seite sofort neu auf; das hier ist nur das Sicherheitsnetz. */
+export const revalidate = 600;
+
 type StoryPageProps = { params: Promise<{ slug: string }> };
 
 export async function generateStaticParams() {

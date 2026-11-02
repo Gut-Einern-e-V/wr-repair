@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { categoryPictogramSvg } from "@/components/category-pictogram";
+import { getCampaignClosed } from "@/lib/campaign-closed";
 import { getPublicRepairStatus } from "@/lib/repair-status";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { getSiteUrl } from "@/lib/share";
@@ -158,6 +159,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   const photoWidth = cardWidth - layout.padding * 2 - 8;
   const headlineSize = shareVisualHeadlineSize(look.claim, layout.headlineSize, photoWidth - 44);
   const domain = readableSiteUrl(request);
+  /* Nach dem Ende kein Aufruf zum Mitmachen mehr - /mitmachen leitet dann um. */
+  const closed = await getCampaignClosed();
 
   /* Wie hoch das Foto sein darf: alles, was Kopfzeile, Aufkleber und
      Fusszeilen uebriglassen. Die drei Kastenhoehen sind gerechnet und nicht
@@ -270,7 +273,7 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
                 Zeilenende faellt es niemandem auf. */}
             <div style={{ display: "flex", flexDirection: "column", marginTop: 10, fontSize: layout.footerSize, fontWeight: 600, whiteSpace: "nowrap" }}>
               <div style={{ display: "flex" }}>Ich war dabei beim Reparaturrekord.</div>
-              {domain && <div style={{ display: "flex", fontWeight: 800, color: groundSpec.muted }}>Mach mit: {domain}</div>}
+              {domain && <div style={{ display: "flex", fontWeight: 800, color: groundSpec.muted }}>{closed ? "Mehr:" : "Mach mit:"} {domain}</div>}
             </div>
           </div>
         </div>
