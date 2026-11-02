@@ -7,7 +7,7 @@ import "./recap.css";
 import { CategoryMotif } from "@/components/category-motif";
 import type { CampaignDates } from "@/lib/campaign-phase";
 import { formatMinutes } from "@/lib/dashboard";
-import { successShare, type PublicStats } from "@/lib/public-stats";
+import { successShare, type PublicStats, type PublicStatsTimelineDay } from "@/lib/public-stats";
 import { repairCategoryLabel } from "@/lib/repair-catalog";
 import { DAY_PLACE_RECORD, MONTH_RECORD, recordMargin } from "@/lib/repair-records";
 import { FactIcon, Trophy, type FactIconName } from "./recap-icons";
@@ -31,6 +31,10 @@ import { RecapPlaces } from "./recap-map";
 
 const dayFormat = new Intl.DateTimeFormat("de-DE", { day: "2-digit", month: "2-digit" });
 const longDayFormat = new Intl.DateTimeFormat("de-DE", { dateStyle: "long" });
+const tipDayFormat = new Intl.DateTimeFormat("de-DE", { weekday: "long", day: "numeric", month: "long" });
+
+/** So viele neue Orte nennt der Tooltip mit Namen, der Rest steht als "+n". */
+const TIP_NEW_PLACES = 3;
 
 /** Eine Geschichte, wie der Rueckblick sie anteasert (siehe page.tsx). */
 export type RecapStory = {
@@ -81,6 +85,12 @@ function chartScale(peak: number) {
 export default function Recap({ campaign, stories }: { campaign: CampaignDates; stories: RecapStory[] }) {
   const [stats, setStats] = useState<PublicStats | null>(null);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
+  /* Der Tag unter dem Tooltip: per Maus, oder per Fokus - Tastatur und
+     Antippen auf dem Handy. Die Maus geht vor, solange sie ueber dem Diagramm
+     ist. */
+  const [hoveredDay, setHoveredDay] = useState<number | null>(null);
+  const [focusedDay, setFocusedDay] = useState<number | null>(null);
+  const activeDay = hoveredDay ?? focusedDay;
 
   useEffect(() => {
     async function load() {
@@ -101,6 +111,8 @@ export default function Recap({ campaign, stories }: { campaign: CampaignDates; 
     if (!stats) return null;
 
     const timeline = stats.timeline;
+    /* Stand nach jedem Tag - "Stand danach" im Tooltip. */
+    const running = timeline.reduce<number[]>((list, day) => [...list, (list.at(-1) ?? 0) + day.total], []);
     const peak = timeline.reduce((highest, day) => Math.max(highest, day.total), 0);
     const activeDays = timeline.filter((day) => day.total > 0).length;
     const categories = Object.entries(stats.categories).sort(([, left], [, right]) => right - left);
@@ -111,6 +123,7 @@ export default function Recap({ campaign, stories }: { campaign: CampaignDates; 
 
     return {
       timeline,
+      running,
       peak,
       scale: chartScale(peak),
       activeDays,
@@ -236,7 +249,7 @@ export default function Recap({ campaign, stories }: { campaign: CampaignDates; 
               </span>
             ))}
           </div>
-          <ol className="recap-chart" aria-label={`Reparaturen je Tag, Höchstwert ${derived.peak}`}>
+          <ol className="recap-chart" aria-label={`Reparaturen je Tag, Höchstwert ${derived.peak}`} onMouseLeave={() => setHoveredDay(null)}>
             {derived.timeline.map((day, index) => {
               const event = EVENT_DAYS[day.date];
               const height = Math.max((day.total / derived.scale.max) * 100, day.total > 0 ? 1 : 0);
@@ -244,9 +257,19 @@ export default function Recap({ campaign, stories }: { campaign: CampaignDates; 
                 stats.bestDay?.date === day.date ? "is-best" : "",
                 event ? "is-event" : "",
                 index > derived.timeline.length - 4 ? "is-end" : "",
+                activeDay === index ? "is-active" : "",
               ].filter(Boolean).join(" ");
               return (
-                <li key={day.date} className={classes} title={`${longDayFormat.format(parseDay(day.date))}: ${day.total.toLocaleString("de-DE")}`}>
+                <li
+                  key={day.date}
+                  className={classes}
+                  tabIndex={0}
+                  aria-label={`${longDayFormat.format(parseDay(day.date))}: ${day.total.toLocaleString("de-DE")}`}
+                  aria-describedby={activeDay === index ? "recap-day-tip" : undefined}
+                  onMouseEnter={() => setHoveredDay(index)}
+                  onFocus={() => setFocusedDay(index)}
+                  onBlur={() => setFocusedDay(null)}
+                >
                   <span className="recap-day-slot">
                     <span className="recap-day-bar" style={{ height: `${height}%` }} />
                     {/* Der staerkste Ort an diesem Tag als Anteil im Balken -
@@ -271,6 +294,15 @@ export default function Recap({ campaign, stories }: { campaign: CampaignDates; 
               );
             })}
           </ol>
+          {activeDay !== null && derived.timeline[activeDay] && (
+            <DayTip
+              day={derived.timeline[activeDay]}
+              index={activeDay}
+              count={derived.timeline.length}
+              running={derived.running[activeDay]}
+              perDay={derived.perDay}
+            />
+          )}
         </div>
         <p className="recap-days-note">
           {stats.bestDay
@@ -382,5 +414,79 @@ export default function Recap({ campaign, stories }: { campaign: CampaignDates; 
         </p>
       </footer>
     </main>
+  );
+}
+
+/**
+ * Was einen Tag ausgemacht hat, beim Ueberfahren oder Antippen eines Balkens:
+ * neben der Summe der Vergleich mit dem Schnitt, der Stand danach, der
+ * staerkste Ort, die haeufigste Kategorie und die Orte, die an diesem Tag zum
+ * ersten Mal dabei waren. Fehlt eine Angabe (aeltere Datenbankfunktion, Tag
+ * ohne Reparatur), faellt die Zeile weg.
+ *
+ * Er steht neben dem Balken statt darueber, damit er weder den Balken noch
+ * die Beschriftung der Festtage verdeckt: in der linken Haelfte rechts
+ * daneben, in der rechten links.
+ */
+function DayTip({ day, index, count, running, perDay }: {
+  day: PublicStatsTimelineDay;
+  index: number;
+  count: number;
+  running: number;
+  perDay: number;
+}) {
+  const leftHalf = index < count / 2;
+  const style = leftHalf
+    ? { left: `calc(var(--chart-inset) + (100% - var(--chart-inset)) * ${(index + 1) / count} + 8px)` }
+    : { right: `calc((100% - var(--chart-inset)) * ${(count - index) / count} + 8px)` };
+  const factor = perDay > 0 ? day.total / perDay : 0;
+  const newPlaces = day.newKreise ?? [];
+
+  return (
+    <div id="recap-day-tip" className="recap-day-tip" role="tooltip" style={style}>
+      <span className="recap-day-tip-date">{tipDayFormat.format(parseDay(day.date))}</span>
+      <strong className="recap-day-tip-total">
+        {day.total.toLocaleString("de-DE")} {day.total === 1 ? "Reparatur" : "Reparaturen"}
+      </strong>
+      {day.total > 0 && (
+        <span className="recap-day-tip-meta">
+          {factor.toLocaleString("de-DE", { maximumFractionDigits: 1 })}&times; Tagesschnitt &middot; Stand danach {running.toLocaleString("de-DE")}
+        </span>
+      )}
+      {(day.topKreis || day.topCategory || newPlaces.length > 0) && (
+        <dl>
+          {day.topKreis && (
+            <div>
+              <dt>Vorne</dt>
+              <dd>{day.topKreis.kreis} <strong>{day.topKreis.total.toLocaleString("de-DE")}</strong></dd>
+            </div>
+          )}
+          {day.places !== undefined && day.places > 1 && (
+            <div>
+              <dt>Orte</dt>
+              <dd>{day.places.toLocaleString("de-DE")} dabei</dd>
+            </div>
+          )}
+          {day.topCategory && (
+            <div>
+              <dt>Meist</dt>
+              <dd className="recap-day-tip-category">
+                <CategoryMotif category={day.topCategory.category} size={22} />
+                <span>{repairCategoryLabel(day.topCategory.category)} <strong>{day.topCategory.total.toLocaleString("de-DE")}</strong></span>
+              </dd>
+            </div>
+          )}
+          {newPlaces.length > 0 && (
+            <div>
+              <dt>Neu dabei</dt>
+              <dd>
+                {newPlaces.slice(0, TIP_NEW_PLACES).join(", ")}
+                {newPlaces.length > TIP_NEW_PLACES && <span> +{(newPlaces.length - TIP_NEW_PLACES).toLocaleString("de-DE")}</span>}
+              </dd>
+            </div>
+          )}
+        </dl>
+      )}
+    </div>
   );
 }

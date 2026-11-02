@@ -152,6 +152,35 @@ describe("readPublicStats", () => {
     expect(stats).toMatchObject({ total: 0, pending: 0, today: 0, bestDay: null, dayRecord: null, categories: {}, kreise: {}, timeline: [] });
   });
 
+  it("reads the details of a day when the database delivers them", () => {
+    const stats = readPublicStats({
+      timeline: [
+        {
+          date: "2026-10-31",
+          total: "704",
+          places: 12,
+          topKreis: { kreis: "Wuppertal", total: 303 },
+          newKreise: ["Köln", 7],
+          topCategory: { category: "bicycles", total: 88 },
+        },
+        // Ein Tag ohne Reparatur: kein staerkster Ort, keine Kategorie.
+        { date: "2026-11-01", total: 0, places: 0, topKreis: null, newKreise: [], topCategory: null },
+      ],
+    }, context);
+
+    expect(stats.timeline).toEqual([
+      {
+        date: "2026-10-31",
+        total: 704,
+        places: 12,
+        topKreis: { kreis: "Wuppertal", total: 303 },
+        newKreise: ["Köln"],
+        topCategory: { category: "bicycles", total: 88 },
+      },
+      { date: "2026-11-01", total: 0, places: 0, newKreise: [] },
+    ]);
+  });
+
   it("drops a best day without repairs instead of announcing a zero record", () => {
     expect(readPublicStats({ bestDay: { date: "2026-10-17", total: 0 } }, context).bestDay).toBeNull();
   });

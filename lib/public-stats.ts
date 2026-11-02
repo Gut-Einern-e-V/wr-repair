@@ -10,6 +10,18 @@
 export type PublicStatsDay = { date: string; total: number };
 /** Bester Tag eines Ortes: Tag, Ort und die Zahl der Reparaturen darin. */
 export type PublicStatsKreisDay = { date: string; kreis: string; total: number };
+/**
+ * Ein Tag der Zeitachse. Neben der Summe, sofern die Datenbankfunktion sie
+ * liefert (Migration 202611020001), was den Tag ausgemacht hat: wie viele Orte
+ * dabei waren, welcher vorne lag, welche zum ersten Mal dabei waren und was am
+ * meisten repariert wurde.
+ */
+export type PublicStatsTimelineDay = PublicStatsDay & {
+  places?: number;
+  topKreis?: { kreis: string; total: number };
+  newKreise?: string[];
+  topCategory?: { category: string; total: number };
+};
 
 export type PublicStats = {
   /**
@@ -72,7 +84,7 @@ export type PublicStats = {
   /** Alle Kreise und kreisfreien Staedte mit mindestens einer Reparatur. */
   kreise: Record<string, number>;
   /** Ein Eintrag je Tag des Einreichungszeitraums, Luecken als 0. */
-  timeline: PublicStatsDay[];
+  timeline: PublicStatsTimelineDay[];
   campaign: { startAt: string | null; endAt: string | null };
 };
 
@@ -168,13 +180,38 @@ function toKreisDay(value: unknown): PublicStatsKreisDay | null {
   return { date: record.date, kreis: record.kreis, total };
 }
 
-function toTimeline(value: unknown): PublicStatsDay[] {
+/** Ein Name mit Zahl, etwa der staerkste Ort - unvollstaendig heisst: keiner. */
+function toNamedCount<Key extends string>(value: unknown, key: Key): ({ total: number } & Record<Key, string>) | null {
+  if (!value || typeof value !== "object") return null;
+
+  const record = value as Record<string, unknown>;
+  const name = record[key];
+  const total = toNumber(record.total);
+  if (typeof name !== "string" || total <= 0) return null;
+
+  return { [key]: name, total } as { total: number } & Record<Key, string>;
+}
+
+/**
+ * Die Tagesdetails stehen nur im Eintrag, wenn die Datenbank sie geliefert
+ * hat - eine aeltere Fassung der Funktion ergibt weiter `{ date, total }`.
+ */
+function toTimeline(value: unknown): PublicStatsTimelineDay[] {
   if (!Array.isArray(value)) return [];
 
   return value.flatMap((entry) => {
     if (!entry || typeof entry !== "object") return [];
     const record = entry as Record<string, unknown>;
-    return typeof record.date === "string" ? [{ date: record.date, total: toNumber(record.total) }] : [];
+    if (typeof record.date !== "string") return [];
+
+    const day: PublicStatsTimelineDay = { date: record.date, total: toNumber(record.total) };
+    if (record.places !== undefined) day.places = toNumber(record.places);
+    const topKreis = toNamedCount(record.topKreis, "kreis");
+    if (topKreis) day.topKreis = topKreis;
+    if (Array.isArray(record.newKreise)) day.newKreise = record.newKreise.filter((kreis): kreis is string => typeof kreis === "string");
+    const topCategory = toNamedCount(record.topCategory, "category");
+    if (topCategory) day.topCategory = topCategory;
+    return [day];
   });
 }
 

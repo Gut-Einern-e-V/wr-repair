@@ -148,6 +148,8 @@
    enden. */
 .recap-chart-frame {
   --day-label: 38px;
+  /* Breite der Wertespalte links - der Tooltip rechnet die Balken ab hier. */
+  --chart-inset: 44px;
   position: relative;
   padding-left: 44px;
 }
@@ -204,7 +206,9 @@
   bottom: 0;
   background: rgba(149, 212, 187, .55);
 }
-.recap-chart li:hover .recap-day-bar { background: rgba(149, 212, 187, .85); }
+.recap-chart li { outline: none; cursor: default; }
+.recap-chart li:hover .recap-day-bar, .recap-chart li.is-active .recap-day-bar { background: rgba(149, 212, 187, .85); }
+.recap-chart li:focus-visible .recap-day-slot { outline: 2px solid var(--stage-mint); outline-offset: 2px; }
 .recap-chart li.is-event .recap-day-bar { background: var(--stage-mint); }
 .recap-chart li.is-best .recap-day-bar { background: var(--stage-yellow); }
 
@@ -257,6 +261,36 @@
      auch bei schmalen Balken nebeneinander. */
   writing-mode: vertical-rl;
 }
+
+/* Tooltip je Tag (siehe DayTip in recap.tsx): neben dem Balken, oben am
+   Diagramm, ueber den Beschriftungen der Festtage. */
+.recap-day-tip {
+  position: absolute;
+  top: 0;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  width: max-content;
+  max-width: min(280px, 46%);
+  padding: 12px 14px;
+  border: 1px solid rgba(238, 241, 247, .14);
+  border-radius: 10px;
+  background: #0b1020;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .45);
+  pointer-events: none;
+}
+.recap-day-tip-date { color: var(--stage-dim); font: 600 11px var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.recap-day-tip-total { font-size: 1.25rem; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.15; }
+.recap-day-tip-meta { color: var(--stage-dim); font-size: 12px; font-variant-numeric: tabular-nums; }
+.recap-day-tip dl { display: grid; gap: 4px; margin: 6px 0 0; padding-top: 8px; border-top: 1px solid rgba(238, 241, 247, .1); }
+.recap-day-tip dl > div { display: grid; grid-template-columns: 5.5em minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.recap-day-tip dt { color: var(--stage-dim); font: 600 10px var(--sans); letter-spacing: .06em; text-transform: uppercase; }
+.recap-day-tip dd { margin: 0; font-size: 13px; line-height: 1.35; }
+.recap-day-tip dd strong { color: var(--stage-yellow); font-variant-numeric: tabular-nums; }
+.recap-day-tip dd > span { color: var(--stage-dim); }
+.recap-day-tip-category { display: flex; align-items: center; gap: 6px; }
+.recap-day-tip dd.recap-day-tip-category > span { color: inherit; }
+.recap-day-tip-category .category-motif { flex: none; }
 
 .recap-days-note { margin: 20px 0 0; max-width: 70ch; color: var(--stage-dim); font-size: 15px; line-height: 1.55; }
 .recap-days-note strong { color: #eef1f7; }
@@ -438,7 +472,10 @@
   .recap-day-place-label { display: none; }
   .recap-ranking li { grid-template-columns: minmax(0, 1fr) auto; }
   .recap-ranking-track { display: none; }
-  .recap-chart-frame { --day-label: 0px; padding-left: 36px; }
+  .recap-chart-frame { --day-label: 0px; --chart-inset: 36px; padding-left: 36px; }
+  /* Zu schmal fuer einen Kasten neben dem Balken: quer ueber das Diagramm.
+     Die Lage kommt als Inline-Stil aus recap.tsx, daher `!important`. */
+  .recap-day-tip { left: var(--chart-inset) !important; right: 0 !important; width: auto; max-width: none; padding: 10px 12px; }
   .recap-chart-grid { bottom: 0; }
   .recap-chart-grid > span { left: 36px; }
   .recap-bar-day { display: none; }

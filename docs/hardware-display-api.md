@@ -73,7 +73,7 @@ Wer einzelne Reparaturen braucht statt nur der Zahlen — für eine eigene Visua
 | `categories` | Kategoriename und Gesamtzahl. |
 | `categoryMinutes` | Reparaturzeit je Kategorie in Minuten. |
 | `kreise` | Alle Kreise und kreisfreien Städte mit mindestens einer Reparatur, nicht nur die vordersten. |
-| `timeline` | Ein Eintrag je Tag, Tage ohne Reparatur als `0`. |
+| `timeline` | Ein Eintrag je Tag, Tage ohne Reparatur als `0`. Neben `date` und `total` je Tag: `places` (Orte mit Reparatur), `topKreis` (`{ kreis, total }` oder `null`), `newKreise` (Orte mit ihrer ersten Reparatur an diesem Tag) und `topCategory` (`{ category, total }` oder `null`). |
 | `campaign` | Anfang und Ende des Einreichungszeitraums als ISO-Zeitstempel. |
 
 ### Was für den Rekord zählt
